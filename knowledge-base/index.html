@@ -134,7 +134,36 @@ label.f{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--
 .files li{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 12px;border-radius:10px;background:var(--chip);font-size:13px;color:var(--ink-2)}
 .files li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .files li em{font-style:normal;color:var(--faint);font-size:12px}
-.notes{margin:0;padding-left:18px;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.notes{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.notes li{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--surface)}
+.notes p{margin:0;font-size:13.5px;color:var(--ink-2);display:flex;gap:8px;align-items:flex-start}
+.notes p span{flex:1}
+.notes p .x{width:24px;height:24px;flex:none;margin:-2px -4px 0 0}
+.fixrow{display:flex;gap:6px;align-items:flex-start}
+.fixrow textarea{flex:1;min-height:38px;padding:8px 10px;font-size:13.5px;line-height:1.4;resize:none;overflow:hidden}
+.fixrow .btn{flex:none;height:38px}
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:var(--chip);align-self:flex-start}
+.seg button{height:30px;padding:0 14px;border-radius:9px;font-size:13px;font-weight:500;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(11,16,32,.08)}
+.pcards{display:flex;flex-direction:column;gap:12px}
+.pcard{border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--surface)}
+.pcard header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pcard header i{width:10px;height:10px;border-radius:50%;flex:none}
+.pcard header b{font-weight:500;font-size:15.5px}
+.pcard header em{font-style:normal;font-size:12.5px;color:var(--faint)}
+.pcard .psum{margin:0;font-size:14px;color:var(--ink-2);padding:2px 0 2px 10px;border-left:2px solid transparent}
+.pcard dl{margin:0;display:grid;grid-template-columns:minmax(90px,.7fr) minmax(0,1.3fr);font-size:13.5px}
+.pcard dt,.pcard dd{margin:0;padding:6px 0 6px 10px;border-top:1px solid var(--hair)}
+.pcard dt{color:var(--muted)}
+.pcard dd{color:var(--ink);overflow-wrap:anywhere;padding-left:8px}
+.pcard dd.nil{color:var(--faint)}
+.pcard .chg{border-left:2px solid var(--lime-dot);background:rgba(143,209,79,.08)}
+.pcard dt.chg{border-left:2px solid var(--lime-dot)}
+.pcard dd.chg{border-left:0}
+.pcard .plinks{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
+.pcard .plinks .lchip.chg{background:var(--lime);color:var(--lime-ink)}
+.legend-chg{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.legend-chg i{width:10px;height:10px;border-radius:3px;background:rgba(143,209,79,.25);border-left:2px solid var(--lime-dot)}
 .change b{font-weight:500}
 .change .v{color:var(--ink-2);overflow-wrap:anywhere}
 .tag{height:20px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:500;display:inline-flex;align-items:center;white-space:nowrap}
@@ -618,6 +647,27 @@ function changesHtml(c){
   return `${c.items.length > 3 ? `<div class="changes-head">Untick anything you don’t want.<span class="spacer"></span><button type="button" data-all="1">All</button><button type="button" data-all="0">None</button></div>` : ""}
     <div class="changes">${c.items.map((it, j) => `<label class="change ${isOn(c, it) ? "" : "off"}" for="ch${j}"><input type="checkbox" id="ch${j}" data-j="${j}" data-u="${it.u}" ${isOn(c, it) ? "checked" : ""} ${it.dep != null && c.off.has(it.dep) ? "disabled" : ""}><span class="tag ${it.kind}">${kind(it.kind)}</span><div><b>${esc(it.where)}</b><div class="v">${esc(it.what)}</div></div></label>`).join("")}</div>`;
 }
+/* How the ticked changes will look once saved: each touched node as a card, new or changed parts highlighted. */
+const TYPE_ONE = {company: "Company", service: "Service", case: "Case study", process: "Process", sector: "Sector", policy: "Policy", contact: "Contact"};
+function previewHtml(c){
+  const docs = planChanges(c.updates.filter((_, i) => !c.off.has(i))).docs;
+  if (!docs.length) return `<p class="note">Nothing is ticked. Tick a change to preview it.</p>`;
+  return `<div class="legend-chg"><i></i>Highlighted parts are new or changed</div>
+    <div class="pcards">${docs.map(d => {
+      const old = nodes.get(d.id), isNew = !old;
+      const oldF = new Map((old ? old.facts || [] : []).map(f => [f.k.toLowerCase(), isGap(f.v) ? "" : f.v]));
+      const facts = d.facts.map(f => ({k: f.k, v: f.v, ch: isNew ? !isGap(f.v) : (oldF.get(f.k.toLowerCase()) ?? null) !== (isGap(f.v) ? "" : f.v)}));
+      const sumCh = isNew ? !!d.summary : (old.summary || "") !== (d.summary || "");
+      const oldL = new Set(old ? old.links || [] : []);
+      const links = (d.links || []).map(l => ({n: nodes.get(l) || docs.find(x => x.id === l), ch: !oldL.has(l)})).filter(x => x.n);
+      return `<article class="pcard">
+        <header><i style="background:${color(d.type)}"></i><b>${esc(d.title)}</b><em>${esc(TYPE_ONE[d.type] || d.type)}</em><span class="spacer"></span><span class="tag ${isNew ? "add" : "edit"}">${isNew ? "New" : "Updated"}</span></header>
+        ${d.summary ? `<p class="psum ${sumCh ? "chg" : ""}">${esc(d.summary)}</p>` : ""}
+        ${facts.length ? `<dl>${facts.map(f => `<dt class="${f.ch ? "chg" : ""}">${esc(f.k)}</dt><dd class="${f.ch ? "chg" : ""} ${isGap(f.v) ? "nil" : ""}">${isGap(f.v) ? "Missing" : esc(f.v)}</dd>`).join("")}</dl>` : ""}
+        ${links.length ? `<div class="plinks">Connected to ${links.map(x => `<span class="lchip ${x.ch ? "chg" : ""}" style="padding-right:10px">${esc(x.n.title)}</span>`).join("")}</div>` : ""}
+      </article>`;
+    }).join("")}</div>`;
+}
 function bindChanges(c, btnSel){
   const sync = () => {
     document.querySelectorAll(".change input[data-u]").forEach(el => {
@@ -662,18 +712,46 @@ function renderImport(){
     $("#impStop").onclick = () => { ctl?.abort(); imp.state = "idle"; renderImport(); };
     return;
   }
+  if (s === "fixing"){
+    p.innerHTML = `<div class="qcard"><span class="eyebrow">Fixing</span>
+      <p class="why">“${esc(imp.fixText)}”</p>
+      <div class="thinking"><span class="dots"><i></i><i></i><i></i></span>Revising the suggested changes…</div>
+      <div class="row"><button class="btn small ghost" id="fixStop" type="button">Stop</button></div></div>`;
+    $("#fixStop").onclick = () => { ctl?.abort(); imp.state = "preview"; renderImport(); };
+    return;
+  }
   if (s === "preview"){
     const c = imp.changes;
+    const view = c.items.length ? (imp.view || "list") : "list";
     p.innerHTML = `<div class="qcard">
       <span class="eyebrow">Review before saving</span>
       <p class="qtext" style="font-size:18px">${esc(c.summary || "Suggested changes")}</p>
-      ${c.items.length ? changesHtml(c) : `<p class="note">Nothing new for the knowledge base in those sources.</p>`}
-      ${imp.notes.length ? `<span class="eyebrow">Worth a look</span><ul class="notes">${imp.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+      ${imp.fixError ? `<p class="note warn">${esc(imp.fixError)}</p>` : ""}
+      ${c.items.length ? `<div class="seg" role="group" aria-label="View"><button type="button" data-view="list" aria-pressed="${view === "list"}">Changes</button><button type="button" data-view="preview" aria-pressed="${view === "preview"}">Preview</button></div>` : ""}
+      ${!c.items.length ? `<p class="note">Nothing new for the knowledge base in those sources.</p>` : view === "list" ? changesHtml(c) : previewHtml(c)}
+      ${imp.notes.length ? `<span class="eyebrow">Worth a look</span><ul class="notes">${imp.notes.map((n, i) => `<li>
+          <p><span>${esc(n.text)}</span><button class="x" type="button" data-dismiss="${i}" aria-label="Dismiss this note"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg></button></p>
+          <div class="fixrow"><textarea rows="1" data-fx="${i}" aria-label="How to fix this" placeholder="Tell Claude what to change…">${esc(n.fix)}</textarea><button class="btn small" type="button" data-fixbtn="${i}">Fix</button></div>
+        </li>`).join("")}</ul>` : ""}
+      ${c.items.length || imp.notes.length ? `<label class="f" for="fxAny">Anything else to change?<div class="fixrow"><textarea id="fxAny" rows="1" placeholder="For example: call the sector Production studios">${esc(imp.fixAny || "")}</textarea><button class="btn small" type="button" id="fxAnyBtn">Fix</button></div></label>` : ""}
       <div class="row">${c.items.length ? `<button class="btn primary" id="impSave" type="button">${saveLabel(c)}</button>` : ""}<button class="btn" id="impBack" type="button">${c.items.length ? "Discard" : "Back"}</button></div>
     </div>`;
     bindChanges(c, "#impSave");
+    p.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { imp.view = b.dataset.view; renderImport(); });
+    p.querySelectorAll("[data-fx]").forEach(el => el.addEventListener("input", () => { imp.notes[+el.dataset.fx].fix = el.value; }));
+    p.querySelectorAll("[data-dismiss]").forEach(b => b.onclick = () => { imp.notes.splice(+b.dataset.dismiss, 1); renderImport(); });
+    p.querySelectorAll("[data-fixbtn]").forEach(b => b.onclick = () => {
+      const i = +b.dataset.fixbtn, n = imp.notes[i], t = n.fix.trim();
+      if (!t){ p.querySelector(`[data-fx="${i}"]`).focus(); return; }
+      runFix(t, n.text, i);
+    });
+    $("#fxAny") && $("#fxAny").addEventListener("input", e => { imp.fixAny = e.target.value; });
+    $("#fxAnyBtn") && ($("#fxAnyBtn").onclick = () => { const t = (imp.fixAny || "").trim(); if (!t){ $("#fxAny").focus(); return; } runFix(t, null, -1); });
+    const grow = el => { el.style.height = "auto"; el.style.height = el.scrollHeight + 2 + "px"; };
+    p.querySelectorAll(".fixrow textarea").forEach(el => { grow(el); el.addEventListener("input", () => grow(el)); });
+    p.querySelectorAll(".fixrow textarea").forEach(el => el.onkeydown = e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) el.nextElementSibling.click(); });
     $("#impSave") && ($("#impSave").onclick = () => saveChanges(c, "#impSave", () => { imp = {state: "idle", url: "", text: "", focus: "", files: []}; renderImport(); }));
-    $("#impBack").onclick = () => { imp.state = "idle"; renderImport(); };
+    $("#impBack").onclick = () => { imp.state = "idle"; imp.view = "list"; renderImport(); };
     return;
   }
   const off = !sample || !canWrite;
@@ -761,18 +839,7 @@ async function readFile(f){
   if (ext === "doc" || ext === "pptx" || ext === "key" || ext === "pages") throw new Error(`${f.name}: save it as PDF first, then add it.`);
   throw new Error(`${f.name}: that file type isn’t supported. Try PDF, Word, an image or text.`);
 }
-async function runImport(){
-  if (!sample) return;
-  const urls = (imp.url.match(/https?:\/\/[^\s,]+/g) || []).slice(0, 3);
-  if (imp.url.trim() && !urls.length){ imp.state = "error"; imp.msg = "That link doesn’t look right. It should start with https://"; renderImport(); return; }
-  const sources = [...urls.map(u => ({kind: "url", url: u, name: u})), ...imp.files.map(f => f.source)];
-  if (imp.text.trim()) sources.push({kind: "text", name: "Pasted notes", text: imp.text.trim()});
-  if (!sources.length){ imp.state = "error"; imp.msg = "Add a link, a file or some text first."; renderImport(); return; }
-  ctl?.abort(); ctl = new AbortController();
-  imp.state = "working"; imp.step = urls.length ? "Opening the link and reading it…" : "Reading your sources…"; renderImport();
-  const prompt = `You maintain the knowledge base for "the orb", a voice agent on the website of Eloqwnt, a B2B brand and web design agency. The founder shared the sources above (links, files or notes). Pull out everything a website visitor might ask the orb about, and propose edits to the knowledge base below.
-
-Rules:
+const IMPORT_RULES = () => `Rules:
 - Use only what the sources state. Never invent numbers, names, prices or results. Never include client budgets.
 - Match existing nodes first. If a source is about a client, project, service or policy already in the knowledge base, edit that node (set_fact, set_summary) instead of adding a duplicate.
 - Fill empty facts whenever a source answers them. If a source gives a different value for a fact that is already filled, propose the new value; the founder reviews every change.
@@ -784,14 +851,70 @@ Rules:
 - A case node always uses these fact keys, in this order, leaving unknown values empty: ${CASE_FACTS.join(", ")}. Other useful case facts may follow them.
 - Link new nodes to related existing nodes (a case to its sector and the services used, a service to its process).
 - Propose at most 60 updates, most valuable first.
+`;
+const toNotes = arr => (Array.isArray(arr) ? arr : []).map(n => typeof n === "string" ? {text: n, fix: ""} : n && typeof n === "object" ? {text: String(n.note || n.text || ""), fix: String(n.fix || "")} : null).filter(n => n && n.text);
+/* Revise the suggested changes with the founder's instruction (from a "Worth a look" note or the free field). */
+async function runFix(instruction, note, idx){
+  if (!sample) return;
+  const c = imp.changes;
+  const kept = c.updates.filter((_, i) => !c.off.has(i));
+  ctl?.abort(); ctl = new AbortController();
+  imp.fixText = instruction; imp.fixError = ""; imp.state = "fixing"; renderImport();
+  const prompt = `You maintain the knowledge base for "the orb", a voice agent on the website of Eloqwnt, a B2B brand and web design agency. You proposed the updates below from sources the founder shared. The founder reviewed them and asked for a fix. Return the full revised list of updates.
 
+${IMPORT_RULES()}- The founder's instruction is the founder's own statement, so you may use any facts it gives. Apply it exactly.
+- Keep every other proposed update as it is unless the instruction changes it. Don't drop updates the instruction doesn't mention.
+- The instruction may also change nodes already in the knowledge base; use the same ops for that.
+
+Reply with only JSON:
+{"summary": "one sentence on what the updates now add", "updates": [
+  {"op": "set_fact", "nodeId": "...", "key": "...", "value": "..."},
+  {"op": "remove_fact", "nodeId": "...", "key": "..."},
+  {"op": "set_summary", "nodeId": "...", "value": "..."},
+  {"op": "add_node", "node": {"id": "...", "type": "...", "title": "...", "summary": "...", "facts": [{"k": "...", "v": "..."}], "links": ["existing-id"]}},
+  {"op": "link", "from": "...", "to": "..."}
+]}
+
+${note ? `The note being fixed: ${note}\n` : ""}Founder's instruction: ${instruction}
+
+proposed_updates: ${JSON.stringify(kept)}
+
+knowledge_base: ${kbForPrompt()}`;
+  try {
+    const r = await sample.json(prompt, {signal: ctl.signal, maxTokens: 10000});
+    if (!r || !Array.isArray(r.updates)) throw {code: "invalid_json"};
+    imp.changes = makeChanges({summary: r.summary || c.summary, updates: r.updates});
+    if (idx >= 0) imp.notes.splice(idx, 1); else imp.fixAny = "";
+    imp.state = "preview";
+    toast("Fixed. Check the changes before saving.");
+    renderImport();
+  } catch (e){
+    if (e && e.code === "cancelled") return;
+    imp.state = "preview";
+    imp.fixError = "Couldn’t apply that fix. " + (e && e.code === "rate_limited" ? "Wait a minute, then try again." : "Try again, or word it differently.");
+    renderImport();
+  }
+}
+async function runImport(){
+  if (!sample) return;
+  const urls = (imp.url.match(/https?:\/\/[^\s,]+/g) || []).slice(0, 3);
+  if (imp.url.trim() && !urls.length){ imp.state = "error"; imp.msg = "That link doesn’t look right. It should start with https://"; renderImport(); return; }
+  const sources = [...urls.map(u => ({kind: "url", url: u, name: u})), ...imp.files.map(f => f.source)];
+  if (imp.text.trim()) sources.push({kind: "text", name: "Pasted notes", text: imp.text.trim()});
+  if (!sources.length){ imp.state = "error"; imp.msg = "Add a link, a file or some text first."; renderImport(); return; }
+  ctl?.abort(); ctl = new AbortController();
+  imp.state = "working"; imp.step = urls.length ? "Opening the link and reading it…" : "Reading your sources…"; renderImport();
+  const prompt = `You maintain the knowledge base for "the orb", a voice agent on the website of Eloqwnt, a B2B brand and web design agency. The founder shared the sources above (links, files or notes). Pull out everything a website visitor might ask the orb about, and propose edits to the knowledge base below.
+
+${IMPORT_RULES()}
 Reply with only JSON:
 {"summary": "one sentence on what the sources added", "updates": [
   {"op": "set_fact", "nodeId": "...", "key": "...", "value": "..."},
   {"op": "set_summary", "nodeId": "...", "value": "..."},
   {"op": "add_node", "node": {"id": "...", "type": "...", "title": "...", "summary": "...", "facts": [{"k": "...", "v": "..."}], "links": ["existing-id"]}},
   {"op": "link", "from": "...", "to": "..."}
-], "notes": ["up to 4 short notes for the founder: conflicts with existing facts, things found but not placed, or what's still missing"]}
+], "notes": [{"note": "a short note for the founder: a conflict with an existing fact, something found but not placed, or something still missing", "fix": "a suggested fix written as an instruction the founder could approve as is, for example 'Add to RiTE Media: the 11-week timeline was due to custom portfolio architecture'. Leave empty if only the founder can answer."}]}
+Give at most 4 notes.
 If nothing usable is in the sources, reply {"summary": "Nothing new found", "updates": [], "notes": []}.
 ${imp.focus.trim() ? `\nFounder's note about these sources: ${imp.focus.trim()}\n` : ""}
 knowledge_base: ${kbForPrompt()}`;
@@ -799,8 +922,9 @@ knowledge_base: ${kbForPrompt()}`;
     const {value: r, notes, truncated} = await sample.json(prompt, {signal: ctl.signal, sources, maxTokens: 10000, withMeta: true});
     if (!r || typeof r !== "object") throw {code: "invalid_json"};
     imp.changes = makeChanges(r);
-    imp.notes = [...(notes || []), ...(Array.isArray(r.notes) ? r.notes.map(String).filter(Boolean).slice(0, 4) : [])];
-    if (truncated) imp.notes.unshift("The sources were long, so Claude stopped early. Import the rest separately to catch anything missed.");
+    imp.notes = [...toNotes(notes), ...toNotes(r.notes).slice(0, 4)];
+    if (truncated) imp.notes.unshift({text: "The sources were long, so Claude stopped early. Import the rest separately to catch anything missed.", fix: ""});
+    imp.view = "list"; imp.fixAny = ""; imp.fixError = "";
     imp.state = "preview"; renderImport();
   } catch (e){
     if (e && e.code === "cancelled") return;
