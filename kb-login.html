@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Orb Knowledge · Sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Besley:wght@400&family=Zalando+Sans:wght@300;400;500&display=swap">
+<style>
+:root{--bg:#f6f8fc;--surface:#fff;--ink:#0b1020;--muted:#6b7489;--faint:#a4abbc;--line:#e4e7ee;--btn:#0b1020;--btn-ink:#fff;--err:#c2412d;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0d161b;--surface:#131e24;--ink:#eef3f6;--muted:#8e9ca7;--faint:#6f8290;--line:rgba(255,255,255,.12);--btn:#eef3f6;--btn-ink:#0b1020;--err:#f07a66;color-scheme:dark}}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Zalando Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;display:grid;place-items:center;padding:24px 16px;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+form{width:100%;max-width:360px;display:flex;flex-direction:column;gap:18px;align-items:center;text-align:center}
+.orb{width:84px;height:84px;border-radius:50%;background:radial-gradient(circle at 70% 78%,rgba(198,240,150,.95) 0,rgba(198,240,150,0) 46%),radial-gradient(circle at 32% 28%,#fff 0,#dfe8f1 34%,#b4c8de 74%,#a8bfd7 100%);box-shadow:0 0 0 14px rgba(11,16,32,.03),0 10px 30px rgba(90,120,150,.25);animation:breathe 4s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(1.04)}}
+h1{margin:6px 0 0;font-size:30px;font-weight:300;letter-spacing:-.02em}
+p{margin:0;color:var(--muted);font-size:15px}
+.brand{font-family:Besley,Georgia,serif;color:var(--faint);font-size:14px}
+label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+input{width:100%;box-sizing:border-box;height:50px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:16px;text-align:center;letter-spacing:.2em;outline:none}
+input:focus{border-color:var(--muted)}
+button{width:100%;height:48px;border-radius:999px;border:0;background:var(--btn);color:var(--btn-ink);font:inherit;font-weight:500;font-size:15px;cursor:pointer}
+button[disabled]{opacity:.5}
+.err{color:var(--err);font-size:14px;min-height:20px}
+:focus-visible{outline:2px solid #8fd14f;outline-offset:3px}
+@media (prefers-reduced-motion:reduce){.orb{animation:none}}
+</style>
+</head>
+<body>
+<form id="f" autocomplete="off">
+  <div class="orb" aria-hidden="true"></div>
+  <h1>Orb Knowledge</h1>
+  <p>Enter the password to edit what the orb knows.</p>
+  <label for="pw">Password</label>
+  <input id="pw" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Password" required autofocus>
+  <button id="go" type="submit">Open knowledge base</button>
+  <div class="err" id="err" role="alert"></div>
+  <span class="brand">eloqwnt vision</span>
+</form>
+<script>
+const f = document.getElementById("f"), pw = document.getElementById("pw"), go = document.getElementById("go"), err = document.getElementById("err");
+f.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  err.textContent = ""; go.disabled = true; go.textContent = "Checking…";
+  try {
+    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pw.value }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok) { location.href = "/knowledge-base"; return; }
+    err.textContent = j.error || "Couldn’t sign in. Try again.";
+    pw.select();
+  } catch { err.textContent = "Couldn’t reach the server. Check your connection."; }
+  go.disabled = false; go.textContent = "Open knowledge base";
+});
+</script>
+</body>
+</html>

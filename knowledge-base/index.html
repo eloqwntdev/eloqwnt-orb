@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Orb Knowledge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Besley:wght@400&family=Zalando+Sans:wght@300;400;500&display=swap">
+<style>
+/* Layout: an app shell — header bar, knowledge graph on the left, a working panel (interview, node editor, export) on the right; stacks on phones. Tokens follow Eloqwnt Vision. */
+:root{
+  --bg:#f6f8fc; --surface:#ffffff; --ink:#0b1020; --ink-2:#2a3248; --ink-3:#4a5268; --muted:#6b7489; --faint:#a4abbc;
+  --chip:#eef1f5; --line:#e4e7ee; --hair:rgba(11,16,32,.08); --btn:#0b1020; --btn-ink:#ffffff;
+  --lime:#d6ffac; --lime-dot:#8fd14f; --lime-ink:#25400a; --gap:#e0763a; --gap-soft:rgba(224,118,58,.14); --danger:#c2412d;
+  --t-company:#0b1020; --t-service:#5f8bb6; --t-case:#8277b8; --t-process:#6aa93b; --t-sector:#3f9696; --t-policy:#b0688f; --t-contact:#7d889c;
+  --edge:rgba(11,16,32,.16); --edge-soft:rgba(11,16,32,.07); --label:#2a3248;
+  --f-ui:"Zalando Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --f-brand:"Besley", Georgia, serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0d161b; --surface:#131e24; --ink:#eef3f6; --ink-2:#d6dfe5; --ink-3:#b6c3cc; --muted:#8e9ca7; --faint:#6f8290;
+  --chip:rgba(255,255,255,.06); --line:rgba(255,255,255,.12); --hair:rgba(255,255,255,.08); --btn:#eef3f6; --btn-ink:#0b1020;
+  --lime:#d6ffac; --lime-dot:#b8ef84; --lime-ink:#25400a; --gap:#f0935c; --gap-soft:rgba(240,147,92,.16); --danger:#f07a66;
+  --t-company:#eef3f6; --t-service:#86b0d8; --t-case:#a79ddd; --t-process:#95d062; --t-sector:#6cc4c4; --t-policy:#d995b8; --t-contact:#a3adbd;
+  --edge:rgba(255,255,255,.2); --edge-soft:rgba(255,255,255,.08); --label:#d6dfe5; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d161b; --surface:#131e24; --ink:#eef3f6; --ink-2:#d6dfe5; --ink-3:#b6c3cc; --muted:#8e9ca7; --faint:#6f8290;
+  --chip:rgba(255,255,255,.06); --line:rgba(255,255,255,.12); --hair:rgba(255,255,255,.08); --btn:#eef3f6; --btn-ink:#0b1020;
+  --lime:#d6ffac; --lime-dot:#b8ef84; --lime-ink:#25400a; --gap:#f0935c; --gap-soft:rgba(240,147,92,.16); --danger:#f07a66;
+  --t-company:#eef3f6; --t-service:#86b0d8; --t-case:#a79ddd; --t-process:#95d062; --t-sector:#6cc4c4; --t-policy:#d995b8; --t-contact:#a3adbd;
+  --edge:rgba(255,255,255,.2); --edge-soft:rgba(255,255,255,.08); --label:#d6dfe5; color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:2px solid var(--lime-dot);outline-offset:2px}
+.app{height:100%;display:grid;grid-template-rows:auto 1fr;padding-inline:16px;box-sizing:border-box}
+header{display:flex;align-items:center;gap:16px;padding-block:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{width:30px;height:30px;border-radius:50%;flex:none;background:radial-gradient(circle at 70% 78%,rgba(198,240,150,.95) 0,rgba(198,240,150,0) 46%),radial-gradient(circle at 32% 28%,#fff 0,#dfe8f1 34%,#b4c8de 74%,#a8bfd7 100%);box-shadow:0 2px 8px rgba(90,120,150,.25)}
+.brand h1{margin:0;font-size:19px;font-weight:500;letter-spacing:-.01em;white-space:nowrap}
+.brand span{font-family:var(--f-brand);color:var(--muted);font-size:15px}
+.stats{display:flex;gap:6px;flex-wrap:wrap}
+.stat{height:28px;padding:0 11px;border-radius:999px;background:var(--chip);display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat b{font-weight:500;color:var(--ink)}
+.stat.gaps{background:var(--gap-soft);color:var(--gap)}
+.stat.gaps b{color:var(--gap)}
+.spacer{flex:1}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);display:inline-flex;align-items:center;gap:8px;font-weight:500;font-size:14px;white-space:nowrap;transition:border-color .2s,transform .2s}
+.btn:hover{border-color:var(--faint)}
+.btn.primary{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.btn.primary:hover{transform:translateY(-1px)}
+.btn.small{height:32px;padding:0 12px;font-size:13px}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--danger)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn svg{width:16px;height:16px}
+main{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;min-height:0;padding-bottom:16px}
+.stage{position:relative;min-height:0;border-radius:20px;border:1px solid var(--line);background:var(--surface);overflow:hidden}
+#graph{width:100%;height:100%;display:block;touch-action:none}
+.legend{position:absolute;left:12px;bottom:12px;right:12px;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
+.legend button{pointer-events:auto;height:28px;padding:0 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-3)}
+.legend button[aria-pressed="false"]{opacity:.45}
+.legend i{width:9px;height:9px;border-radius:50%}
+.legend .gapkey{border-color:transparent;background:var(--gap-soft);color:var(--gap)}
+.legend .gapkey i{background:var(--gap)}
+.tools{position:absolute;right:12px;top:12px;display:flex;gap:6px}
+.iconbtn{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--ink-3)}
+.iconbtn:hover{color:var(--ink)}
+.iconbtn svg{width:16px;height:16px}
+.hint{position:absolute;left:14px;top:12px;font-size:12.5px;color:var(--faint)}
+.node .body{transition:stroke-width .2s}
+.node text{font-size:12px;fill:var(--label);paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.node.company text{font-weight:500;font-size:13px}
+.node.sel .body{stroke-width:3}
+.node.dim{opacity:.25}
+.node .halo{fill:none;stroke:var(--lime-dot);stroke-width:2;opacity:0}
+.node.sel .halo{opacity:.9}
+.node.ask .halo{opacity:1;stroke:var(--gap);animation:ring 1.4s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes ring{0%{transform:scale(1);opacity:1}100%{transform:scale(1.6);opacity:0}}
+.badge circle{fill:var(--gap)}
+.badge text{fill:#fff;stroke:none;font-size:10px;font-weight:500}
+.edge{stroke:var(--edge);stroke-width:1.2}
+.edge.implied{stroke:var(--edge-soft);stroke-dasharray:3 4}
+.edge.dim{opacity:.15}
+.empty[hidden]{display:none}
+.empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px}
+.empty div{max-width:340px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.empty h2{margin:0;font-size:20px;font-weight:400}
+.empty p{margin:0;color:var(--muted)}
+aside{min-height:0;display:flex;flex-direction:column;border-radius:20px;border:1px solid var(--line);background:var(--surface);overflow:hidden}
+.tabs{display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--hair)}
+.tabs button{flex:1;height:34px;border-radius:10px;font-size:13.5px;font-weight:500;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--chip);color:var(--ink)}
+.panel{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+.eyebrow{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.qcard{display:flex;flex-direction:column;gap:12px}
+.qtext{font-size:21px;line-height:1.35;font-weight:400;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.why{font-size:13.5px;color:var(--muted);margin:0}
+.target{align-self:flex-start;height:26px;padding:0 10px;border-radius:999px;background:var(--chip);font-size:12.5px;color:var(--ink-3);display:inline-flex;align-items:center;gap:6px}
+.target i{width:8px;height:8px;border-radius:50%}
+.suggest{display:flex;flex-wrap:wrap;gap:6px}
+.suggest button{height:30px;padding:0 12px;border-radius:999px;border:1px dashed var(--line);font-size:13px;color:var(--ink-3);text-align:left}
+.suggest button:hover{border-color:var(--faint);color:var(--ink)}
+textarea,input[type="text"],select{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px;font-size:14.5px;resize:vertical}
+textarea:focus,input:focus,select:focus{outline:none;border-color:var(--ink-3)}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.thinking{display:flex;align-items:center;gap:10px;color:var(--muted)}
+.dots{display:inline-flex;gap:4px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--faint);animation:blink 1.2s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.changes{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:14px;background:var(--bg);border:1px solid var(--line)}
+.change{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;font-size:13.5px;align-items:start}
+.change b{font-weight:500}
+.change .v{color:var(--ink-2);overflow-wrap:anywhere}
+.tag{height:20px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:500;display:inline-flex;align-items:center;white-space:nowrap}
+.tag.add{background:var(--lime);color:var(--lime-ink)}
+.tag.edit{background:var(--chip);color:var(--ink-3)}
+.tag.del{background:var(--gap-soft);color:var(--gap)}
+.divider{height:1px;background:var(--hair)}
+.facts{display:flex;flex-direction:column;gap:8px}
+.fact{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr) auto;gap:6px;align-items:start}
+.fact input{padding:8px 10px;font-size:13.5px}
+.fact.gap input.v{border-color:var(--gap);background:var(--gap-soft)}
+.x{width:32px;height:36px;border-radius:8px;display:grid;place-items:center;color:var(--faint)}
+.x:hover{color:var(--danger)}
+.x svg{width:14px;height:14px}
+.links{display:flex;flex-wrap:wrap;gap:6px}
+.lchip{height:28px;padding:0 6px 0 10px;border-radius:999px;background:var(--chip);display:inline-flex;align-items:center;gap:4px;font-size:12.5px;color:var(--ink-3)}
+.lchip button{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;color:var(--faint)}
+.lchip button:hover{color:var(--danger)}
+.note{font-size:13px;color:var(--muted);margin:0}
+.note.warn{color:var(--gap)}
+.gaplist{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.gaplist button{width:100%;text-align:left;display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:10px;font-size:13.5px;color:var(--ink-2)}
+.gaplist button:hover{background:var(--chip)}
+.gaplist i{width:7px;height:7px;border-radius:50%;background:var(--gap);flex:none}
+.gaplist span{color:var(--faint)}
+pre.md{margin:0;padding:14px;border-radius:12px;background:var(--bg);border:1px solid var(--line);font-size:12px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:var(--btn);color:var(--btn-ink);padding:10px 16px;border-radius:999px;font-size:13.5px;transition:.3s;z-index:9}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-radius:12px;background:var(--gap-soft);font-size:13.5px}
+@media (max-width:900px){
+  .app{height:auto;min-height:100%}
+  main{grid-template-columns:1fr}
+  .stage{height:58vh;min-height:360px}
+  aside{min-height:420px}
+  .hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><span class="mark" aria-hidden="true"></span><h1>Orb Knowledge</h1><span>eloqwnt vision</span></div>
+    <div class="stats" id="stats" aria-live="polite"></div>
+    <div class="spacer"></div>
+    <div class="actions">
+      <button class="btn" id="addBtn" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>Add node</button>
+      <button class="btn ghost" id="logoutBtn" type="button">Sign out</button>
+      <button class="btn primary" id="askBtn" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5A1.5 1.5 0 0 1 4.5 3h7A1.5 1.5 0 0 1 13 4.5v5A1.5 1.5 0 0 1 11.5 11H7l-3 2.5V11h0a1 1 0 0 1-1-1z"/></svg>Ask me questions</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="stage" aria-label="Knowledge graph">
+      <svg id="graph" role="img" aria-label="Graph of everything the orb knows"></svg>
+      <span class="hint">Drag to move · scroll to zoom · click a node to edit</span>
+      <div class="tools">
+        <button class="iconbtn" id="fitBtn" type="button" aria-label="Fit graph to view"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg></button>
+      </div>
+      <div class="legend" id="legend"></div>
+      <div class="empty" id="empty" hidden><div><h2 id="emptyTitle">Loading the knowledge base…</h2><p id="emptyText"></p></div></div>
+    </section>
+
+    <aside>
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tab-ask" aria-selected="true" type="button">Interview</button>
+        <button role="tab" id="tab-node" aria-selected="false" type="button">Edit</button>
+        <button role="tab" id="tab-export" aria-selected="false" type="button">Export</button>
+      </div>
+      <div class="panel" id="panel"></div>
+    </aside>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const TYPES = [
+  {id:"company", name:"Company"}, {id:"service", name:"Services"}, {id:"case", name:"Cases"},
+  {id:"process", name:"Process"}, {id:"sector", name:"Sectors"}, {id:"policy", name:"Policies"}, {id:"contact", name:"Contact"}
+];
+const TYPE_IDS = TYPES.map(t => t.id);
+const color = t => `var(--t-${TYPE_IDS.includes(t) ? t : "contact"})`;
+const isGap = v => { const s = String(v ?? "").trim(); return !s || /^\[.*\]$/.test(s); };
+const gapsOf = n => (n.facts || []).filter(f => isGap(f.v));
+const slug = s => String(s || "").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "node";
+
+let db = null, user = null, sample = null, downloads = null, canWrite = false;
+let nodes = new Map();          // id -> {id,type,title,summary,facts,links}
+let loaded = false, booted = false;
+let selected = null;            // node id
+let tab = "ask";
+let hiddenTypes = new Set();
+const asked = [];               // questions asked this visit
+let interview = {state: "idle"};   // idle | thinking | question | applying | preview | error
+let draft = null;               // node editor draft
+let confirmDelete = false;
+let ctl = null;
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg){ const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("on"), 2600); }
+
+/* ---------- header stats + legend ---------- */
+function renderStats(){
+  const all = [...nodes.values()];
+  const facts = all.reduce((a, n) => a + (n.facts || []).filter(f => !isGap(f.v)).length, 0);
+  const gaps = all.reduce((a, n) => a + gapsOf(n).length, 0);
+  $("#stats").innerHTML = `<span class="stat"><b>${all.length}</b> nodes</span><span class="stat"><b>${facts}</b> facts</span><span class="stat gaps"><b>${gaps}</b> gaps</span>`;
+}
+function renderLegend(){
+  const present = new Set([...nodes.values()].map(n => n.type));
+  $("#legend").innerHTML = TYPES.filter(t => present.has(t.id)).map(t =>
+    `<button type="button" data-t="${t.id}" aria-pressed="${!hiddenTypes.has(t.id)}"><i style="background:${color(t.id)}"></i>${t.name}</button>`
+  ).join("") + `<button type="button" class="gapkey" tabindex="-1" aria-hidden="true"><i></i>Missing fact</button>`;
+  $("#legend").querySelectorAll("button[data-t]").forEach(b => b.onclick = () => {
+    const t = b.dataset.t; hiddenTypes.has(t) ? hiddenTypes.delete(t) : hiddenTypes.add(t); renderLegend(); updateGraph(false);
+  });
+}
+
+/* ---------- graph ---------- */
+const svg = d3.select("#graph");
+const root = svg.append("g");
+const edgeG = root.append("g");
+const nodeG = root.append("g");
+const zoom = d3.zoom().scaleExtent([.25, 3]).on("zoom", e => root.attr("transform", e.transform));
+svg.call(zoom).on("dblclick.zoom", null);
+let simNodes = [], simLinks = [], fitted = false;
+const sim = d3.forceSimulation()
+  .force("link", d3.forceLink().id(d => d.id).distance(l => l.implied ? 150 : 110).strength(l => l.implied ? .25 : .7))
+  .force("charge", d3.forceManyBody().strength(-360))
+  .force("collide", d3.forceCollide().radius(d => d.r + 34))
+  .force("x", d3.forceX().strength(.05))
+  .force("y", d3.forceY().strength(.06))
+  .on("tick", tick);
+function size(){ const el = $("#graph"); return {w: el.clientWidth || 800, h: el.clientHeight || 600}; }
+function radius(n){ return n.type === "company" ? 30 : 12 + Math.min(10, (n.facts || []).length * 1.6); }
+function companyId(){ for (const n of nodes.values()) if (n.type === "company") return n.id; return null; }
+
+function updateGraph(reheat = true){
+  const {w, h} = size();
+  sim.force("x").x(w / 2); sim.force("y").y(h / 2);
+  const prev = new Map(simNodes.map(n => [n.id, n]));
+  const vis = [...nodes.values()].filter(n => !hiddenTypes.has(n.type));
+  const visIds = new Set(vis.map(n => n.id));
+  simNodes = vis.map(n => {
+    const p = prev.get(n.id) || {id: n.id, x: w / 2 + (Math.random() - .5) * 120, y: h / 2 + (Math.random() - .5) * 120};
+    p.type = n.type; p.title = n.title || n.id; p.gaps = gapsOf(n).length; p.r = radius(n);
+    return p;
+  });
+  const cid = companyId();
+  const seen = new Set();
+  simLinks = [];
+  for (const n of vis){
+    for (const t of (n.links || [])){
+      if (!visIds.has(t) || t === n.id) continue;
+      const k = [n.id, t].sort().join("|"); if (seen.has(k)) continue; seen.add(k);
+      simLinks.push({source: n.id, target: t, implied: false});
+    }
+  }
+  if (cid && visIds.has(cid)){
+    for (const n of vis){
+      if (n.id === cid) continue;
+      const linked = simLinks.some(l => l.source === n.id || l.target === n.id || l.source.id === n.id || l.target.id === n.id);
+      if (!linked) simLinks.push({source: n.id, target: cid, implied: true});
+    }
+  }
+  const e = edgeG.selectAll("line").data(simLinks, d => (d.source.id || d.source) + ">" + (d.target.id || d.target));
+  e.exit().remove();
+  e.enter().append("line").attr("class", d => "edge" + (d.implied ? " implied" : ""));
+  const nsel = nodeG.selectAll("g.node").data(simNodes, d => d.id);
+  nsel.exit().remove();
+  const ent = nsel.enter().append("g").attr("class", "node").attr("tabindex", 0).attr("role", "button")
+    .on("click", (ev, d) => { ev.stopPropagation(); select(d.id); })
+    .on("keydown", (ev, d) => { if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); select(d.id); } })
+    .call(d3.drag()
+      .on("start", (ev, d) => { if (!ev.active) sim.alphaTarget(.2).restart(); d.fx = d.x; d.fy = d.y; })
+      .on("drag", (ev, d) => { d.fx = ev.x; d.fy = ev.y; })
+      .on("end", (ev, d) => { if (!ev.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
+  ent.append("circle").attr("class", "halo");
+  ent.append("circle").attr("class", "body");
+  ent.append("text").attr("text-anchor", "middle");
+  const b = ent.append("g").attr("class", "badge");
+  b.append("circle").attr("r", 8);
+  b.append("text").attr("text-anchor", "middle").attr("dy", "3.5");
+  const all = ent.merge(nsel);
+  all.attr("aria-label", d => `${d.title}, ${d.gaps} missing`)
+    .classed("company", d => d.type === "company");
+  all.select(".halo").attr("r", d => d.r + 6);
+  all.select(".body").attr("r", d => d.r)
+    .attr("fill", d => d.type === "company" ? color("company") : color(d.type))
+    .attr("fill-opacity", d => d.type === "company" ? 1 : .2)
+    .attr("stroke", d => color(d.type)).attr("stroke-width", 1.5);
+  all.select("text").attr("dy", d => d.r + 16).text(d => d.title.length > 26 ? d.title.slice(0, 25) + "…" : d.title);
+  all.select(".badge").attr("transform", d => `translate(${d.r * .72},${-d.r * .72})`).style("display", d => d.gaps ? null : "none");
+  all.select(".badge text").text(d => d.gaps > 9 ? "9+" : d.gaps);
+  sim.nodes(simNodes);
+  sim.force("link").links(simLinks);
+  if (!prev.size && simNodes.length){
+    sim.alpha(1).stop();
+    for (let i = 0; i < 320; i++) sim.tick();
+    tick(); fitted = true; fit(true);
+    sim.alpha(.05).restart();
+  } else sim.alpha(reheat ? .35 : .15).restart();
+  paintSelection();
+}
+function tick(){
+  edgeG.selectAll("line").attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+  nodeG.selectAll("g.node").attr("transform", d => `translate(${d.x},${d.y})`);
+}
+function paintSelection(){
+  const askId = interview.state === "question" ? interview.q?.nodeId : null;
+  const near = new Set();
+  if (selected){ near.add(selected); simLinks.forEach(l => { const s = l.source.id || l.source, t = l.target.id || l.target; if (s === selected) near.add(t); if (t === selected) near.add(s); }); }
+  nodeG.selectAll("g.node").classed("sel", d => d.id === selected).classed("ask", d => d.id === askId)
+    .classed("dim", d => selected && !near.has(d.id));
+  edgeG.selectAll("line").classed("dim", d => selected && !((d.source.id || d.source) === selected || (d.target.id || d.target) === selected));
+}
+function fit(instant){
+  if (!simNodes.length) return;
+  const {w, h} = size();
+  const xs = simNodes.map(n => n.x), ys = simNodes.map(n => n.y);
+  const x0 = Math.min(...xs) - 60, x1 = Math.max(...xs) + 60, y0 = Math.min(...ys) - 50, y1 = Math.max(...ys) + 70;
+  const k = Math.min(1.6, .92 / Math.max((x1 - x0) / w, (y1 - y0) / h));
+  (instant ? svg : svg.transition().duration(600)).call(zoom.transform, d3.zoomIdentity.translate(w / 2, h / 2).scale(k).translate(-(x0 + x1) / 2, -(y0 + y1) / 2));
+}
+svg.on("click", () => { if (selected){ selected = null; paintSelection(); if (tab === "node"){ draft = null; renderPanel(); } } });
+$("#fitBtn").onclick = fit;
+addEventListener("resize", () => updateGraph(false));
+sim.on("end.fit", () => { if (!fitted && simNodes.length){ fitted = true; fit(); } });
+
+function select(id){
+  selected = id; confirmDelete = false;
+  const n = nodes.get(id);
+  draft = n ? JSON.parse(JSON.stringify({...n, facts: n.facts || [], links: n.links || []})) : null;
+  setTab("node");
+  paintSelection();
+}
+
+/* ---------- empty state ---------- */
+function renderEmpty(){
+  const el = $("#empty");
+  if (!loaded){ el.hidden = false; const off = booted && db === null; $("#emptyTitle").textContent = off ? "Knowledge base unavailable" : "Loading the knowledge base…"; $("#emptyText").textContent = off ? (storageError || "Couldn’t reach the knowledge base. Reload to try again.") : ""; return; }
+  if (!nodes.size){ el.hidden = false; $("#emptyTitle").textContent = "The knowledge base is empty"; $("#emptyText").textContent = "Add the first node, or let the interview ask what the orb should know."; return; }
+  el.hidden = true;
+}
+
+/* ---------- tabs ---------- */
+function setTab(t){
+  tab = t;
+  ["ask", "node", "export"].forEach(k => $("#tab-" + k).setAttribute("aria-selected", k === t));
+  renderPanel();
+}
+$("#tab-ask").onclick = () => setTab("ask");
+$("#tab-node").onclick = () => setTab("node");
+$("#tab-export").onclick = () => setTab("export");
+
+function renderPanel(){
+  if (tab === "ask") renderInterview();
+  else if (tab === "node") renderEditor();
+  else renderExport();
+}
+
+/* ---------- knowledge as compact text for Claude ---------- */
+function kbForPrompt(){
+  return JSON.stringify([...nodes.values()].map(n => ({
+    id: n.id, type: n.type, title: n.title, summary: n.summary || undefined,
+    facts: (n.facts || []).map(f => [f.k, isGap(f.v) ? "" : f.v]), links: (n.links || []).length ? n.links : undefined
+  })));
+}
+
+/* ---------- interview ---------- */
+function interviewIntro(){
+  const all = [...nodes.values()].flatMap(n => gapsOf(n).map(f => ({n, k: f.k}))).slice(0, 8);
+  return `
+    <div class="qcard">
+      <span class="eyebrow">Interview</span>
+      <p class="qtext">Claude reads everything the orb knows and asks about what’s missing, one question at a time.</p>
+      <p class="why">Your answers become facts on the graph. You review every change before it’s saved.</p>
+      <div class="row"><button class="btn primary" id="startQ" type="button" ${!sample || !canWrite ? "disabled" : ""}>Start the interview</button></div>
+      ${!sample ? `<p class="note warn">The interview needs Claude connected. Add ANTHROPIC_API_KEY in Vercel, then reload. You can still edit nodes by hand.</p>` : ""}
+      ${sample && !canWrite ? `<p class="note warn">You can read this knowledge base but not change it.</p>` : ""}
+    </div>
+    ${all.length ? `<div class="divider"></div><span class="eyebrow">Biggest gaps</span>
+    <ul class="gaplist">${all.map(g => `<li><button type="button" data-node="${esc(g.n.id)}"><i></i>${esc(g.n.title)} <span>· ${esc(g.k)}</span></button></li>`).join("")}</ul>` : ""}
+    ${teachBox()}`;
+}
+function teachBox(){
+  if (!sample || !canWrite) return "";
+  return `<div class="divider"></div>
+    <label class="f" for="teach">Teach the orb something new<textarea id="teach" rows="3" placeholder="For example: We just finished a site for a crypto wallet, built in Next.js in 6 weeks."></textarea></label>
+    <div class="row"><button class="btn small" id="teachBtn" type="button">Add to knowledge</button></div>`;
+}
+function renderInterview(){
+  const p = $("#panel");
+  const s = interview.state;
+  if (s === "idle") p.innerHTML = interviewIntro();
+  else if (s === "thinking" || s === "applying"){
+    p.innerHTML = `<div class="qcard"><span class="eyebrow">${s === "thinking" ? "Choosing a question" : "Turning your answer into facts"}</span>
+      <div class="thinking"><span class="dots"><i></i><i></i><i></i></span>${s === "thinking" ? "Reading the knowledge base…" : "Working out what changes…"}</div>
+      <div class="row"><button class="btn small ghost" id="stopQ" type="button">Stop</button></div></div>`;
+  } else if (s === "question"){
+    const q = interview.q, tn = q.nodeId && nodes.get(q.nodeId);
+    p.innerHTML = `<div class="qcard">
+      <span class="eyebrow">Question ${asked.length}</span>
+      ${tn ? `<button class="target" type="button" id="qTarget"><i style="background:${color(tn.type)}"></i>${esc(tn.title)}${q.factKey ? " · " + esc(q.factKey) : ""}</button>` : ""}
+      <p class="qtext">${esc(q.question)}</p>
+      ${q.why ? `<p class="why">${esc(q.why)}</p>` : ""}
+      ${(q.suggestions || []).length ? `<div class="suggest">${q.suggestions.slice(0, 3).map(sug => `<button type="button" data-s="${esc(sug)}">${esc(sug)}</button>`).join("")}</div>` : ""}
+      <label class="f" for="ans">Your answer<textarea id="ans" rows="3" placeholder="Type your answer…"></textarea></label>
+      <div class="row"><button class="btn primary" id="saveAns" type="button">Save answer</button><button class="btn" id="skipQ" type="button">Skip</button><span class="spacer"></span><button class="btn small ghost" id="endQ" type="button">End interview</button></div>
+    </div>${teachBox()}`;
+    setTimeout(() => $("#ans")?.focus(), 30);
+  } else if (s === "preview"){
+    const c = interview.changes;
+    p.innerHTML = `<div class="qcard">
+      <span class="eyebrow">Review before saving</span>
+      <p class="qtext" style="font-size:18px">${esc(c.summary || "Proposed changes")}</p>
+      ${c.items.length ? `<div class="changes">${c.items.map(it => `<div class="change"><span class="tag ${it.kind}">${it.kind === "add" ? "New" : it.kind === "del" ? "Remove" : "Update"}</span><div><b>${esc(it.where)}</b><div class="v">${esc(it.what)}</div></div></div>`).join("")}</div>` : `<p class="note">Nothing in that answer changes the knowledge base.</p>`}
+      <div class="row">${c.items.length ? `<button class="btn primary" id="applyC" type="button">Save changes</button>` : ""}<button class="btn" id="discardC" type="button">${c.items.length ? "Discard" : "Next question"}</button></div>
+    </div>`;
+  } else if (s === "error"){
+    p.innerHTML = `<div class="qcard"><span class="eyebrow">Interview paused</span><p class="qtext" style="font-size:18px">${esc(interview.msg)}</p>
+      <div class="row">${interview.retry ? `<button class="btn primary" id="retryQ" type="button">Try again</button>` : ""}<button class="btn" id="endQ" type="button">Back</button></div></div>`;
+  }
+  bindInterview();
+  paintSelection();
+}
+function bindInterview(){
+  $("#startQ") && ($("#startQ").onclick = nextQuestion);
+  $("#stopQ") && ($("#stopQ").onclick = () => { ctl?.abort(); interview = {state: "idle"}; renderInterview(); });
+  $("#endQ") && ($("#endQ").onclick = () => { ctl?.abort(); interview = {state: "idle"}; renderInterview(); });
+  $("#skipQ") && ($("#skipQ").onclick = nextQuestion);
+  $("#retryQ") && ($("#retryQ").onclick = interview.retry);
+  $("#qTarget") && ($("#qTarget").onclick = () => { const id = interview.q.nodeId; selected = id; paintSelection(); });
+  document.querySelectorAll(".suggest button").forEach(b => b.onclick = () => { const a = $("#ans"); a.value = b.dataset.s; a.focus(); });
+  document.querySelectorAll(".gaplist button").forEach(b => b.onclick = () => select(b.dataset.node));
+  $("#saveAns") && ($("#saveAns").onclick = () => { const a = $("#ans").value.trim(); if (!a){ $("#ans").focus(); return; } applyAnswer(interview.q.question, a); });
+  $("#ans") && ($("#ans").onkeydown = e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) $("#saveAns").click(); });
+  $("#teachBtn") && ($("#teachBtn").onclick = () => { const t = $("#teach").value.trim(); if (!t){ $("#teach").focus(); return; } applyAnswer(null, t); });
+  $("#applyC") && ($("#applyC").onclick = applyChanges);
+  $("#discardC") && ($("#discardC").onclick = nextQuestion);
+}
+function sampleFail(e, retry){
+  const code = e && e.code;
+  if (code === "cancelled") return;
+  const msg = code === "not_granted" || code === "sampling_disabled" ? "Claude isn’t connected, so the interview can’t run. Add ANTHROPIC_API_KEY in Vercel, then reload. You can still edit nodes by hand."
+    : code === "rate_limited" ? "Too many requests in a short time. Wait a minute, then try again."
+    : code === "invalid_json" ? "Claude’s reply couldn’t be read. Try again."
+    : code === "session_expired" ? "Your session ended. Reload the page and sign in again."
+    : "Claude didn’t answer. Try again.";
+  const keep = !(code === "not_granted" || code === "sampling_disabled" || code === "session_expired");
+  if (!keep) sample = null;
+  interview = {state: "error", msg, retry: keep ? retry : null};
+  setTab("ask");
+}
+async function nextQuestion(){
+  if (!sample) return;
+  ctl?.abort(); ctl = new AbortController();
+  interview = {state: "thinking"}; setTab("ask");
+  const prompt = `You help the founder of Eloqwnt, a B2B brand and web design agency, build the knowledge base for "the orb": a voice agent on the agency's website that answers visitors' questions about its work, services, prices and process.
+
+Below is the current knowledge base as JSON. Each node has facts as [key, value] pairs; an empty value means the fact is unknown.
+
+Pick the ONE missing or weak piece of information that would most improve the orb's answers to real website visitors. Prefer, in order: empty facts on services (prices, timelines, what's included), case results visitors would find persuasive, policies visitors often ask about, and anything a visitor is likely to ask that no node covers yet. Never ask about client budgets. Don't repeat or rephrase anything in already_asked.
+
+Reply with only JSON:
+{"question": "one short plain question, at most 25 words", "why": "at most 14 words on why visitors need it", "nodeId": "id of the node it belongs to, or null for a new topic", "factKey": "fact key it fills, or null", "suggestions": ["up to 3 short example answers in the founder's voice"]}
+
+already_asked: ${JSON.stringify(asked.slice(-20))}
+
+knowledge_base: ${kbForPrompt()}`;
+  try {
+    const q = await sample.json(prompt, {signal: ctl.signal, modelTier: "quick", cache: false});
+    if (!q || typeof q.question !== "string") throw {code: "invalid_json"};
+    q.nodeId = q.nodeId && nodes.has(String(q.nodeId)) ? String(q.nodeId) : null;
+    q.suggestions = Array.isArray(q.suggestions) ? q.suggestions.map(String).filter(Boolean) : [];
+    asked.push(q.question);
+    interview = {state: "question", q};
+    setTab("ask");
+  } catch (e){ sampleFail(e, nextQuestion); }
+}
+async function applyAnswer(question, answer){
+  if (!sample) return;
+  ctl?.abort(); ctl = new AbortController();
+  const fromQuestion = !!question;
+  interview = {state: "applying", q: interview.q}; setTab("ask");
+  const prompt = `You maintain the knowledge base for "the orb", a voice agent on the Eloqwnt agency website. Turn the founder's words into precise edits.
+
+Rules:
+- Use only what the founder states. Never invent numbers, names or results.
+- Keep fact keys short (1-3 words, sentence case) and values short and speakable.
+- Reuse existing node ids. A new node's id is a lowercase-hyphen slug of its title.
+- Node types: company, service, case, process, sector, policy, contact.
+- To fill an unknown fact, use set_fact with the existing key.
+- Link new nodes to related existing nodes (a case to its sector, a service to its process).
+
+Reply with only JSON:
+{"summary": "one sentence describing the change", "updates": [
+  {"op": "set_fact", "nodeId": "...", "key": "...", "value": "..."},
+  {"op": "remove_fact", "nodeId": "...", "key": "..."},
+  {"op": "set_summary", "nodeId": "...", "value": "..."},
+  {"op": "add_node", "node": {"id": "...", "type": "...", "title": "...", "summary": "...", "facts": [{"k": "...", "v": "..."}], "links": ["existing-id"]}},
+  {"op": "link", "from": "...", "to": "..."}
+]}
+If nothing usable is stated, reply {"summary": "Nothing to change", "updates": []}.
+
+${fromQuestion ? `Question asked: ${question}\n` : ""}Founder's words: ${answer}
+
+knowledge_base: ${kbForPrompt()}`;
+  try {
+    const r = await sample.json(prompt, {signal: ctl.signal, cache: false});
+    const plan = planChanges(r && Array.isArray(r.updates) ? r.updates : []);
+    interview = {state: "preview", q: interview.q, changes: {summary: r && r.summary ? String(r.summary) : "", ...plan}};
+    renderInterview();
+    if (!fromQuestion){ const t = $("#teach"); if (t) t.value = ""; }
+  } catch (e){ sampleFail(e, () => applyAnswer(question, answer)); }
+}
+/* Turn Claude's update list into new node bodies + a readable change list. */
+function planChanges(updates){
+  const next = new Map();
+  const get = id => { if (next.has(id)) return next.get(id); const n = nodes.get(id); if (!n) return null; const c = JSON.parse(JSON.stringify({...n, facts: n.facts || [], links: n.links || []})); next.set(id, c); return c; };
+  const items = [];
+  for (const u of updates){
+    if (!u || typeof u !== "object") continue;
+    if (u.op === "add_node" && u.node){
+      const t = String(u.node.title || "").trim(); if (!t) continue;
+      let id = slug(u.node.id || t); while (nodes.has(id) && !next.has(id)) id += "-2";
+      if (nodes.has(id)) continue;
+      const n = {id, type: TYPE_IDS.includes(u.node.type) ? u.node.type : "policy", title: t, summary: String(u.node.summary || ""),
+        facts: (Array.isArray(u.node.facts) ? u.node.facts : []).map(f => ({k: String(f.k || f.key || "").trim(), v: String(f.v ?? f.value ?? "").trim()})).filter(f => f.k),
+        links: (Array.isArray(u.node.links) ? u.node.links : []).map(String).filter(l => nodes.has(l) || next.has(l))};
+      next.set(id, n);
+      items.push({kind: "add", where: `${t} (${n.type})`, what: n.facts.map(f => `${f.k}: ${f.v}`).join(" · ") || n.summary || "New node"});
+    } else if (u.op === "set_fact"){
+      const n = get(String(u.nodeId)); const k = String(u.key || "").trim(); const v = String(u.value ?? "").trim();
+      if (!n || !k || !v) continue;
+      const f = n.facts.find(x => x.k.toLowerCase() === k.toLowerCase());
+      if (f && f.v === v) continue;
+      if (f) f.v = v; else n.facts.push({k, v});
+      items.push({kind: f ? "edit" : "add", where: `${n.title} · ${f ? f.k : k}`, what: v});
+    } else if (u.op === "remove_fact"){
+      const n = get(String(u.nodeId)); const k = String(u.key || "").toLowerCase();
+      if (!n) continue; const before = n.facts.length;
+      n.facts = n.facts.filter(f => f.k.toLowerCase() !== k);
+      if (n.facts.length < before) items.push({kind: "del", where: `${n.title} · ${u.key}`, what: "Fact removed"});
+    } else if (u.op === "set_summary"){
+      const n = get(String(u.nodeId)); const v = String(u.value || "").trim(); if (!n || !v || n.summary === v) continue;
+      n.summary = v; items.push({kind: "edit", where: `${n.title} · summary`, what: v});
+    } else if (u.op === "link"){
+      const a = get(String(u.from)); const b = String(u.to);
+      if (!a || !(nodes.has(b) || next.has(b)) || a.links.includes(b) || a.id === b) continue;
+      a.links.push(b); items.push({kind: "add", where: `${a.title} → ${(nodes.get(b) || next.get(b)).title}`, what: "Linked"});
+    }
+  }
+  return {items, docs: [...next.values()]};
+}
+async function applyChanges(){
+  const docs = interview.changes.docs;
+  const btn = $("#applyC"); if (btn){ btn.disabled = true; btn.textContent = "Saving…"; }
+  try {
+    for (const d of docs) await writeNode(d);
+    toast(`Saved ${interview.changes.items.length} change${interview.changes.items.length === 1 ? "" : "s"}`);
+    nextQuestion();
+  } catch (e){
+    if (btn){ btn.disabled = false; btn.textContent = "Save changes"; }
+    toast(writeError(e));
+  }
+}
+
+/* ---------- writes ---------- */
+function bodyOf(n){
+  return {type: n.type, title: n.title, summary: n.summary || "", facts: (n.facts || []).map(f => ({k: String(f.k), v: String(f.v ?? "")})).filter(f => f.k.trim()),
+    links: [...new Set((n.links || []).filter(l => l !== n.id))], updatedAt: new Date().toISOString()};
+}
+async function writeNode(n){
+  if (!db || !canWrite) throw {code: "not_granted"};
+  let r;
+  try { r = await fetch("/api/kb?id=" + encodeURIComponent(n.id), {method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(bodyOf(n))}); }
+  catch (e){ throw {code: "unavailable"}; }
+  if (r.status === 401){ location.reload(); throw {code: "session_expired"}; }
+  if (!r.ok) throw {code: r.status === 413 ? "quota_exceeded" : "unavailable"};
+  scheduleRefresh();
+}
+async function removeNode(id){
+  const r = await fetch("/api/kb?id=" + encodeURIComponent(id), {method: "DELETE"});
+  if (r.status === 401){ location.reload(); throw {code: "session_expired"}; }
+  if (!r.ok) throw {code: "unavailable"};
+  scheduleRefresh();
+}
+function writeError(e){
+  const c = e && e.code;
+  if (c === "invalid_argument" || c === "not_granted"){ canWrite = false; renderPanel(); return "You don’t have permission to change this knowledge base."; }
+  if (c === "quota_exceeded") return "The knowledge base is full. Delete some nodes, then try again.";
+  return "Couldn’t save. Check your connection and try again.";
+}
+
+/* ---------- node editor ---------- */
+function blankDraft(){
+  return {id: null, type: "case", title: "", summary: "", facts: [{k: "", v: ""}], links: companyId() ? [companyId()] : []};
+}
+function renderEditor(){
+  const p = $("#panel");
+  if (!draft){
+    p.innerHTML = `<div class="qcard"><span class="eyebrow">Edit</span><p class="qtext" style="font-size:18px">Click any node on the graph to edit it, or add a new one.</p>
+      <div class="row"><button class="btn" id="newNode" type="button" ${canWrite ? "" : "disabled"}>Add node</button></div></div>`;
+    $("#newNode").onclick = () => { draft = blankDraft(); selected = null; paintSelection(); renderEditor(); };
+    return;
+  }
+  const isNew = !draft.id;
+  const others = [...nodes.values()].filter(n => n.id !== draft.id && !draft.links.includes(n.id)).sort((a, b) => a.title.localeCompare(b.title));
+  const ro = canWrite ? "" : "disabled";
+  p.innerHTML = `
+    <span class="eyebrow">${isNew ? "New node" : "Edit node"}</span>
+    <label class="f" for="nTitle">Title<input type="text" id="nTitle" value="${esc(draft.title)}" ${ro} placeholder="For example: Vertus 42"></label>
+    <label class="f" for="nType">Type<select id="nType" ${ro}>${TYPES.map(t => `<option value="${t.id}" ${t.id === draft.type ? "selected" : ""}>${t.name}</option>`).join("")}</select></label>
+    <label class="f" for="nSummary">Summary<textarea id="nSummary" rows="2" ${ro} placeholder="One or two sentences the orb can say">${esc(draft.summary)}</textarea></label>
+    <div class="divider"></div>
+    <span class="eyebrow">Facts</span>
+    <div class="facts">${draft.facts.map((f, i) => `
+      <div class="fact ${isGap(f.v) && f.k ? "gap" : ""}">
+        <input type="text" class="k" data-i="${i}" id="fk${i}" aria-label="Fact name" value="${esc(f.k)}" placeholder="Name" ${ro}>
+        <input type="text" class="v" data-i="${i}" id="fv${i}" aria-label="Fact value" value="${esc(isGap(f.v) ? "" : f.v)}" placeholder="${isGap(f.v) && f.k ? "Missing" : "Value"}" ${ro}>
+        <button class="x" type="button" data-del="${i}" aria-label="Remove fact" ${ro}><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg></button>
+      </div>`).join("")}</div>
+    <div class="row"><button class="btn small" id="addFact" type="button" ${ro}>Add fact</button></div>
+    <div class="divider"></div>
+    <span class="eyebrow">Connected to</span>
+    <div class="links">${draft.links.map(l => nodes.get(l)).filter(Boolean).map(n => `<span class="lchip"><i style="width:8px;height:8px;border-radius:50%;background:${color(n.type)}"></i>${esc(n.title)}<button type="button" data-unlink="${esc(n.id)}" aria-label="Remove link to ${esc(n.title)}" ${ro}>×</button></span>`).join("") || `<span class="note">Not connected yet.</span>`}</div>
+    ${canWrite && others.length ? `<label class="f" for="addLink">Connect to<select id="addLink"><option value="">Choose a node…</option>${others.map(n => `<option value="${esc(n.id)}">${esc(n.title)}</option>`).join("")}</select></label>` : ""}
+    <div class="divider"></div>
+    ${confirmDelete ? `<div class="confirm">Delete “${esc(draft.title)}” for everyone?<span class="spacer"></span><button class="btn small danger" id="delYes" type="button">Delete</button><button class="btn small" id="delNo" type="button">Keep</button></div>` : ""}
+    <div class="row">
+      <button class="btn primary" id="saveNode" type="button" ${ro}>${isNew ? "Add node" : "Save"}</button>
+      <button class="btn" id="cancelNode" type="button">${isNew ? "Cancel" : "Close"}</button>
+      <span class="spacer"></span>
+      ${!isNew && canWrite ? `<button class="btn small ghost danger" id="delNode" type="button">Delete</button>` : ""}
+    </div>
+    ${!canWrite ? `<p class="note warn">You can read this knowledge base but not change it.</p>` : ""}`;
+  const sync = () => {
+    draft.title = $("#nTitle").value; draft.type = $("#nType").value; draft.summary = $("#nSummary").value;
+    p.querySelectorAll("input.k").forEach(el => draft.facts[+el.dataset.i].k = el.value);
+    p.querySelectorAll("input.v").forEach(el => draft.facts[+el.dataset.i].v = el.value);
+  };
+  p.querySelectorAll("input,textarea,select").forEach(el => el.addEventListener("input", sync));
+  p.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { sync(); draft.facts.splice(+b.dataset.del, 1); renderEditor(); });
+  p.querySelectorAll("[data-unlink]").forEach(b => b.onclick = () => { sync(); draft.links = draft.links.filter(l => l !== b.dataset.unlink); renderEditor(); });
+  $("#addFact") && ($("#addFact").onclick = () => { sync(); draft.facts.push({k: "", v: ""}); renderEditor(); setTimeout(() => $("#fk" + (draft.facts.length - 1))?.focus(), 20); });
+  $("#addLink") && ($("#addLink").onchange = e => { sync(); if (e.target.value){ draft.links.push(e.target.value); renderEditor(); } });
+  $("#cancelNode").onclick = () => { draft = null; selected = null; confirmDelete = false; paintSelection(); renderEditor(); };
+  $("#delNode") && ($("#delNode").onclick = () => { sync(); confirmDelete = true; renderEditor(); });
+  $("#delNo") && ($("#delNo").onclick = () => { confirmDelete = false; renderEditor(); });
+  $("#delYes") && ($("#delYes").onclick = deleteNode);
+  $("#saveNode").onclick = async () => {
+    sync();
+    const title = draft.title.trim();
+    if (!title){ $("#nTitle").focus(); toast("Give the node a title first."); return; }
+    let id = draft.id;
+    if (!id){ id = slug(title); let i = 2; while (nodes.has(id)) id = slug(title) + "-" + i++; }
+    const n = {...draft, id, title, facts: draft.facts.filter(f => f.k.trim()).map(f => ({k: f.k.trim(), v: f.v.trim()}))};
+    const b = $("#saveNode"); b.disabled = true; b.textContent = "Saving…";
+    try { await writeNode(n); toast(draft.id ? "Saved" : "Node added"); draft = JSON.parse(JSON.stringify(n)); selected = id; paintSelection(); renderEditor(); }
+    catch (e){ b.disabled = false; b.textContent = draft.id ? "Save" : "Add node"; toast(writeError(e)); }
+  };
+}
+async function deleteNode(){
+  const id = draft.id;
+  try {
+    await removeNode(id);
+    for (const n of nodes.values()){
+      if ((n.links || []).includes(id)) await writeNode({...n, links: n.links.filter(l => l !== id)});
+    }
+    toast("Node deleted"); draft = null; selected = null; confirmDelete = false; paintSelection(); renderEditor();
+  } catch (e){ toast(writeError(e)); }
+}
+$("#addBtn").onclick = () => { draft = blankDraft(); selected = null; confirmDelete = false; paintSelection(); setTab("node"); setTimeout(() => $("#nTitle")?.focus(), 30); };
+$("#askBtn").onclick = () => { setTab("ask"); if (sample && canWrite && interview.state === "idle") nextQuestion(); };
+
+/* ---------- export ---------- */
+const SECTIONS = [["company", "About Eloqwnt"], ["contact", "Contact"], ["service", "Services and prices"], ["process", "How we work"], ["case", "Recent work"], ["sector", "Sectors"], ["policy", "Policies"]];
+function toMarkdown(){
+  const all = [...nodes.values()];
+  const out = ["# Eloqwnt knowledge base", "", `Exported ${new Date().toISOString().slice(0, 10)} from Orb Knowledge.`, ""];
+  const missing = [];
+  for (const [type, head] of SECTIONS){
+    const list = all.filter(n => n.type === type).sort((a, b) => a.title.localeCompare(b.title));
+    if (!list.length) continue;
+    out.push("## " + head, "");
+    for (const n of list){
+      out.push("### " + n.title);
+      if (n.summary) out.push(n.summary);
+      const known = (n.facts || []).filter(f => !isGap(f.v));
+      known.forEach(f => out.push(`- ${f.k}: ${f.v}`));
+      gapsOf(n).forEach(f => missing.push(`${n.title}: ${f.k}`));
+      const rel = (n.links || []).map(l => nodes.get(l)?.title).filter(Boolean);
+      if (rel.length) out.push(`- Related: ${rel.join(", ")}`);
+      out.push("");
+    }
+  }
+  if (missing.length){ out.push("## Not known yet", "", "The orb does not know these. If asked, it offers a call or an email from the team.", ""); missing.forEach(m => out.push("- " + m)); out.push(""); }
+  return out.join("\n");
+}
+function renderExport(){
+  const md = toMarkdown();
+  $("#panel").innerHTML = `
+    <span class="eyebrow">Export for ElevenLabs</span>
+    <p class="note">Save this file and upload it to your agent’s Knowledge Base in ElevenLabs, replacing the previous version. Missing facts are listed so the orb knows to offer a call instead of guessing.</p>
+    <div class="row"><button class="btn primary" id="dlMd" type="button" ${downloads ? "" : "hidden"}>Download .md</button><button class="btn" id="cpMd" type="button">Copy text</button></div>
+    <pre class="md" id="mdOut" tabindex="0">${esc(md)}</pre>`;
+  $("#cpMd").onclick = async () => {
+    try { await navigator.clipboard.writeText(md); toast("Copied"); }
+    catch (e){ const r = document.createRange(); r.selectNodeContents($("#mdOut")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("Selected. Press Ctrl or Cmd + C to copy."); }
+  };
+  $("#dlMd") && ($("#dlMd").onclick = async () => {
+    const url = URL.createObjectURL(new Blob([md], {type: "text/markdown;charset=utf-8"}));
+    const a = document.createElement("a"); a.href = url; a.download = "eloqwnt-knowledge-base.md";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+  });
+}
+
+/* ---------- boot ---------- */
+let storageError = "", lastSig = "", refreshT = null;
+function parseLoose(text){
+  const t = String(text || "").trim();
+  try { return JSON.parse(t); } catch {}
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/); if (fence){ try { return JSON.parse(fence[1]); } catch {} }
+  const a = t.search(/[\[{]/), b = Math.max(t.lastIndexOf("}"), t.lastIndexOf("]"));
+  if (a >= 0 && b > a){ try { return JSON.parse(t.slice(a, b + 1)); } catch {} }
+  return undefined;
+}
+const claudeApi = {
+  json: async (prompt, opts = {}) => {
+    let r;
+    try { r = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({prompt, tier: opts.modelTier === "quick" ? "quick" : "default"}), signal: opts.signal}); }
+    catch (e){ throw {code: e && e.name === "AbortError" ? "cancelled" : "upstream_error"}; }
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) throw {code: body.code || (r.status === 401 ? "session_expired" : "upstream_error"), message: body.error};
+    const v = parseLoose(body.text);
+    if (v === undefined) throw {code: "invalid_json", text: body.text};
+    return v;
+  }
+};
+function scheduleRefresh(){ clearTimeout(refreshT); refreshT = setTimeout(loadNodes, 150); }
+async function loadNodes(){
+  let r, body = {};
+  try { r = await fetch("/api/kb", {cache: "no-store"}); body = await r.json().catch(() => ({})); }
+  catch (e){ if (!loaded){ booted = true; storageError = "Couldn’t reach the knowledge base. Check your connection and reload."; renderEmpty(); } return; }
+  if (r.status === 401){ location.reload(); return; }
+  if (!r.ok){ booted = true; db = null; storageError = body.error || ""; loaded = false; renderEmpty(); renderPanel(); return; }
+  db = {};
+  const sig = JSON.stringify(body.nodes || []);
+  booted = true;
+  if (sig === lastSig && loaded) return;
+  lastSig = sig;
+  const m = new Map();
+  (body.nodes || []).forEach(v => m.set(v.id, {id: v.id, type: v.type || "policy", title: v.title || v.id, summary: v.summary || "", facts: Array.isArray(v.facts) ? v.facts : [], links: Array.isArray(v.links) ? v.links : []}));
+  nodes = m; loaded = true;
+  if (selected && !nodes.has(selected)){ selected = null; draft = null; }
+  renderStats(); renderLegend(); renderEmpty(); updateGraph();
+  if (tab === "export" || (tab === "ask" && interview.state === "idle") || (tab === "node" && !draft)) renderPanel();
+}
+$("#logoutBtn").onclick = async () => { try { await fetch("/api/logout", {method: "POST"}); } catch {} location.href = "/knowledge-base"; };
+renderStats(); renderEmpty(); renderPanel();
+(async () => {
+  canWrite = true;
+  downloads = {};
+  try { const r = await fetch("/api/ask"); const b = await r.json().catch(() => ({})); sample = r.ok && b.configured ? claudeApi : null; } catch { sample = null; }
+  await loadNodes();
+  renderPanel();
+  setInterval(() => { if (!document.hidden) loadNodes(); }, 30000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) loadNodes(); });
+})();
+})();
+</script>
+</body>
+</html>
