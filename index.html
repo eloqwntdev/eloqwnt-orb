@@ -123,6 +123,10 @@ svg{display:block}
 .orb-ui .lbl:empty{opacity:0}
 .orb-fallback{position:absolute;left:15.4%;top:15.4%;width:69.2%;height:69.2%;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff,#d6e2ee 40%,#b5c9db 75%,#c9eaa8 100%);display:none}
 .no-gl .orb-fallback{display:block}
+.connecting .rings .r-in{animation:breathe 2.8s ease-in-out infinite}
+.connecting .orb-ui .lbl{animation:fade 2.8s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.025);opacity:.55}}
+@keyframes fade{0%,100%{opacity:1}50%{opacity:.5}}
 
 /* bottom panels */
 .foot{position:relative;width:100%;max-width:760px;height:140px;margin-top:-6px}
@@ -939,6 +943,7 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
   const setBadge = t => { statusText.lastChild.textContent = t; };
   setBadge("Live voice");
 
+  let failed = null;
   let conv = null, connecting = false, lastUser = "", lastAgent = "", pending = null, meter = null;
 
   const live = EV.live = {
@@ -947,14 +952,16 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
       if (conv || connecting) return;
       connecting = true;
       live.active = true;
-      EV.setState("listening");
+      EV.setState("idle");
+      document.getElementById("root").classList.add("connecting");
       EV.label("Connecting…");
       EV.transcript("");
+      const timer = setTimeout(() => { if (connecting) { failed = "timeout"; live.stop(); } }, 15000);
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
         conv = await Conversation.startSession({
           agentId,
-          connectionType: "webrtc",
+          connectionType: "websocket",
           clientTools: {
             show_relevant_work: () => {
               EV.setScene(lastUser, lastAgent);
@@ -967,11 +974,14 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
             }
           },
           onConnect: () => {
+            clearTimeout(timer);
+            document.getElementById("root").classList.remove("connecting");
+            EV.setState("listening");
             setBadge("Live · connected");
             EV.label("Listening…");
             if (pending) { conv && conv.sendUserMessage(pending); pending = null; }
           },
-          onDisconnect: () => { cleanup(); },
+          onDisconnect: (d) => { clearTimeout(timer); const why = d && (d.reason || d.message); cleanup(); if (why && why !== "user") { EV.label("Couldn’t connect"); console.warn("Disconnected:", d); } },
           onError: (err) => { console.error("Voice error", err); setBadge("Voice error"); },
           onModeChange: ({ mode }) => {
             if (EV.view() !== "voice") return;
@@ -1005,6 +1015,7 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
         }, 50);
       } catch (err) {
         console.error(err);
+        clearTimeout(timer);
         cleanup();
         const denied = err && (err.name === "NotAllowedError" || /permission|denied/i.test(String(err.message || err)));
         EV.label(denied ? "Microphone blocked" : "Couldn’t connect");
@@ -1026,10 +1037,12 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
   };
 
   function cleanup() {
+    document.getElementById("root").classList.remove("connecting");
     clearInterval(meter); meter = null;
     conv = null; live.active = false; EV.level = null;
     setBadge("Live voice");
     if (EV.view() === "voice") EV.setState("idle");
+    if (failed === "timeout") { EV.label("Couldn’t connect"); setBadge("Offline"); failed = null; }
   }
 })();
 </script>
