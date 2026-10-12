@@ -1,6 +1,7 @@
 // The knowledge base: one Redis hash, one JSON value per node.
 import { isAuthed, json, redis, redisConfigured } from "../lib/server.js";
 import seed from "../lib/seed.js";
+import { hasCaseFacts, withCaseFacts } from "../lib/case-facts.js";
 
 const HASH = "kb:nodes";
 const TYPES = ["company", "service", "case", "process", "sector", "policy", "contact"];
@@ -39,9 +40,24 @@ export async function GET(request) {
     await redis("SET", "kb:seeded", "1");
     flat = await redis("HGETALL", HASH);
   }
-  const nodes = [];
+  let nodes = [];
   for (let i = 0; i < (flat || []).length; i += 2) {
     try { nodes.push(JSON.parse(flat[i + 1])); } catch { /* skip a damaged row */ }
+  }
+
+  // One-time upgrade: give every case study the standard facts, keeping existing values.
+  if (!(await redis("GET", "kb:casefacts:v1"))) {
+    const titles = new Map(nodes.map((n) => [n.id, n.title]));
+    const sectors = new Set(nodes.filter((n) => n.type === "sector").map((n) => n.id));
+    const changed = [];
+    nodes = nodes.map((n) => {
+      if (n.type !== "case" || hasCaseFacts(n)) return n;
+      const up = withCaseFacts(n, (n.links || []).filter((l) => sectors.has(l)).map((l) => titles.get(l)));
+      changed.push(up);
+      return up;
+    });
+    if (changed.length) await redis("HSET", HASH, ...changed.flatMap((n) => [n.id, JSON.stringify(n)]));
+    await redis("SET", "kb:casefacts:v1", "1");
   }
   return json({ nodes });
 }

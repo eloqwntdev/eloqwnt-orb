@@ -359,7 +359,7 @@ sim.on("end.fit", () => { if (!fitted && simNodes.length){ fitted = true; fit();
 function select(id){
   selected = id; confirmDelete = false;
   const n = nodes.get(id);
-  draft = n ? JSON.parse(JSON.stringify({...n, facts: n.facts || [], links: n.links || []})) : null;
+  draft = n ? withCaseFacts(JSON.parse(JSON.stringify({...n, facts: n.facts || [], links: n.links || []}))) : null;
   setTab("node");
   paintSelection();
 }
@@ -519,6 +519,7 @@ Rules:
 - Keep fact keys short (1-3 words, sentence case) and values short and speakable.
 - Reuse existing node ids. A new node's id is a lowercase-hyphen slug of its title.
 - Node types: company, service, case, process, sector, policy, contact.
+- A case node always uses these fact keys, in this order, leaving unknown values empty: ${CASE_FACTS.join(", ")}.
 - To fill an unknown fact, use set_fact with the existing key.
 - Link new nodes to related existing nodes (a case to its sector, a service to its process).
 
@@ -557,6 +558,7 @@ function planChanges(updates){
       const n = {id, type: TYPE_IDS.includes(u.node.type) ? u.node.type : "policy", title: t, summary: String(u.node.summary || ""),
         facts: (Array.isArray(u.node.facts) ? u.node.facts : []).map(f => ({k: String(f.k || f.key || "").trim(), v: String(f.v ?? f.value ?? "").trim()})).filter(f => f.k),
         links: (Array.isArray(u.node.links) ? u.node.links : []).map(String).filter(l => nodes.has(l) || next.has(l))};
+      const nn = withCaseFacts(n); n.facts = nn.facts;
       next.set(id, n);
       items.push({kind: "add", where: `${t} (${n.type})`, what: n.facts.map(f => `${f.k}: ${f.v}`).join(" · ") || n.summary || "New node"});
     } else if (u.op === "set_fact"){
@@ -623,8 +625,26 @@ function writeError(e){
 }
 
 /* ---------- node editor ---------- */
+const CASE_FACTS = ["Client", "Sector", "What we did", "The challenge", "Our approach", "Result", "Timeline", "Built in", "Year", "Live link", "Client quote", "Best for"];
+/* Standard case-study facts first, in order, keeping any values already there; other facts follow. */
+function withCaseFacts(n){
+  if (!n || n.type !== "case") return n;
+  const rename = {services: "What we did"};
+  const by = new Map(), extra = [];
+  for (const f of (n.facts || [])){
+    const key = String(f.k || "").trim(); if (!key) continue;
+    const std = rename[key.toLowerCase()] || CASE_FACTS.find(s => s.toLowerCase() === key.toLowerCase());
+    if (std){ if (!by.has(std) || (!by.get(std) && f.v)) by.set(std, String(f.v ?? "")); }
+    else extra.push({k: key, v: String(f.v ?? "")});
+  }
+  if (!by.get("Sector")){
+    const sec = (n.links || []).map(l => nodes.get(l)).filter(x => x && x.type === "sector").map(x => x.title);
+    if (sec.length) by.set("Sector", sec.join(", "));
+  }
+  return {...n, facts: CASE_FACTS.map(k => ({k, v: by.get(k) || ""})).concat(extra)};
+}
 function blankDraft(){
-  return {id: null, type: "case", title: "", summary: "", facts: [{k: "", v: ""}], links: companyId() ? [companyId()] : []};
+  return withCaseFacts({id: null, type: "case", title: "", summary: "", facts: [], links: companyId() ? [companyId()] : []});
 }
 function renderEditor(){
   const p = $("#panel");
@@ -670,6 +690,7 @@ function renderEditor(){
     p.querySelectorAll("input.v").forEach(el => draft.facts[+el.dataset.i].v = el.value);
   };
   p.querySelectorAll("input,textarea,select").forEach(el => el.addEventListener("input", sync));
+  $("#nType").addEventListener("change", () => { sync(); if (draft.type === "case"){ draft = withCaseFacts(draft); renderEditor(); } });
   p.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { sync(); draft.facts.splice(+b.dataset.del, 1); renderEditor(); });
   p.querySelectorAll("[data-unlink]").forEach(b => b.onclick = () => { sync(); draft.links = draft.links.filter(l => l !== b.dataset.unlink); renderEditor(); });
   $("#addFact") && ($("#addFact").onclick = () => { sync(); draft.facts.push({k: "", v: ""}); renderEditor(); setTimeout(() => $("#fk" + (draft.facts.length - 1))?.focus(), 20); });
