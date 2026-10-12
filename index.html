@@ -945,6 +945,8 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
   setBadge("Live voice");
 
   let failed = null;
+  // Expressive voices put stage directions like [warm] or [laughs] in the text; the voice uses them, the screen shouldn't show them.
+  const cleanText = (t) => String(t || "").replace(/\s*\[[a-z][a-z' -]{0,30}\]\s*/gi, " ").replace(/\s+([,.!?;:])/g, "$1").replace(/\s{2,}/g, " ").trim();
   let conv = null, connecting = false, lastUser = "", lastAgent = "", pending = null, meter = null;
 
   const live = EV.live = {
@@ -991,6 +993,8 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
           },
           onMessage: (m) => {
             const who = m.role || m.source;
+            m = { ...m, message: cleanText(m.message) };
+            if (!m.message) return;
             if (who === "user") {
               lastUser = m.message;
               if (EV.view() === "voice") { EV.transcript(m.message); EV.setState("processing"); }
