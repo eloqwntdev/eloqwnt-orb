@@ -120,7 +120,21 @@ label.f{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--
 .dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
 @keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
 .changes{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:14px;background:var(--bg);border:1px solid var(--line)}
-.change{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;font-size:13.5px;align-items:start}
+.change{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:8px;font-size:13.5px;align-items:start;cursor:pointer}
+.change input{margin:2px 0 0;width:16px;height:16px;accent-color:var(--lime-dot);cursor:pointer}
+.change.off > div,.change.off .tag{opacity:.4}
+.changes-head{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+.changes-head button{color:var(--ink-3);text-decoration:underline;text-underline-offset:2px;font-size:12.5px}
+.drop{display:flex;flex-direction:column;align-items:center;gap:4px;border:1.5px dashed var(--line);border-radius:14px;padding:18px 14px;text-align:center;color:var(--muted);font-size:13.5px;cursor:pointer;background:var(--bg);transition:border-color .2s,background .2s}
+.drop b{color:var(--ink);font-weight:500}
+.drop:hover,.drop.over{border-color:var(--lime-dot)}
+.drop.over{background:rgba(143,209,79,.08)}
+.drop small{font-size:12px;color:var(--faint)}
+.files{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.files li{display:flex;align-items:center;gap:8px;padding:4px 4px 4px 12px;border-radius:10px;background:var(--chip);font-size:13px;color:var(--ink-2)}
+.files li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.files li em{font-style:normal;color:var(--faint);font-size:12px}
+.notes{margin:0;padding-left:18px;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
 .change b{font-weight:500}
 .change .v{color:var(--ink-2);overflow-wrap:anywhere}
 .tag{height:20px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:500;display:inline-flex;align-items:center;white-space:nowrap}
@@ -187,6 +201,7 @@ pre.md{margin:0;padding:14px;border-radius:12px;background:var(--bg);border:1px 
     <aside>
       <div class="tabs" role="tablist">
         <button role="tab" id="tab-ask" aria-selected="true" type="button">Interview</button>
+        <button role="tab" id="tab-import" aria-selected="false" type="button">Import</button>
         <button role="tab" id="tab-node" aria-selected="false" type="button">Edit</button>
         <button role="tab" id="tab-export" aria-selected="false" type="button">Export</button>
       </div>
@@ -375,16 +390,18 @@ function renderEmpty(){
 /* ---------- tabs ---------- */
 function setTab(t){
   tab = t;
-  ["ask", "node", "export"].forEach(k => $("#tab-" + k).setAttribute("aria-selected", k === t));
+  ["ask", "import", "node", "export"].forEach(k => $("#tab-" + k).setAttribute("aria-selected", k === t));
   renderPanel();
 }
 $("#tab-ask").onclick = () => setTab("ask");
 $("#tab-node").onclick = () => setTab("node");
+$("#tab-import").onclick = () => setTab("import");
 $("#tab-export").onclick = () => setTab("export");
 
 function renderPanel(){
   if (tab === "ask") renderInterview();
   else if (tab === "node") renderEditor();
+  else if (tab === "import") renderImport();
   else renderExport();
 }
 
@@ -443,8 +460,8 @@ function renderInterview(){
     p.innerHTML = `<div class="qcard">
       <span class="eyebrow">Review before saving</span>
       <p class="qtext" style="font-size:18px">${esc(c.summary || "Proposed changes")}</p>
-      ${c.items.length ? `<div class="changes">${c.items.map(it => `<div class="change"><span class="tag ${it.kind}">${it.kind === "add" ? "New" : it.kind === "del" ? "Remove" : "Update"}</span><div><b>${esc(it.where)}</b><div class="v">${esc(it.what)}</div></div></div>`).join("")}</div>` : `<p class="note">Nothing in that answer changes the knowledge base.</p>`}
-      <div class="row">${c.items.length ? `<button class="btn primary" id="applyC" type="button">Save changes</button>` : ""}<button class="btn" id="discardC" type="button">${c.items.length ? "Discard" : "Next question"}</button></div>
+      ${c.items.length ? changesHtml(c) : `<p class="note">Nothing in that answer changes the knowledge base.</p>`}
+      <div class="row">${c.items.length ? `<button class="btn primary" id="applyC" type="button">${saveLabel(c)}</button>` : ""}<button class="btn" id="discardC" type="button">${c.items.length ? "Discard" : "Next question"}</button></div>
     </div>`;
   } else if (s === "error"){
     p.innerHTML = `<div class="qcard"><span class="eyebrow">Interview paused</span><p class="qtext" style="font-size:18px">${esc(interview.msg)}</p>
@@ -465,7 +482,8 @@ function bindInterview(){
   $("#saveAns") && ($("#saveAns").onclick = () => { const a = $("#ans").value.trim(); if (!a){ $("#ans").focus(); return; } applyAnswer(interview.q.question, a); });
   $("#ans") && ($("#ans").onkeydown = e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) $("#saveAns").click(); });
   $("#teachBtn") && ($("#teachBtn").onclick = () => { const t = $("#teach").value.trim(); if (!t){ $("#teach").focus(); return; } applyAnswer(null, t); });
-  $("#applyC") && ($("#applyC").onclick = applyChanges);
+  interview.changes && bindChanges(interview.changes, "#applyC");
+  $("#applyC") && ($("#applyC").onclick = () => saveChanges(interview.changes, "#applyC", nextQuestion));
   $("#discardC") && ($("#discardC").onclick = nextQuestion);
 }
 function sampleFail(e, retry){
@@ -538,8 +556,7 @@ ${fromQuestion ? `Question asked: ${question}\n` : ""}Founder's words: ${answer}
 knowledge_base: ${kbForPrompt()}`;
   try {
     const r = await sample.json(prompt, {signal: ctl.signal, cache: false});
-    const plan = planChanges(r && Array.isArray(r.updates) ? r.updates : []);
-    interview = {state: "preview", q: interview.q, changes: {summary: r && r.summary ? String(r.summary) : "", ...plan}};
+    interview = {state: "preview", q: interview.q, changes: makeChanges(r)};
     renderInterview();
     if (!fromQuestion){ const t = $("#teach"); if (t) t.value = ""; }
   } catch (e){ sampleFail(e, () => applyAnswer(question, answer)); }
@@ -548,9 +565,11 @@ knowledge_base: ${kbForPrompt()}`;
 function planChanges(updates){
   const next = new Map();
   const get = id => { if (next.has(id)) return next.get(id); const n = nodes.get(id); if (!n) return null; const c = JSON.parse(JSON.stringify({...n, facts: n.facts || [], links: n.links || []})); next.set(id, c); return c; };
-  const items = [];
-  for (const u of updates){
+  const items = [], addedBy = new Map();   // new node id -> index of the update that adds it
+  const depOf = (...ids) => { for (const id of ids){ if (addedBy.has(id)) return addedBy.get(id); } return null; };
+  for (const [ui, u] of updates.entries()){
     if (!u || typeof u !== "object") continue;
+    const at = items.length;
     if (u.op === "add_node" && u.node){
       const t = String(u.node.title || "").trim(); if (!t) continue;
       let id = slug(u.node.id || t); while (nodes.has(id) && !next.has(id)) id += "-2";
@@ -559,15 +578,16 @@ function planChanges(updates){
         facts: (Array.isArray(u.node.facts) ? u.node.facts : []).map(f => ({k: String(f.k || f.key || "").trim(), v: String(f.v ?? f.value ?? "").trim()})).filter(f => f.k),
         links: (Array.isArray(u.node.links) ? u.node.links : []).map(String).filter(l => nodes.has(l) || next.has(l))};
       const nn = withCaseFacts(n); n.facts = nn.facts;
-      next.set(id, n);
-      items.push({kind: "add", where: `${t} (${n.type})`, what: n.facts.map(f => `${f.k}: ${f.v}`).join(" · ") || n.summary || "New node"});
+      next.set(id, n); addedBy.set(id, ui);
+      const filled = n.facts.filter(f => f.v), empty = n.facts.length - filled.length;
+      items.push({kind: "add", where: `${t} (${n.type})`, what: [n.summary, filled.map(f => `${f.k}: ${f.v}`).join(" · "), empty ? `${empty} fact${empty === 1 ? "" : "s"} left empty` : ""].filter(Boolean).join(" · ") || "New node"});
     } else if (u.op === "set_fact"){
       const n = get(String(u.nodeId)); const k = String(u.key || "").trim(); const v = String(u.value ?? "").trim();
       if (!n || !k || !v) continue;
       const f = n.facts.find(x => x.k.toLowerCase() === k.toLowerCase());
       if (f && f.v === v) continue;
       if (f) f.v = v; else n.facts.push({k, v});
-      items.push({kind: f ? "edit" : "add", where: `${n.title} · ${f ? f.k : k}`, what: v});
+      items.push({kind: f ? "edit" : "add", where: `${n.title} · ${f ? f.k : k}`, what: v, dep: depOf(n.id)});
     } else if (u.op === "remove_fact"){
       const n = get(String(u.nodeId)); const k = String(u.key || "").toLowerCase();
       if (!n) continue; const before = n.facts.length;
@@ -575,25 +595,223 @@ function planChanges(updates){
       if (n.facts.length < before) items.push({kind: "del", where: `${n.title} · ${u.key}`, what: "Fact removed"});
     } else if (u.op === "set_summary"){
       const n = get(String(u.nodeId)); const v = String(u.value || "").trim(); if (!n || !v || n.summary === v) continue;
-      n.summary = v; items.push({kind: "edit", where: `${n.title} · summary`, what: v});
+      n.summary = v; items.push({kind: "edit", where: `${n.title} · summary`, what: v, dep: depOf(n.id)});
     } else if (u.op === "link"){
       const a = get(String(u.from)); const b = String(u.to);
       if (!a || !(nodes.has(b) || next.has(b)) || a.links.includes(b) || a.id === b) continue;
-      a.links.push(b); items.push({kind: "add", where: `${a.title} → ${(nodes.get(b) || next.get(b)).title}`, what: "Linked"});
+      a.links.push(b); items.push({kind: "add", where: `${a.title} → ${(nodes.get(b) || next.get(b)).title}`, what: "Linked", dep: depOf(a.id, b)});
     }
+    for (let j = at; j < items.length; j++){ items[j].u = ui; if (items[j].dep === ui || items[j].dep === undefined) items[j].dep = null; }
   }
   return {items, docs: [...next.values()]};
 }
-async function applyChanges(){
-  const docs = interview.changes.docs;
-  const btn = $("#applyC"); if (btn){ btn.disabled = true; btn.textContent = "Saving…"; }
+/* A reviewable change set: every item can be unticked before saving. */
+function makeChanges(r){
+  const updates = r && Array.isArray(r.updates) ? r.updates : [];
+  return {summary: r && r.summary ? String(r.summary) : "", updates, off: new Set(), ...planChanges(updates)};
+}
+const isOn = (c, it) => !c.off.has(it.u) && (it.dep == null || !c.off.has(it.dep));
+const onCount = c => c.items.filter(it => isOn(c, it)).length;
+const saveLabel = c => { const n = onCount(c); return n === c.items.length ? `Save ${n} change${n === 1 ? "" : "s"}` : `Save ${n} of ${c.items.length}`; };
+function changesHtml(c){
+  const kind = k => k === "add" ? "New" : k === "del" ? "Remove" : "Update";
+  return `${c.items.length > 3 ? `<div class="changes-head">Untick anything you don’t want.<span class="spacer"></span><button type="button" data-all="1">All</button><button type="button" data-all="0">None</button></div>` : ""}
+    <div class="changes">${c.items.map((it, j) => `<label class="change ${isOn(c, it) ? "" : "off"}" for="ch${j}"><input type="checkbox" id="ch${j}" data-j="${j}" data-u="${it.u}" ${isOn(c, it) ? "checked" : ""} ${it.dep != null && c.off.has(it.dep) ? "disabled" : ""}><span class="tag ${it.kind}">${kind(it.kind)}</span><div><b>${esc(it.where)}</b><div class="v">${esc(it.what)}</div></div></label>`).join("")}</div>`;
+}
+function bindChanges(c, btnSel){
+  const sync = () => {
+    document.querySelectorAll(".change input[data-u]").forEach(el => {
+      const it = c.items[+el.dataset.j], blocked = it.dep != null && c.off.has(it.dep);
+      el.disabled = blocked; el.checked = isOn(c, it); el.closest(".change").classList.toggle("off", !el.checked);
+    });
+    const b = $(btnSel); if (b){ b.textContent = saveLabel(c); b.disabled = onCount(c) === 0; }
+  };
+  document.querySelectorAll(".change input[data-u]").forEach(el => el.onchange = () => { const u = +el.dataset.u; el.checked ? c.off.delete(u) : c.off.add(u); sync(); });
+  document.querySelectorAll("[data-all]").forEach(b => b.onclick = () => {
+    c.off = b.dataset.all === "1" ? new Set() : new Set(c.items.map(it => it.u));
+    sync();
+  });
+}
+async function saveChanges(c, btnSel, after){
+  const n = onCount(c); if (!n) return;
+  const docs = planChanges(c.updates.filter((_, i) => !c.off.has(i))).docs;
+  const btn = $(btnSel); if (btn){ btn.disabled = true; btn.textContent = "Saving…"; }
   try {
     for (const d of docs) await writeNode(d);
-    toast(`Saved ${interview.changes.items.length} change${interview.changes.items.length === 1 ? "" : "s"}`);
-    nextQuestion();
+    toast(`Saved ${n} change${n === 1 ? "" : "s"}`);
+    after();
   } catch (e){
-    if (btn){ btn.disabled = false; btn.textContent = "Save changes"; }
+    if (btn){ btn.disabled = false; btn.textContent = saveLabel(c); }
     toast(writeError(e));
+  }
+}
+
+/* ---------- import: links, files and pasted text ---------- */
+const IMG_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+const MAX_UPLOAD = 3_000_000;   // bytes of PDF or image data per import (Vercel caps a request at 4.5 MB)
+let imp = {state: "idle", url: "", text: "", focus: "", files: []};   // files: [{name, size, source}]
+
+function renderImport(){
+  const p = $("#panel");
+  const s = imp.state;
+  if (s === "working"){
+    p.innerHTML = `<div class="qcard"><span class="eyebrow">Import</span>
+      <div class="thinking"><span class="dots"><i></i><i></i><i></i></span>${esc(imp.step || "Reading your sources…")}</div>
+      <p class="note">Long PDFs can take up to a minute.</p>
+      <div class="row"><button class="btn small ghost" id="impStop" type="button">Stop</button></div></div>`;
+    $("#impStop").onclick = () => { ctl?.abort(); imp.state = "idle"; renderImport(); };
+    return;
+  }
+  if (s === "preview"){
+    const c = imp.changes;
+    p.innerHTML = `<div class="qcard">
+      <span class="eyebrow">Review before saving</span>
+      <p class="qtext" style="font-size:18px">${esc(c.summary || "Suggested changes")}</p>
+      ${c.items.length ? changesHtml(c) : `<p class="note">Nothing new for the knowledge base in those sources.</p>`}
+      ${imp.notes.length ? `<span class="eyebrow">Worth a look</span><ul class="notes">${imp.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+      <div class="row">${c.items.length ? `<button class="btn primary" id="impSave" type="button">${saveLabel(c)}</button>` : ""}<button class="btn" id="impBack" type="button">${c.items.length ? "Discard" : "Back"}</button></div>
+    </div>`;
+    bindChanges(c, "#impSave");
+    $("#impSave") && ($("#impSave").onclick = () => saveChanges(c, "#impSave", () => { imp = {state: "idle", url: "", text: "", focus: "", files: []}; renderImport(); }));
+    $("#impBack").onclick = () => { imp.state = "idle"; renderImport(); };
+    return;
+  }
+  const off = !sample || !canWrite;
+  p.innerHTML = `<div class="qcard">
+      <span class="eyebrow">Import</span>
+      <p class="qtext" style="font-size:19px">Drop in a link, a file or some notes. Claude pulls out what the orb should know and suggests changes.</p>
+      <p class="why">It updates existing nodes when it recognises them, fills empty facts, and adds new ones. You tick what to keep.</p>
+    </div>
+    ${s === "error" ? `<p class="note warn">${esc(imp.msg)}</p>` : ""}
+    <label class="f" for="impUrl">Link<input type="text" id="impUrl" inputmode="url" autocomplete="off" placeholder="https://… a case page, Behance project, Google Doc or PDF" value="${esc(imp.url)}" ${off ? "disabled" : ""}></label>
+    <div class="drop" id="impDrop" role="button" tabindex="0" aria-label="Add files"><span><b>Drop files here</b> or click to choose</span><small>PDF, Word, images, text · up to 3 MB together</small></div>
+    <input type="file" id="impFile" multiple hidden accept=".pdf,.docx,.txt,.md,.markdown,.csv,.json,.html,.htm,.png,.jpg,.jpeg,.webp,.gif,application/pdf,image/*,text/*">
+    ${imp.files.length ? `<ul class="files">${imp.files.map((f, i) => `<li><span>${esc(f.name)}</span><em>${fmtSize(f.size)}</em><button class="x" type="button" data-rmf="${i}" aria-label="Remove ${esc(f.name)}"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg></button></li>`).join("")}</ul>` : ""}
+    <label class="f" for="impText">Or paste text<textarea id="impText" rows="4" placeholder="A brief, a client email, notes from a call, a proposal…" ${off ? "disabled" : ""}>${esc(imp.text)}</textarea></label>
+    <label class="f" for="impFocus">What is it? (optional)<input type="text" id="impFocus" autocomplete="off" placeholder="For example: our new case study for Vertus 42" value="${esc(imp.focus)}" ${off ? "disabled" : ""}></label>
+    <div class="row"><button class="btn primary" id="impGo" type="button" ${off ? "disabled" : ""}>Read and suggest</button></div>
+    ${!sample ? `<p class="note warn">Import needs Claude connected. Add ANTHROPIC_API_KEY in Vercel, then reload.</p>` : ""}`;
+  if (off) return;
+  const keep = () => { imp.url = $("#impUrl").value; imp.text = $("#impText").value; imp.focus = $("#impFocus").value; };
+  ["#impUrl", "#impText", "#impFocus"].forEach(id => $(id).addEventListener("input", keep));
+  const drop = $("#impDrop"), input = $("#impFile");
+  drop.onclick = () => input.click();
+  drop.onkeydown = e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); input.click(); } };
+  input.onchange = () => { keep(); addFiles([...input.files]); };
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
+  drop.ondragleave = () => drop.classList.remove("over");
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); keep(); addFiles([...e.dataTransfer.files]); };
+  p.querySelectorAll("[data-rmf]").forEach(b => b.onclick = () => { keep(); imp.files.splice(+b.dataset.rmf, 1); renderImport(); });
+  $("#impGo").onclick = () => { keep(); runImport(); };
+}
+function fmtSize(n){ return n > 1e6 ? (n / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1e3)) + " KB"; }
+const binarySize = () => imp.files.reduce((a, f) => a + (f.source.data ? f.source.data.length * 0.75 : 0), 0);
+async function addFiles(list){
+  for (const f of list){
+    try {
+      const source = await readFile(f);
+      const size = source.data ? source.data.length * 0.75 : source.text.length;
+      if (source.data && binarySize() + size > MAX_UPLOAD) throw new Error(`${f.name} is too large. Keep PDFs and images under 3 MB together, or paste the text instead.`);
+      imp.files.push({name: f.name, size, source});
+    } catch (e){ toast(e.message || `Couldn’t read ${f.name}.`); }
+  }
+  renderImport();
+}
+function toBase64(blob){
+  return new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = () => bad(new Error("read")); r.readAsDataURL(blob); });
+}
+/* Shrink big screenshots so they fit the upload limit and stay legible to Claude. */
+async function shrinkImage(file){
+  if (file.size < 1_200_000 || file.type === "image/gif") return {mediaType: file.type, data: await toBase64(file)};
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, 1800 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  const blob = await new Promise(ok => c.toBlob(ok, "image/jpeg", 0.85));
+  return {mediaType: "image/jpeg", data: await toBase64(blob)};
+}
+let mammothP = null;
+function loadMammoth(){
+  if (window.mammoth) return Promise.resolve();
+  return mammothP ||= new Promise((ok, bad) => {
+    const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js";
+    sc.onload = ok; sc.onerror = () => { mammothP = null; bad(new Error("Couldn’t load the Word reader. Check your connection, or save the file as PDF.")); };
+    document.head.appendChild(sc);
+  });
+}
+async function readFile(f){
+  const ext = (f.name.split(".").pop() || "").toLowerCase();
+  if (f.type === "application/pdf" || ext === "pdf"){
+    if (f.size > MAX_UPLOAD) throw new Error(`${f.name} is over 3 MB. Compress it, or upload only the pages that matter.`);
+    return {kind: "pdf", name: f.name, data: await toBase64(f)};
+  }
+  if (IMG_TYPES.includes(f.type) || /^(png|jpe?g|webp|gif)$/.test(ext)) return {kind: "image", name: f.name, ...(await shrinkImage(f))};
+  if (ext === "docx"){
+    await loadMammoth();
+    const r = await window.mammoth.extractRawText({arrayBuffer: await f.arrayBuffer()});
+    if (!r.value.trim()) throw new Error(`${f.name} has no readable text.`);
+    return {kind: "text", name: f.name, text: r.value};
+  }
+  if (/^(txt|md|markdown|csv|json|html?)$/.test(ext) || (f.type || "").startsWith("text/")){
+    let t = await f.text();
+    if (/^html?$/.test(ext)) t = new DOMParser().parseFromString(t, "text/html").body.innerText;
+    if (!t.trim()) throw new Error(`${f.name} is empty.`);
+    return {kind: "text", name: f.name, text: t};
+  }
+  if (ext === "doc" || ext === "pptx" || ext === "key" || ext === "pages") throw new Error(`${f.name}: save it as PDF first, then add it.`);
+  throw new Error(`${f.name}: that file type isn’t supported. Try PDF, Word, an image or text.`);
+}
+async function runImport(){
+  if (!sample) return;
+  const urls = (imp.url.match(/https?:\/\/[^\s,]+/g) || []).slice(0, 3);
+  if (imp.url.trim() && !urls.length){ imp.state = "error"; imp.msg = "That link doesn’t look right. It should start with https://"; renderImport(); return; }
+  const sources = [...urls.map(u => ({kind: "url", url: u, name: u})), ...imp.files.map(f => f.source)];
+  if (imp.text.trim()) sources.push({kind: "text", name: "Pasted notes", text: imp.text.trim()});
+  if (!sources.length){ imp.state = "error"; imp.msg = "Add a link, a file or some text first."; renderImport(); return; }
+  ctl?.abort(); ctl = new AbortController();
+  imp.state = "working"; imp.step = urls.length ? "Opening the link and reading it…" : "Reading your sources…"; renderImport();
+  const prompt = `You maintain the knowledge base for "the orb", a voice agent on the website of Eloqwnt, a B2B brand and web design agency. The founder shared the sources above (links, files or notes). Pull out everything a website visitor might ask the orb about, and propose edits to the knowledge base below.
+
+Rules:
+- Use only what the sources state. Never invent numbers, names, prices or results. Never include client budgets.
+- Match existing nodes first. If a source is about a client, project, service or policy already in the knowledge base, edit that node (set_fact, set_summary) instead of adding a duplicate.
+- Fill empty facts whenever a source answers them. If a source gives a different value for a fact that is already filled, propose the new value; the founder reviews every change.
+- A client's own website describes the client: use it only to fill that client's case (what they do, sector, live link), not as Eloqwnt's services.
+- Ignore navigation, cookie banners, legal boilerplate and unrelated content.
+- Keep fact keys short (1-3 words, sentence case). Keep values short and speakable, under 30 words. Summaries are 1-2 spoken sentences.
+- Reuse existing node ids. A new node's id is a lowercase-hyphen slug of its title.
+- Node types: company, service, case, process, sector, policy, contact.
+- A case node always uses these fact keys, in this order, leaving unknown values empty: ${CASE_FACTS.join(", ")}. Other useful case facts may follow them.
+- Link new nodes to related existing nodes (a case to its sector and the services used, a service to its process).
+- Propose at most 60 updates, most valuable first.
+
+Reply with only JSON:
+{"summary": "one sentence on what the sources added", "updates": [
+  {"op": "set_fact", "nodeId": "...", "key": "...", "value": "..."},
+  {"op": "set_summary", "nodeId": "...", "value": "..."},
+  {"op": "add_node", "node": {"id": "...", "type": "...", "title": "...", "summary": "...", "facts": [{"k": "...", "v": "..."}], "links": ["existing-id"]}},
+  {"op": "link", "from": "...", "to": "..."}
+], "notes": ["up to 4 short notes for the founder: conflicts with existing facts, things found but not placed, or what's still missing"]}
+If nothing usable is in the sources, reply {"summary": "Nothing new found", "updates": [], "notes": []}.
+${imp.focus.trim() ? `\nFounder's note about these sources: ${imp.focus.trim()}\n` : ""}
+knowledge_base: ${kbForPrompt()}`;
+  try {
+    const {value: r, notes, truncated} = await sample.json(prompt, {signal: ctl.signal, sources, maxTokens: 10000, withMeta: true});
+    if (!r || typeof r !== "object") throw {code: "invalid_json"};
+    imp.changes = makeChanges(r);
+    imp.notes = [...(notes || []), ...(Array.isArray(r.notes) ? r.notes.map(String).filter(Boolean).slice(0, 4) : [])];
+    if (truncated) imp.notes.unshift("The sources were long, so Claude stopped early. Import the rest separately to catch anything missed.");
+    imp.state = "preview"; renderImport();
+  } catch (e){
+    if (e && e.code === "cancelled") return;
+    imp.state = "error";
+    imp.msg = e && e.code === "fetch_failed" ? (e.message || "Couldn’t open that link.") + " You can also upload the page as a PDF or paste its text."
+      : e && e.code === "prompt_too_large" ? "That’s too much to read at once. Split it into smaller files."
+      : e && e.code === "rate_limited" ? "Too many requests in a short time. Wait a minute, then try again."
+      : e && e.code === "invalid_json" ? (e.text && !/^\s*[{[]/.test(e.text) ? "Claude’s reply was cut short. Try fewer or smaller sources." : "Claude’s reply couldn’t be read. Try again.")
+      : e && (e.code === "sampling_disabled" || e.code === "session_expired") ? "Claude isn’t connected or your session ended. Reload the page."
+      : (e && e.message) || "Claude didn’t answer. Try again.";
+    renderImport();
   }
 }
 
@@ -767,7 +985,7 @@ function renderExport(){
 }
 
 /* ---------- boot ---------- */
-let storageError = "", lastSig = "", refreshT = null;
+let storageError = "", lastSig = "", refreshT = null, loadedOnce = false;
 function parseLoose(text){
   const t = String(text || "").trim();
   try { return JSON.parse(t); } catch {}
@@ -779,13 +997,13 @@ function parseLoose(text){
 const claudeApi = {
   json: async (prompt, opts = {}) => {
     let r;
-    try { r = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({prompt, tier: opts.modelTier === "quick" ? "quick" : "default"}), signal: opts.signal}); }
+    try { r = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({prompt, tier: opts.modelTier === "quick" ? "quick" : "default", sources: opts.sources, maxTokens: opts.maxTokens}), signal: opts.signal}); }
     catch (e){ throw {code: e && e.name === "AbortError" ? "cancelled" : "upstream_error"}; }
     const body = await r.json().catch(() => ({}));
     if (!r.ok) throw {code: body.code || (r.status === 401 ? "session_expired" : "upstream_error"), message: body.error};
     const v = parseLoose(body.text);
     if (v === undefined) throw {code: "invalid_json", text: body.text};
-    return v;
+    return opts.withMeta ? {value: v, notes: body.notes || [], truncated: !!body.truncated} : v;
   }
 };
 function scheduleRefresh(){ clearTimeout(refreshT); refreshT = setTimeout(loadNodes, 150); }
@@ -805,7 +1023,8 @@ async function loadNodes(){
   nodes = m; loaded = true;
   if (selected && !nodes.has(selected)){ selected = null; draft = null; }
   renderStats(); renderLegend(); renderEmpty(); updateGraph();
-  if (tab === "export" || (tab === "ask" && interview.state === "idle") || (tab === "node" && !draft)) renderPanel();
+  if (tab === "export" || (tab === "ask" && interview.state === "idle") || (tab === "node" && !draft) || (tab === "import" && !loadedOnce)) renderPanel();
+  loadedOnce = true;
 }
 $("#logoutBtn").onclick = async () => { try { await fetch("/api/logout", {method: "POST"}); } catch {} location.href = "/knowledge-base"; };
 renderStats(); renderEmpty(); renderPanel();
