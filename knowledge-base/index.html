@@ -908,7 +908,13 @@ function renderEditor(){
     p.querySelectorAll("input.v").forEach(el => draft.facts[+el.dataset.i].v = el.value);
   };
   p.querySelectorAll("input,textarea,select").forEach(el => el.addEventListener("input", sync));
-  $("#nType").addEventListener("change", () => { sync(); if (draft.type === "case"){ draft = withCaseFacts(draft); renderEditor(); } });
+  $("#nType").addEventListener("change", () => {
+    sync();
+    if (draft.type === "case") draft = withCaseFacts(draft);
+    // Leaving Case: drop the case-study titles that are still empty; keep anything already filled in.
+    else draft.facts = draft.facts.filter(f => !(CASE_FACTS.includes(f.k.trim()) && isGap(f.v)));
+    renderEditor();
+  });
   p.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { sync(); draft.facts.splice(+b.dataset.del, 1); renderEditor(); });
   p.querySelectorAll("[data-unlink]").forEach(b => b.onclick = () => { sync(); draft.links = draft.links.filter(l => l !== b.dataset.unlink); renderEditor(); });
   $("#addFact") && ($("#addFact").onclick = () => { sync(); draft.facts.push({k: "", v: ""}); renderEditor(); setTimeout(() => $("#fk" + (draft.facts.length - 1))?.focus(), 20); });
