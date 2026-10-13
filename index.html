@@ -117,8 +117,8 @@ svg{display:block}
 @keyframes spin{to{transform:rotate(360deg)}}
 .orb-ui{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:16px;pointer-events:none;color:var(--ink)}
 .is-dark .orb-ui{color:#fff}
-.orb-ui svg{width:32px;height:41px;transition:transform .4s}
-.orb:hover .orb-ui svg{transform:translateY(-2px) scale(1.04)}
+.orb-ui svg{width:32px;height:41px;transition:transform 1.2s cubic-bezier(.2,.8,.2,1)}
+.orb:hover .orb-ui svg{transform:translateY(-1px)}
 .orb-ui .lbl{font-size:16px;line-height:20px;white-space:nowrap;transition:opacity .3s}
 .orb-ui .lbl:empty{opacity:0}
 .orb-fallback{position:absolute;left:15.4%;top:15.4%;width:69.2%;height:69.2%;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff,#d6e2ee 40%,#b5c9db 75%,#c9eaa8 100%);display:none}
@@ -727,17 +727,11 @@ $("#replay").addEventListener("click",()=>{ replayT?stopReplay():speakAnswer(); 
 /* ---------------- noise helper ---------------- */
 const vn=(()=>{const p=new Float32Array(512);for(let i=0;i<512;i++)p[i]=Math.random();return x=>{const i=Math.floor(x),f=x-i,u=f*f*(3-2*f);return p[i&511]*(1-u)+p[(i+1)&511]*u;}})();
 
-/* ---------------- background ribbons ---------------- */
+/* ---------------- background: soft light, no lines ---------------- */
 const bg=$("#bg"), bx=bg.getContext("2d");
 let BW=0,BH=0;
 function sizeBg(){ const d=Math.min(devicePixelRatio||1,1.5); BW=innerWidth;BH=innerHeight; bg.width=BW*d;bg.height=BH*d; bx.setTransform(d,0,0,d,0,0); }
 sizeBg(); addEventListener("resize",sizeBg);
-const BUNDLES=[ // [x0,y0,x1,y1, c1x,c1y,c2x,c2y] in relative units; lines, spread
- {p:[-.05,.36,.58,.62,.18,.22,.36,.78],n:26,sp:.11,ph:0},
- {p:[-.05,.70,.56,.98,.16,.62,.36,1.02],n:22,sp:.10,ph:2},
- {p:[.52,.70,1.05,.20,.70,.62,.86,.32],n:26,sp:.12,ph:4},
- {p:[.62,.86,1.05,.80,.80,.95,.92,.78],n:16,sp:.06,ph:1},
-];
 function drawBg(t){
   const dk=darkT;
   bx.clearRect(0,0,BW,BH);
@@ -752,20 +746,6 @@ function drawBg(t){
     f(BW*.5,BH*.45,m*.30,"rgba(255,255,255,.65)");
   }
   bx.globalAlpha=1;
-  bx.lineWidth=1;
-  const col=dk>.5?"rgba(190,220,235,":"rgba(70,90,120,";
-  const baseA=dk>.5?.06:.11;
-  for(const B of BUNDLES){
-    const [x0,y0,x1,y1,a,b,c,d]=B.p;
-    for(let i=0;i<B.n;i++){
-      const k=i/(B.n-1)-.5, w=Math.sin(t*.25+B.ph+i*.12)*.012, w2=Math.cos(t*.2+B.ph*1.3+i*.09)*.02;
-      bx.strokeStyle=col+(baseA*(1-Math.abs(k)*1.2)).toFixed(3)+")";
-      bx.beginPath();
-      bx.moveTo(x0*BW,(y0+k*B.sp*.4)*BH);
-      bx.bezierCurveTo(a*BW,(b+k*B.sp+w)*BH,c*BW,(d+k*B.sp*1.4+w2)*BH,x1*BW,(y1+k*B.sp*.7)*BH);
-      bx.stroke();
-    }
-  }
 }
 
 /* ---------------- orb shader ---------------- */
@@ -788,16 +768,13 @@ vec4 s0=floor(b0)*2.+1.;vec4 s1=floor(b1)*2.+1.;vec4 sh=-step(h,vec4(0.));vec4 a
 vec3 p0=vec3(a0.xy,h.x);vec3 p1=vec3(a0.zw,h.y);vec3 p2=vec3(a1.xy,h.z);vec3 p3=vec3(a1.zw,h.w);
 vec4 norm=tis(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
 vec4 m=max(.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.);m=m*m;return 42.*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));}
+float soft(vec3 p){return .68*sn(p)+.32*sn(p*1.8+3.7);}
 float fbm(vec3 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*sn(p);p*=2.03;a*=.5;}return s;}
 mat3 rotY(float a){float c=cos(a),s=sin(a);return mat3(c,0,-s,0,1,0,s,0,c);}
 mat3 rotX(float a){float c=cos(a),s=sin(a);return mat3(1,0,0,0,c,s,0,-s,c);}
-float waveY(float x,float t,float e){
-  float a=.17+.22*e;
-  return -.30+a*sin(x*2.4-t*(.7+1.6*e)+1.2)+ .06*e*sin(x*6.3+t*3.1)+.03*sin(x*3.7+t*.9);
-}
 void main(){
   vec2 p=v*2.-1.;
-  float R=.6926*(1.+.010*sin(uT*1.1)+.03*uE);
+  float R=.6926*(1.+.008*sin(uT*.6)+.045*uE);
   float r=length(p), d=r/R;
   vec3 baseL=vec3(.90,.93,.955), baseD=vec3(.13,.30,.39);
   vec3 blueL=vec3(.66,.79,.90),  blueD=vec3(.30,.53,.67);
@@ -815,43 +792,33 @@ void main(){
     float dd=min(d,.9999);
     float z=sqrt(1.-dd*dd);
     vec3 n=normalize(vec3(p/R,z));
-    float t=uT*(.06+.22*uSwirl+.08*uE);
-    vec3 q=rotY(uTilt.x*.6+t*.9)*rotX(-uTilt.y*.6+t*.4)*n;
-    vec3 q2=q*.85+vec3(0.,t*.6,t*.4);
-    float w=fbm(q2+.55*vec3(fbm(q2*1.2+t),fbm(q2*1.2-t+3.1),0.));
-    vec3 c=base;
-    c=mix(c,blue,smoothstep(-.7,.9,w*.8+n.y*.5-n.x*.4)*.8);
-    // cloudy top-left light pocket
-    c=mix(c,mix(vec3(.97,.98,1.),vec3(.45,.68,.80),uDark),smoothstep(.65,.0,length(n.xy-vec2(-.32,.38)+.08*vec2(sin(t*2.),cos(t*1.7))))*.28);
-    // refraction-ish: sample warped screen coord for wave
-    vec2 sp=p/R; sp+=n.xy*(1.-z)*.18;
-    float wy=waveY(sp.x,uT,uE);
-    float below=smoothstep(.0,.05,wy-sp.y);
-    vec3 belowC=mix(deep,mix(deep,lime,.35),smoothstep(-.4,.9,sp.x));
-    c=mix(c,belowC,below*.42);
-    // lime pool bottom-right
-    vec2 lc=vec2(.42+.06*sin(t*2.3),-.62+.04*cos(t*1.9));
-    float lm=smoothstep(.95,.0,length((sp-lc)*vec2(.8,1.1)));lm*=lm;
-    c=mix(c,lime,lm*(.6+.25*uE)*mix(1.,.8,uDark));
-    // wave line
-    float lw=.0075+.005*uE;
-    float line=exp(-pow((sp.y-wy)/lw,2.));
-    float line2=exp(-pow((sp.y-waveY(sp.x+.35,uT*1.13+1.,uE*.7)+.04)/(lw*.8),2.))*.35;
-    vec3 lineC=mix(vec3(1.),lime,smoothstep(-.7,.7,sp.x));
-    c+= (line+line2)*lineC*(.55+.45*z)*mix(.85,1.,uDark);
+    // soft clouds drifting slowly through the sphere, like a sky seen through glass
+    float t=uT*(.045+.18*uSwirl+.10*uE);
+    vec3 q=rotY(uTilt.x*.35+t*.8)*rotX(-uTilt.y*.35+t*.35)*n;
+    vec3 q2=q*.8+vec3(0.,-t*.7,t*.3);
+    float w=soft(q2+.5*vec3(soft(q2*.7+t),soft(q2*.7-t+3.1),soft(q2*.6+5.2)));
+    float w2=soft(q*1.15+vec3(t*.4,0.,-t*.3)+w*.9);
+    vec3 c=mix(deep,blue,smoothstep(-.9,.7,w+n.y*.3));
+    c=mix(c,base,smoothstep(-.3,.8,w)*.5);
+    vec3 cloud=mix(vec3(.985,.99,1.),vec3(.70,.85,.94),uDark);
+    c=mix(c,cloud,smoothstep(-.1,.9,w2*.8+w*.3+n.y*.3)*.75);
+    // soft light from the top left
+    c=mix(c,cloud,smoothstep(.75,.0,length(n.xy-vec2(-.30,.36)))*.22);
+    // a gentle lime glow low on the right, our accent
+    vec2 lc=vec2(.40+.05*sin(t*1.6),-.55+.04*cos(t*1.3));
+    float lm=smoothstep(.85,.0,length((n.xy-lc)*vec2(.85,1.1)));lm*=lm;
+    c=mix(c,lime,lm*(.32+.2*uE)*mix(1.,.75,uDark));
     // grain dots
-    vec2 g=fract(gl_FragCoord.xy/(5.*uDpr))-.5;
-    float dots=smoothstep(.20,.08,length(g));
-    c+=dots*mix(-.018,.035,uDark)*(.3+.7*z);
+
     // fresnel + rim
     float fres=pow(1.-z,2.6);
     vec3 rimC=mix(vec3(.97,.99,1.),vec3(.78,.93,.96),uDark);
     c=mix(c,rimC,fres*mix(.75,.55,uDark));
-    c+=exp(-pow((d-.93)/.006,2.))*mix(.18,.10,uDark);
+
     // specular
     vec3 L=normalize(vec3(-.45+uTilt.x*.4,.6-uTilt.y*.4,.75));
     float spec=pow(max(dot(reflect(-L,n),vec3(0.,0.,1.)),0.),18.);
-    c+=spec*mix(.22,.16,uDark);
+    c+=spec*mix(.10,.10,uDark);
     // lower shading for volume
     c*=mix(1.,.86,smoothstep(.2,-1.,n.y)*(1.-uDark)*.5);
     c=mix(c,c*1.05+vec3(.02,.04,.0),uE*.25);
@@ -892,17 +859,18 @@ function loop(now){
   const dt=Math.min(.05,(now-last)/1000); last=now; const t=(now-t0)/1000;
   const st=app.dataset.state, view=app.dataset.view;
   darkT+=((isDark()?1:0)-darkT)*Math.min(1,dt*4);
-  hover+=(hoverT-hover)*Math.min(1,dt*6);
-  tilt.x+=(tiltT.x-tilt.x)*Math.min(1,dt*3); tilt.y+=(tiltT.y-tilt.y)*Math.min(1,dt*3);
+  hover+=(hoverT-hover)*Math.min(1,dt*1.2);
+  tilt.x+=(tiltT.x-tilt.x)*Math.min(1,dt*1.2); tilt.y+=(tiltT.y-tilt.y)*Math.min(1,dt*1.2);
   // energy target
-  let eT=.03+hover*.12, sT=0;
+  let eT=.03+hover*.04, sT=0;
   const syll=Math.pow(Math.max(0,Math.sin(t*10.5+vn(t*3)*6)),2)*(.35+.65*vn(t*2.3+9));
   if(st==="listening"){ eT= voiceActive? .25+.75*syll : .1+.05*Math.sin(t*3); }
   else if(st==="processing"){ eT=.16+.06*Math.sin(t*4); sT=1; }
-  else if(st==="speaking"||(view==="results"&&speakingActive)){ eT= speakingActive? .2+.6*Math.pow(Math.max(0,Math.sin(t*8.2+vn(t*2)*5)),2)*(.4+.6*vn(t*1.7)) : .08+hover*.12; }
+  else if(st==="speaking"||(view==="results"&&speakingActive)){ eT= speakingActive? .2+.6*Math.pow(Math.max(0,Math.sin(t*8.2+vn(t*2)*5)),2)*(.4+.6*vn(t*1.7)) : .08+hover*.04; }
   if(isLive() && window.EV.level!=null){ eT = .04 + Math.min(1, window.EV.level*1.7); if(st==="processing"){ eT=.16+.06*Math.sin(t*4); sT=1; } }
   if(reduce) eT*=.4;
-  E+=(eT-E)*Math.min(1,dt*(eT>E?14:5));
+  const live=st==="listening"||st==="speaking"||speakingActive;
+  E+=(eT-E)*Math.min(1,dt*(live?(eT>E?9:4):1.5));
   swirl+=(sT-swirl)*Math.min(1,dt*2);
   pulseT=Math.min(1,pulseT+dt*1.1);
   if(view==="voice"){
@@ -912,8 +880,8 @@ function loop(now){
       gl.uniform1f(U.uPulse,pulseT); gl.uniform1f(U.uDpr,dpr); gl.uniform2f(U.uTilt,tilt.x,tilt.y);
       gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
     }
-    rIn.style.transform=`scale(${1+E*.045+hover*.01})`;
-    orbEl.style.transform=`translate(${tilt.x*6}px,${tilt.y*6}px)`;
+    rIn.style.transform=`scale(${1+E*.04+hover*.006})`;
+    orbEl.style.transform=`translate(${tilt.x*3}px,${tilt.y*3}px)`;
     if(st==="listening"){
       const n=bars.length;
       for(let i=0;i<n;i++){ const x=i/(n-1)-.5; const env=Math.exp(-x*x*9);
