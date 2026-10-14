@@ -16,6 +16,9 @@ Voice-first prototype of the Eloqwnt site, deployed on Vercel.
 ## Files
 
 - `middleware.js` — locks `/knowledge-base`; shows `kb-login.html` until signed in.
+- `kb-login.html` — sign-in: one slot per password character, unlocks on its own at the last one.
+- `knowledge-base/` — the editor: `index.html` (shell), `app.js` (views: map, gaps, interview, import, node editor, playbook, export; hash routes like `#/node/<id>`), `app.css` (layout).
+- `kb-assets/` — shared design system (`kb.css`: tokens, Vertus glass, light/dark, motion), Aspekta fonts, orb images.
 - `api/login.js`, `api/logout.js` — password session (HttpOnly cookie, 30 days, rate-limited sign-in).
 - `api/kb.js` — read, save and delete nodes in Redis; seeds from `lib/seed.js` the first time.
 - `api/ask.js` — calls Claude for the interview and import; fetches import links server-side (public addresses only, via `lib/fetch-page.js`). The key stays on the server.
