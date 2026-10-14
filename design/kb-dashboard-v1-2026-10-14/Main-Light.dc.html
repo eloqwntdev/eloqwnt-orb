@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orb Knowledge · Map · Light</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&amp;display=swap">
+<style>
+@font-face{font-family:Aspekta;src:url('./fonts/Aspekta-400.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:Aspekta;src:url('./fonts/Aspekta-450.woff2') format('woff2');font-weight:450 500;font-display:swap}
+@font-face{font-family:Aspekta;src:url('./fonts/Aspekta-600.woff2') format('woff2');font-weight:600 700;font-display:swap}
+/* Vertus glass (UI kit 1843:5299): no fill, .6px stroke, inner blurred 2px ring ("elipse"), drop 0 2 4 #00000029 */
+.vg{position:relative;background:transparent;border:.6px solid rgba(20,20,20,.16);box-shadow:0 2px 4px rgba(0,0,0,.16);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.vg::after{content:"";position:absolute;left:3px;right:3px;top:4.4px;bottom:.6px;border:2px solid rgba(20,20,20,.12);border-radius:inherit;filter:blur(2px);pointer-events:none}
+/* Sidebars / panels (2524:17329): ring 5.4px from top, 1.4px from left */
+.vg:not(.vgl):not(.vgc)::after{border-width:1.5px;border-color:rgba(20,20,20,.06);filter:blur(1.5px)}
+.vgl::after{left:1.4px;right:2.6px;top:5.4px;bottom:1.6px}
+/* Request field (1818:2787): ring blur 3px, 8.4px from top */
+.vgc::after{left:3.4px;right:3.4px;top:8.4px;bottom:0;filter:blur(3px)}
+/* Content surfaces are solid, not glass (Apple: glass only on controls/navigation) */
+.vcard{position:relative;background:#ffffff;border:1px solid #e5e6e7;box-shadow:0 1px 2px rgba(8,8,10,.04)}
+.vfield{background:#ffffff!important;border:1px solid #e5e6e7!important;box-shadow:none!important}
+.vcard .vfield{background:#f4f4f5!important}
+.vrow{background:#ffffff!important;box-shadow:0 0 0 1px #e5e6e7,0 1px 2px rgba(8,8,10,.04)}
+.vsend{background:linear-gradient(90deg,#fe7ac6 31.778%,#ff4665 84.059%)!important;color:#ffffff!important;border:0;box-shadow:none}
+.vrow svg{stroke:url(#vpk)}
+.vchip{background:rgba(238,183,67,.18);color:#a8740a!important;border:0}
+/* Headings: Vertus main gradient (Pink #fe7ac6 -> Red #ff4665) */
+.vtx{background-image:linear-gradient(90deg,#fe7ac6 31.778%,#ff4665 84.059%);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* CTA buttons: solid #111111, white text, Vertus glass-dark ring */
+.vg.vtx{background:#111111!important;-webkit-background-clip:border-box;background-clip:border-box;color:#ffffff!important;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+.vg.vtx::after{display:none}
+
+body{margin:0;background:#f4f4f5}
+a{color:#08080a}a:hover{color:#000000}
+button{font:inherit;color:inherit;letter-spacing:inherit;background:none;border:0;padding:0;cursor:pointer}
+input{font:inherit;color:inherit;letter-spacing:inherit}
+@keyframes kbflow{to{stroke-dashoffset:-16}}
+@keyframes kbpulse{0%{transform:scale(.55);opacity:.9}100%{transform:scale(1.25);opacity:0}}
+@keyframes kbspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="box-sizing: border-box; width: 100%; min-height: 900px; background: #f4f4f5; color: #08080a; padding: 12px; gap: 12px; font-family: Aspekta, ui-sans-serif, system-ui, sans-serif; letter-spacing: 0; font-size: 14px; display: flex; flex-wrap: wrap">
+
+  <svg width="0" height="0" aria-hidden="true" style="position: absolute"><defs><linearGradient id="vpk" gradientUnits="userSpaceOnUse" x1="2" y1="8" x2="14" y2="8"><stop offset="0.318" stop-color="#fe7ac6"></stop><stop offset="0.841" stop-color="#ff4665"></stop></linearGradient></defs></svg>
+  <aside class="vg vgl" style="flex: 0 0 240px; box-sizing: border-box; height: 876px; align-self: flex-start; overflow: hidden; padding: 16px 12px; border-radius: 24px; display: flex; flex-direction: column; gap: 14px">
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 6px">
+      <div style="display: flex; align-items: center; gap: 10px"><img src="./orb-logo.png" alt="" width="28" height="28" style="width: 28px; height: 28px; border-radius: 50%; display: block; flex: none"><span style="font-family: Aspekta, sans-serif; font-weight: 450; font-size: 18px; letter-spacing: 0">eloqwnt</span></div>
+      <button type="button" aria-label="Close sidebar" style="width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; color: #646b76">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="2.5" y="3" width="13" height="12" rx="2.5"></rect><path d="M7 3v12"></path></svg>
+      </button>
+    </div>
+    <div style="display: flex; flex-direction: column">
+      <sc-for list="{{menu}}" as="m" hint-placeholder-count="4">
+        <button type="button" style="{{m.style}}">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="{{m.ic}}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{m.d}}"></path></svg>
+          <span>{{m.label}}</span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+        <div style="display: flex; flex-direction: column">
+          <span style="font-size: 12px; font-weight: 450; letter-spacing: 0; color: #646b76; padding: 14px 10px 6px; margin: 0 6px; padding-left: 4px; border-top: 1px solid #e5e6e7">{{g.name}}</span>
+          <sc-for list="{{g.items}}" as="it" hint-placeholder-count="4">
+            <button type="button" style="{{it.row}}">
+              <span style="flex: 1; min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{it.title}}</span>
+              <sc-if value="{{it.missing}}" hint-placeholder-val="{{true}}">
+                <span class="vchip" style="height: 18px; padding: 0 7px; border-radius: 999px; color: #646b76; font-size: 11px; display: inline-flex; align-items: center">{{it.missing}}</span>
+              </sc-if>
+            </button>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+    <button type="button" style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; text-align: left">
+      <span style="width: 28px; height: 28px; border-radius: 50%; background: #e5e6e7; display: grid; place-items: center; font-size: 12px; font-weight: 500">M</span>
+      <span style="display: flex; flex-direction: column; line-height: 1.2; font-size: 13px">Mir<span style="font-size: 11.5px; color: #646b76">Owner</span></span>
+    </button>
+  </aside>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; min-height: 876px; background: transparent">
+    <header style="display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 16px">
+      <button type="button" style="height: 36px; padding: 0 10px; border-radius: 10px; display: flex; align-items: center; gap: 6px; font-size: 16px">
+        <span style="font-family: Aspekta, sans-serif; font-weight: 450">Knowledge Base</span>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#646b76" stroke-width="1.4" aria-hidden="true"><path d="m3.5 5.5 3.5 3.5 3.5-3.5"></path></svg>
+      </button>
+      <span style="flex: 1"></span>
+      <span style="font-size: 12.5px; color: #646b76">74% covered · 77 missing</span>
+      <button type="button" class="vg vtx" style="height: 34px; padding: 0 14px; border-radius: 999px; font-family: 'DM Mono', ui-monospace, monospace; text-transform: uppercase; letter-spacing: .02em; font-size: 12px; font-size: 13px; font-weight: 500">Sync to agent</button>
+    </header>
+
+    <section aria-label="Knowledge map" style="position: relative; flex: 1; min-height: 620px; margin: 0 16px; border-radius: 22px; overflow: hidden; background-color: #fafafa; box-shadow: inset 0 0 0 1px #ffffff, inset 0 0 16px rgba(0,0,0,.05), 0 0 0 1px rgba(0,0,0,.06)">
+      <div style="position: absolute; inset: 0; background: radial-gradient(ellipse 46% 52% at 50% 50%, rgba(143,181,209,0), rgba(143,181,209,0) 70%); pointer-events: none"></div>
+
+      <div style="position: absolute; left: 18px; top: 16px; z-index: 3; display: flex; gap: 18px; font-family: 'DM Mono', ui-monospace, monospace; font-size: 10.5px; letter-spacing: .02em; text-transform: uppercase; color: #646b76">
+        <span>36 nodes</span><span>88 links</span><span style="color: #08080a">74% coverage</span>
+      </div>
+      <div role="group" aria-label="Filter the map" style="position: absolute; right: 14px; top: 10px; z-index: 3; display: flex; gap: 2px; padding: 3px; border-radius: 999px; font-family: 'DM Mono', ui-monospace, monospace; font-size: 10.5px; letter-spacing: .02em; text-transform: uppercase">
+        <button type="button" aria-pressed="true" class="vg" style="height: 26px; padding: 0 12px; border-radius: 999px; color: #08080a">All</button>
+        <button type="button" aria-pressed="false" style="height: 26px; padding: 0 12px; border-radius: 999px; color: #646b76">Gaps</button>
+        <button type="button" aria-pressed="false" style="height: 26px; padding: 0 12px; border-radius: 999px; color: #646b76">Plays</button>
+      </div>
+
+      <div style="position: absolute; left: 0; top: 40px; bottom: 40px; right: 256px">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%">
+        <sc-for list="{{rings}}" as="r" hint-placeholder-count="3">
+          <ellipse cx="50" cy="50" rx="{{r.rx}}" ry="{{r.ry}}" fill="none" stroke="rgba(0,0,0,.08)" stroke-width="1" stroke-dasharray="{{r.dash}}" vector-effect="non-scaling-stroke"></ellipse>
+        </sc-for>
+        <sc-for list="{{edges}}" as="e" hint-placeholder-count="12">
+          <path d="{{e.d}}" fill="none" stroke="{{e.stroke}}" stroke-width="1" stroke-linecap="round" stroke-dasharray="{{e.dash}}" vector-effect="non-scaling-stroke" style="{{e.anim}}"></path>
+        </sc-for>
+      </svg>
+
+      <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 160px; height: 160px; display: grid; place-items: center; pointer-events: none">
+        <span style="position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(143,181,209,.35); animation: kbpulse 4s cubic-bezier(.2,.6,.3,1) infinite"></span>
+        <span style="position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(143,181,209,.35); animation: kbpulse 4s cubic-bezier(.2,.6,.3,1) 2s infinite"></span>
+        <img src="./orb-logo.png" alt="" width="76" height="76" style="width: 76px; height: 76px; border-radius: 50%; display: block; flex: none">
+        <span style="position: absolute; bottom: 4px; font-family: 'DM Mono', ui-monospace, monospace; font-size: 10.5px; letter-spacing: .02em; color: #373e49">ELOQWNT</span>
+      </div>
+
+      <sc-for list="{{nodes}}" as="n" hint-placeholder-count="24">
+        <button type="button" aria-label="{{n.aria}}" style="{{n.pos}}">
+          <span style="{{n.ring}}">
+            <span style="{{n.core}}"></span>
+            <sc-if value="{{n.sel}}" hint-placeholder-val="{{false}}">
+              <span style="{{n.orbit}}"></span>
+            </sc-if>
+          </span>
+          <span style="{{n.label}}">{{n.title}}</span>
+          <span style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 9px; letter-spacing: .02em; color: #646b76">{{n.meta}}</span>
+        </button>
+      </sc-for>
+
+      </div>
+
+      <div class="vcard" style="position: absolute; right: 14px; top: 48px; bottom: 48px; z-index: 4; width: 230px; box-sizing: border-box; padding: 14px; border-radius: 16px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-family: 'DM Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: .02em; color: #646b76"><span>CASE · FINTECH</span><span>04/13</span></div>
+        <span style="font-size: 15px; font-weight: 500">Ledger Society</span>
+        <div style="display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 3px">
+          <sc-for list="{{factBars}}" as="b" hint-placeholder-count="13">
+            <span style="{{b.style}}"></span>
+          </sc-for>
+        </div>
+        <span style="font-size: 12.5px; line-height: 1.5; color: #646b76">Platform site for a private network for strategic relationships.</span>
+        <div style="height: 1px; background: rgba(0,0,0,.08)"></div>
+        <span style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: .02em; color: #a8740a">MISSING · 9</span>
+        <sc-for list="{{gapsList}}" as="g" hint-placeholder-count="4">
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px"><span style="color: #373e49">{{g}}</span><span style="color: #646b76">+</span></div>
+        </sc-for>
+        <div style="height: 1px; background: rgba(0,0,0,.08)"></div>
+        <span style="font-family: 'DM Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: .02em; color: #646b76">LINKED</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px"><span style="padding: 3px 9px; border-radius: 999px; background: rgba(0,0,0,.07)">Fintech</span><span style="padding: 3px 9px; border-radius: 999px; background: rgba(0,0,0,.07)">Landing page</span><span style="padding: 3px 9px; border-radius: 999px; background: rgba(0,0,0,.07)">Fintech founder</span></div>
+        <span style="flex: 1"></span>
+        <a href="#" class="vg vtx" style="height: 34px; border-radius: 999px; font-family: 'DM Mono', ui-monospace, monospace; text-transform: uppercase; letter-spacing: .02em; font-size: 12px; display: grid; place-items: center; font-size: 13px; font-weight: 500; text-decoration: none">Fill the gaps</a>
+      </div>
+
+      <div style="position: absolute; left: 18px; bottom: 14px; z-index: 3; display: flex; flex-wrap: wrap; gap: 14px; font-family: 'DM Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: .02em; text-transform: uppercase; color: #646b76">
+        <sc-for list="{{legend}}" as="l" hint-placeholder-count="5">
+          <span style="display: inline-flex; align-items: center; gap: 6px"><span style="{{l.dot}}"></span>{{l.name}}</span>
+        </sc-for>
+      </div>
+      <div class="vg" style="position: absolute; right: 14px; bottom: 10px; z-index: 3; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 999px; font-family: 'DM Mono', ui-monospace, monospace; font-size: 10.5px; color: #646b76; letter-spacing: .02em">
+        <button type="button" aria-label="Zoom out" style="width: 26px; height: 26px; border-radius: 50%">−</button>
+        <span style="padding: 0 6px">100%</span>
+        <button type="button" aria-label="Zoom in" style="width: 26px; height: 26px; border-radius: 50%">+</button>
+        <button type="button" aria-label="Recenter" style="width: 26px; height: 26px; border-radius: 50%">⌖</button>
+      </div>
+      <div aria-hidden="true" style="position: absolute; left: 0; right: 256px; bottom: 0; height: 130px; z-index: 2; pointer-events: none; background: linear-gradient(180deg, rgba(250,250,250,0) 0%, rgba(250,250,250,.8) 50%, #fafafa 100%)"></div>
+    </section>
+
+    <div style="position: relative; z-index: 6; margin-top: -92px; padding: 12px 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 8px">
+      <div class="vg vgc" style="width: 100%; max-width: 680px; box-sizing: border-box; border-radius: 26px; padding: 6px 6px 6px 18px; background: rgba(250,250,250,.8); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); display: flex; align-items: center; gap: 8px">
+        <button type="button" aria-label="Attach a file or link" style="width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: #646b76; margin-left: -8px">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M9 4v10M4 9h10"></path></svg>
+        </button>
+        <label for="teach" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Teach the orb something</label>
+        <input id="teach" type="text" placeholder="Teach the orb something, or ask what’s missing" style="flex: 1; min-width: 0; background: transparent; border: 0; outline: none; font-size: 14.5px">
+        <button type="button" aria-label="Send" class="vsend" style="width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #ffffff">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M8 13V3.5M4 7l4-4 4 4"></path></svg>
+        </button>
+      </div>
+      <span style="font-size: 11.5px; color: #646b76">You review every change before it’s saved.</span>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const C = {service:'#fe7ac6', case:'#ff4665', process:'#6abe81', sector:'#6abe81', policy:'#eeb743', play:'#eeb743'};
+    // Orbits: sectors close to the core, services and process in the middle, case studies on the outer ring
+    const R = {sector: [15, 18], service: [28, 32], process: [28, 32], policy: [28, 32], case: [41, 42], play: [41, 42]};
+    const place = (list, type, start) => list.map(([title, facts, missing], i) => {
+      const a = (start + i * 360 / list.length) * Math.PI / 180;
+      return {title, type, facts, missing: missing || 0, x: 50 + R[type][0] * Math.cos(a), y: 50 + R[type][1] * Math.sin(a)};
+    });
+    const all = [].concat(
+      place([['Fintech',6],['Digital health',5],['AI',4],['SaaS',3],['Creative production',3]], 'sector', 200),
+      place([['Landing page',12],['Website',11],['Brand identity',9],['Launch video',8],['AI content',6],['Retainer',4,3]], 'service', 250),
+      place([['Ledger Society',4,9],['Nawa',5],['Fluxo',3,5],['Vertus 42',8],['BVRT',2,10],['XIM',7],['RiTE Media',11],['Siwa Capital',4],['TitanX',10],['Hybrid Mind',10],['VSC',9],['Metapic',5],['Freeport Markets',3,6]], 'case', 228)
+    );
+    const at = Object.fromEntries(all.map(n => [n.title, n]));
+    const size = (f) => Math.round(5 + Math.min(11, f * 1.05));
+    const nodes = all.map(n => {
+      const s = size(n.facts), c = C[n.type], sel = n.title === 'Ledger Society';
+      return {
+        title: n.title, sel,
+        aria: `${n.title}, ${n.facts} facts${n.missing ? ', ' + n.missing + ' missing' : ''}`,
+        meta: n.missing ? `${n.facts} FACTS · ${n.missing} GAPS` : `${n.facts} FACTS`,
+        pos: `position: absolute; left: ${n.x.toFixed(2)}%; top: ${n.y.toFixed(2)}%; transform: translate(-50%, -${Math.round(s / 2 + 5)}px); z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: 0; padding: 0; cursor: pointer`,
+        ring: `position: relative; width: ${s + 16}px; height: ${s + 16}px; border-radius: 50%; display: grid; place-items: center; border: 1px solid ${sel ? c : 'rgba(255,255,255,.95)'}; background: radial-gradient(circle at 30% 22%, rgba(255,255,255,.98), rgba(255,255,255,.45) 58%, rgba(255,255,255,.25)), ${c}26; backdrop-filter: blur(10px) saturate(160%); -webkit-backdrop-filter: blur(10px) saturate(160%); box-shadow: inset 0 1px 1px #ffffff, inset 0 -3px 6px ${c}40, 0 0 0 1px rgba(0,0,0,.06), 0 3px 8px rgba(0,0,0,.10)`,
+        core: `width: ${s}px; height: ${s}px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.85), ${c} 58%); box-shadow: 0 1px 3px ${c}99, inset 0 -1px 2px rgba(0,0,0,.12)`,
+        orbit: `position: absolute; inset: -8px; border-radius: 50%; border: 1px dashed ${c}; animation: kbspin 12s linear infinite`,
+        label: `margin-top: 2px; font-size: ${s > 13 ? 12.5 : 12}px; white-space: nowrap; color: ${sel ? '#08080a' : (s > 13 ? '#373e49' : '#646b76')}; font-weight: ${sel ? 500 : 400}`
+      };
+    });
+    const pairs = [['Ledger Society','Fintech'],['Ledger Society','Landing page'],['Nawa','Fintech'],['Fluxo','Fintech'],['Siwa Capital','Fintech'],['XIM','Digital health'],['VSC','Digital health'],['Vertus 42','AI'],['Hybrid Mind','AI'],['TitanX','SaaS'],['RiTE Media','Creative production'],['BVRT','Creative production'],['Metapic','AI content'],['Freeport Markets','Brand identity'],['RiTE Media','Website'],['Vertus 42','Landing page'],['TitanX','Brand identity'],['Hybrid Mind','Website']];
+    const curve = (a, b) => {
+      const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      const cx = mx + (50 - mx) * .35, cy = my + (50 - my) * .35;
+      return `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} Q ${cx.toFixed(2)} ${cy.toFixed(2)} ${b.x.toFixed(2)} ${b.y.toFixed(2)}`;
+    };
+    const edges = all.filter(n => n.type === 'sector').map(n => ({d: `M 50 50 L ${n.x.toFixed(2)} ${n.y.toFixed(2)}`, stroke: C.sector + '33', dash: '', anim: ''}))
+      .concat(pairs.map(([a, b]) => {
+        const hot = a === 'Ledger Society';
+        return {d: curve(at[a], at[b]), stroke: C[at[b].type] + (hot ? 'b3' : '38'), dash: hot ? '3 5' : '', anim: hot ? 'animation: kbflow 1.6s linear infinite' : ''};
+      }));
+    const rings = [{rx: 15, ry: 18, dash: '2 6'}, {rx: 28, ry: 32, dash: '2 6'}, {rx: 41, ry: 42, dash: '1 8'}];
+    const factBars = Array.from({length: 13}, (_, i) => ({style: `height: 4px; border-radius: 999px; background: ${i < 4 ? C.case : 'rgba(0,0,0,.1)'}`}));
+    const row = (a) => `display: flex; align-items: center; gap: 8px; width: 100%; height: 34px; padding: 0 10px; box-sizing: border-box; border-radius: 10px; font-size: 13.5px; color: ${a ? '#08080a' : '#373e49'}; background: ${a ? '#ffffff' : 'transparent'}; box-shadow: ${a ? '0 0 0 1px #e5e6e7, 0 1px 2px rgba(8,8,10,.04)' : 'none'}`;
+    const menu = [
+      {label: 'New node', d: 'M8 3v10M3 8h10'},
+      {label: 'Search', d: 'M7 11.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zM10.5 10.5l3 3'},
+      {label: 'Map', d: 'M2.5 4.5 6 3l4 1.5L13.5 3v8.5L10 13l-4-1.5L2.5 13zM6 3v8.5M10 4.5V13'},
+      {label: 'Import', d: 'M8 10.5V3M5 6l3-3 3 3M3 10.5V13h10v-2.5'},
+      {label: 'Interview', d: 'M3 4.5A1.5 1.5 0 0 1 4.5 3h7A1.5 1.5 0 0 1 13 4.5v5a1.5 1.5 0 0 1-1.5 1.5H7l-3 2.5V11a1 1 0 0 1-1-1z'},
+      {label: 'Gaps', d: 'M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM8 5.5v3M8 10.5v.01'},
+      {label: 'Playbook', d: 'M4 3h7.5A1.5 1.5 0 0 1 13 4.5V13H5.5A1.5 1.5 0 0 1 4 11.5zM4 11.5A1.5 1.5 0 0 1 5.5 10H13'},
+      {label: 'Export', d: 'M8 3v7.5M5 7.5l3 3 3-3M3 13h10'}
+    ].map(m => ({...m, ic: m.label === 'Map' ? 'url(#vpk)' : 'currentColor', style: row(m.label === 'Map') + '; gap: 10px'}));
+    const groups = [
+      {name: 'Needs attention', items: [['Ledger Society',9,true],['BVRT',10],['Creatine Gummies',10],['Freeport Markets',6],['Fluxo',5]].map(([title,missing,a]) => ({title, missing, row: row(a)}))},
+      {name: 'Recently edited', items: [['RiTE Media',0],['Landing page',0],['Pricing rules',0]].map(([title,missing]) => ({title, missing, row: row(false)}))}
+    ];
+    const legend = [['Sectors','sector'],['Services','service'],['Cases','case'],['Plays','play']].map(([name,t]) => ({name, dot: `width: 6px; height: 6px; border-radius: 50%; background: ${C[t]}; box-shadow: 0 0 8px ${C[t]}`}));
+    const gapsList = ['Client', 'The challenge', 'Result', 'Client quote'];
+    return {nodes, edges, rings, factBars, menu, groups, legend, gapsList};
+  }
+}
+</script>
+</body>
+</html>

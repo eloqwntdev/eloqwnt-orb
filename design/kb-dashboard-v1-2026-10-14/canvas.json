@@ -1,0 +1,288 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Edit-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "06 \u00b7 Edit node \u00b7 Light",
+      "w": 1440,
+      "x": 3040,
+      "y": 4480
+    },
+    "Edit.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "06 \u00b7 Edit node",
+      "w": 1440,
+      "x": 3040,
+      "y": 1020
+    },
+    "Export-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "10 \u00b7 Export \u00b7 Light",
+      "w": 1440,
+      "x": 3040,
+      "y": 5500
+    },
+    "Export.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "10 \u00b7 Export",
+      "w": 1440,
+      "x": 3040,
+      "y": 2040
+    },
+    "Gaps-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "07 \u00b7 Gaps \u00b7 Light",
+      "w": 1440,
+      "x": 4560,
+      "y": 4480
+    },
+    "Gaps.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "07 \u00b7 Gaps",
+      "w": 1440,
+      "x": 4560,
+      "y": 1020
+    },
+    "Import-Changes-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "05b \u00b7 Import \u00b7 Review (Changes tab) \u00b7 Light",
+      "w": 1440,
+      "x": 6080,
+      "y": 4480
+    },
+    "Import-Changes.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "05b \u00b7 Import \u00b7 Review (Changes tab)",
+      "w": 1440,
+      "x": 6080,
+      "y": 1020
+    },
+    "Import-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "04 \u00b7 Import \u00b7 Light",
+      "w": 1440,
+      "x": 0,
+      "y": 4480
+    },
+    "Import-Review-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "05 \u00b7 Import \u00b7 Review (Preview first) \u00b7 Light",
+      "w": 1440,
+      "x": 1520,
+      "y": 4480
+    },
+    "Import-Review.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "05 \u00b7 Import \u00b7 Review (Preview first)",
+      "w": 1440,
+      "x": 1520,
+      "y": 1020
+    },
+    "Import.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "04 \u00b7 Import",
+      "w": 1440,
+      "x": 0,
+      "y": 1020
+    },
+    "Interview-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "02 \u00b7 Interview \u00b7 Light",
+      "w": 1440,
+      "x": 1520,
+      "y": 3460
+    },
+    "Interview.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "02 \u00b7 Interview \u00b7 Review changes",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "Main-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "01 \u00b7 Map overview \u00b7 Light",
+      "w": 1440,
+      "x": 0,
+      "y": 3460
+    },
+    "Main.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "01 \u00b7 Map overview",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Playbook-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "03 \u00b7 Playbook \u00b7 Light",
+      "w": 1440,
+      "x": 3040,
+      "y": 3460
+    },
+    "Playbook-Suggest-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "09 \u00b7 Playbook \u00b7 Suggested plays \u00b7 Light",
+      "w": 1440,
+      "x": 1520,
+      "y": 5500
+    },
+    "Playbook-Suggest.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "09 \u00b7 Playbook \u00b7 Suggested plays",
+      "w": 1440,
+      "x": 1520,
+      "y": 2040
+    },
+    "Playbook-Test-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "08 \u00b7 Playbook \u00b7 Test \u00b7 Light",
+      "w": 1440,
+      "x": 0,
+      "y": 5500
+    },
+    "Playbook-Test.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "08 \u00b7 Playbook \u00b7 Test",
+      "w": 1440,
+      "x": 0,
+      "y": 2040
+    },
+    "Playbook.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "03 \u00b7 Playbook \u00b7 Test a play",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "Sign-in-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "11 \u00b7 Sign in \u00b7 Light",
+      "w": 1440,
+      "x": 4560,
+      "y": 5500
+    },
+    "Sign-in.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "11 \u00b7 Sign in",
+      "w": 1440,
+      "x": 4560,
+      "y": 2040
+    },
+    "Profile.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "12 \u00b7 Profile hover \u00b7 Sign out",
+      "w": 1440,
+      "x": 6080,
+      "y": 2040
+    },
+    "Profile-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "12 \u00b7 Profile hover \u00b7 Sign out \u00b7 Light",
+      "w": 1440,
+      "x": 6080,
+      "y": 5500
+    },
+    "Sign-in-Wrong.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "11b \u00b7 Sign in \u00b7 Wrong password",
+      "w": 1440,
+      "x": 7600,
+      "y": 2040
+    },
+    "Sign-in-Wrong-Light.dc.html": {
+      "expand": "fill",
+      "h": 900,
+      "title": "11b \u00b7 Sign in \u00b7 Wrong password \u00b7 Light",
+      "w": 1440,
+      "x": 7600,
+      "y": 5500
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-13T16:25:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "t1": {
+      "kind": "title1",
+      "maxW": 6000,
+      "text": "Dark mode",
+      "w": 240,
+      "x": 0,
+      "y": -260
+    },
+    "t2": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "Light mode",
+      "w": 240,
+      "x": 0,
+      "y": 3200
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Interview.dc.html",
+    "Playbook.dc.html",
+    "Main-Light.dc.html",
+    "Interview-Light.dc.html",
+    "Playbook-Light.dc.html",
+    "Import.dc.html",
+    "Import-Review.dc.html",
+    "Edit.dc.html",
+    "Gaps.dc.html",
+    "Playbook-Test.dc.html",
+    "Playbook-Suggest.dc.html",
+    "Export.dc.html",
+    "Sign-in.dc.html",
+    "Import-Light.dc.html",
+    "Import-Review-Light.dc.html",
+    "Edit-Light.dc.html",
+    "Gaps-Light.dc.html",
+    "Playbook-Test-Light.dc.html",
+    "Playbook-Suggest-Light.dc.html",
+    "Export-Light.dc.html",
+    "Sign-in-Light.dc.html",
+    "Import-Changes.dc.html",
+    "Import-Changes-Light.dc.html",
+    "Profile.dc.html",
+    "Profile-Light.dc.html",
+    "Sign-in-Wrong.dc.html",
+    "Sign-in-Wrong-Light.dc.html"
+  ],
+  "pages": [],
+  "title": "Orb Knowledge \u2014 Dark dashboard"
+}
