@@ -5,55 +5,119 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>Orb Knowledge · Sign in</title>
+<script>try{const t=localStorage.getItem("kb-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch{}</script>
+<link rel="preload" href="/kb-assets/Aspekta-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Besley:wght@400&family=Zalando+Sans:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/kb-assets/kb.css">
 <style>
-:root{--bg:#f6f8fc;--surface:#fff;--ink:#0b1020;--muted:#6b7489;--faint:#a4abbc;--line:#e4e7ee;--btn:#0b1020;--btn-ink:#fff;--err:#c2412d;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#0d161b;--surface:#131e24;--ink:#eef3f6;--muted:#8e9ca7;--faint:#6f8290;--line:rgba(255,255,255,.12);--btn:#eef3f6;--btn-ink:#0b1020;--err:#f07a66;color-scheme:dark}}
-html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"Zalando Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;display:grid;place-items:center;padding:24px 16px;box-sizing:border-box;-webkit-font-smoothing:antialiased}
-form{width:100%;max-width:360px;display:flex;flex-direction:column;gap:18px;align-items:center;text-align:center}
-.orb{width:84px;height:84px;border-radius:50%;background:radial-gradient(circle at 70% 78%,rgba(198,240,150,.95) 0,rgba(198,240,150,0) 46%),radial-gradient(circle at 32% 28%,#fff 0,#dfe8f1 34%,#b4c8de 74%,#a8bfd7 100%);box-shadow:0 0 0 14px rgba(11,16,32,.03),0 10px 30px rgba(90,120,150,.25);animation:breathe 4s ease-in-out infinite}
-@keyframes breathe{50%{transform:scale(1.04)}}
-h1{margin:6px 0 0;font-size:30px;font-weight:300;letter-spacing:-.02em}
-p{margin:0;color:var(--muted);font-size:15px}
-.brand{font-family:Besley,Georgia,serif;color:var(--faint);font-size:14px}
-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-input{width:100%;box-sizing:border-box;height:50px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:16px;text-align:center;letter-spacing:.2em;outline:none}
-input:focus{border-color:var(--muted)}
-button{width:100%;height:48px;border-radius:999px;border:0;background:var(--btn);color:var(--btn-ink);font:inherit;font-weight:500;font-size:15px;cursor:pointer}
-button[disabled]{opacity:.5}
-.err{color:var(--err);font-size:14px;min-height:20px}
-:focus-visible{outline:2px solid #8fd14f;outline-offset:3px}
-@media (prefers-reduced-motion:reduce){.orb{animation:none}}
+body{display:grid;place-items:center;min-height:100%;padding:24px 16px;box-sizing:border-box}
+form{width:100%;max-width:380px;box-sizing:border-box;padding:40px 32px;border-radius:24px;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;animation:kb-rise var(--t-slow) var(--ease-out) both;transition:opacity var(--t-slow) var(--ease-in),transform var(--t-slow) var(--ease-in)}
+.orb{width:168px;height:168px;margin:-24px 0 -16px;background:var(--orb) center/cover no-repeat;animation:kb-breathe 4s ease-in-out infinite}
+h1{margin:0;font-weight:400;font-size:32px;line-height:1.2}
+.lead{margin:6px 0 0;color:var(--mut);font-size:13.5px}
+.pw{position:relative;width:100%;box-sizing:border-box;height:52px;border-radius:999px;display:flex;align-items:center;justify-content:center;gap:12px;padding-top:2px;cursor:text}
+.pw input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;cursor:text;font-size:16px}
+.slot{display:flex;flex-direction:column;align-items:center;gap:7px;width:18px}
+.slot i{width:5px;height:5px;border-radius:50%;background:var(--ink);transform:scale(0);transition:transform var(--t-base) var(--ease-pop),background-color var(--t-fast)}
+.slot b{position:relative;width:18px;height:2px;border-radius:999px;background:var(--track);overflow:hidden}
+.slot b::after{content:"";position:absolute;inset:0;background:var(--pk);transform:scaleX(0);transform-origin:left;transition:transform var(--t-base) var(--ease-out)}
+.slot.on i{transform:scale(1)}
+.slot.on b::after{transform:scaleX(1)}
+.pw:focus-within .slot.next b{animation:caret 1.1s ease-in-out infinite}
+@keyframes caret{50%{background:var(--line)}}
+.pw.bad{animation:kb-shake 360ms var(--ease-out);border-color:var(--red);background:var(--red-soft)}
+.pw.bad .slot i{background:var(--red)}
+.pw.bad .slot b::after{background:var(--red)}
+.pw.busy .slot.on i{animation:busy 1s ease-in-out infinite}
+.pw.busy .slot:nth-child(3) i{animation-delay:.1s}.pw.busy .slot:nth-child(4) i{animation-delay:.2s}.pw.busy .slot:nth-child(5) i{animation-delay:.3s}.pw.busy .slot:nth-child(6) i{animation-delay:.4s}
+@keyframes busy{50%{opacity:.3}}
+.msg{min-height:19px;font-size:12.5px;color:var(--mut);transition:color var(--t-fast)}
+.msg.err{color:var(--red)}
+.brand{font-size:11px;color:var(--mut)}
+form.go{opacity:0;transform:scale(.98)}
+form.go .orb{transform:scale(1.12);transition:transform var(--t-slow) var(--ease-out)}
+/* Phones: no card, the page is the card */
+@media (max-width:480px){
+  body{padding:0;align-items:stretch}
+  form.vcard{max-width:none;min-height:100dvh;padding:calc(env(safe-area-inset-top) + 24px) 28px calc(env(safe-area-inset-bottom) + 28px);border:0;border-radius:0;background:transparent;box-shadow:none;justify-content:center;gap:0}
+  .orb{width:216px;height:216px;margin:auto 0 0}
+  form>div.head{margin-top:8px}
+  .pw{height:60px;margin-top:36px;gap:14px}
+  .vcard .pw:not(.bad){background:var(--field)}
+  .msg{margin-top:14px}
+  .brand{margin-top:auto;padding-top:24px}
+  .lead{font-size:15px;margin-top:8px}
+}
 </style>
 </head>
 <body>
-<form id="f" autocomplete="off">
-  <div class="orb" aria-hidden="true"></div>
-  <h1>Orb Knowledge</h1>
-  <p>Enter the password to edit what the orb knows.</p>
-  <label for="pw">Password</label>
-  <input id="pw" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Password" required autofocus>
-  <button id="go" type="submit">Open knowledge base</button>
-  <div class="err" id="err" role="alert"></div>
-  <span class="brand">eloqwnt vision</span>
+<form id="f" class="vcard" autocomplete="off" novalidate>
+  <div class="orb orb-img" aria-hidden="true"></div>
+  <div class="head"><h1>Knowledge Base</h1><p class="lead">Enter the password to edit what the orb knows.</p></div>
+  <label for="pw" class="sr">Password</label>
+  <div class="pw vfield" id="field">
+    <input id="pw" type="password" inputmode="numeric" autocomplete="current-password" aria-describedby="msg" autofocus>
+    <span id="slots" style="display:contents" aria-hidden="true"></span>
+  </div>
+  <span class="msg" id="msg" role="status">Opens on its own when the password is right.</span>
+  <span class="brand mono">eloqwnt vision</span>
 </form>
 <script>
-const f = document.getElementById("f"), pw = document.getElementById("pw"), go = document.getElementById("go"), err = document.getElementById("err");
-f.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  err.textContent = ""; go.disabled = true; go.textContent = "Checking…";
+const form = document.getElementById("f"), field = document.getElementById("field"), pw = document.getElementById("pw"), slotsEl = document.getElementById("slots"), msg = document.getElementById("msg");
+const HINT = "Opens on its own when the password is right.";
+let need = 5, busy = false;
+
+function drawSlots() {
+  slotsEl.innerHTML = Array.from({ length: need }, () => '<span class="slot"><i></i><b></b></span>').join("");
+  pw.maxLength = need;
+  paint();
+}
+function paint() {
+  const n = [...pw.value].length;
+  slotsEl.querySelectorAll(".slot").forEach((s, i) => { s.classList.toggle("on", i < n); s.classList.toggle("next", i === n); });
+}
+function say(text, err) { msg.textContent = text; msg.classList.toggle("err", !!err); }
+
+fetch("/api/login").then(r => r.json()).then(j => {
+  if (j.length > 0) { need = j.length; drawSlots(); }
+  else if (j.error) say(j.error, true);
+}).catch(() => {});
+drawSlots();
+
+pw.addEventListener("input", () => {
+  if (busy) return;
+  field.classList.remove("bad");
+  if (msg.classList.contains("err")) say(HINT);
+  paint();
+  if ([...pw.value].length >= need) submit();
+});
+form.addEventListener("submit", e => { e.preventDefault(); if ([...pw.value].length) submit(); });
+
+async function submit() {
+  busy = true; field.classList.add("busy"); pw.readOnly = true;
+  let wrong = false;
   try {
     const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: pw.value }) });
     const j = await r.json().catch(() => ({}));
-    if (r.ok) { location.href = "/knowledge-base"; return; }
-    err.textContent = j.error || "Couldn’t sign in. Try again.";
-    pw.select();
-  } catch { err.textContent = "Couldn’t reach the server. Check your connection."; }
-  go.disabled = false; go.textContent = "Open knowledge base";
-});
+    if (r.ok) {
+      say("Opening…");
+      form.classList.add("go");
+      setTimeout(() => { location.href = "/knowledge-base"; }, matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 380);
+      return;
+    }
+    wrong = r.status === 401;
+    say(wrong ? "That’s not the password. Try again." : (j.error || "Couldn’t sign in. Try again."), true);
+  } catch { say("Couldn’t reach the server. Check your connection.", true); }
+  field.classList.remove("busy");
+  field.classList.add("bad");
+  setTimeout(() => {
+    pw.value = ""; pw.readOnly = false; busy = false;
+    field.classList.remove("bad"); paint(); pw.focus();
+  }, 900);
+}
+field.addEventListener("click", () => pw.focus());
 </script>
 </body>
 </html>
