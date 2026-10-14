@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -550,13 +550,14 @@ const SC=[
 /* ---------------- theme ---------------- */
 const mq=matchMedia("(prefers-color-scheme: dark)");
 const isDark=()=>root.dataset.theme? root.dataset.theme==="dark" : mq.matches;
+// Dark is the default (set on <html>); a visitor's own choice from the toggle wins.
+try{const t=localStorage.getItem("ev-theme"); if(t==="light"||t==="dark") root.dataset.theme=t;}catch(e){}
 let darkT=isDark()?1:0;
 function syncTheme(){ shell.classList.toggle("is-dark",isDark()); }
 syncTheme();
 mq.addEventListener?.("change",syncTheme);
 new MutationObserver(syncTheme).observe(root,{attributes:true,attributeFilter:["data-theme"]});
 $("#themeBtn").addEventListener("click",()=>{ root.dataset.theme=isDark()?"light":"dark"; syncTheme(); try{localStorage.setItem("ev-theme",root.dataset.theme)}catch(e){} });
-try{const t=localStorage.getItem("ev-theme"); if(t){root.dataset.theme=t; syncTheme();}}catch(e){}
 
 /* ---------------- render cases ---------------- */
 const caseHTML=c=>`<a class="case" href="#" onclick="return false"><span class="pv"><img src="${c.img}" alt="${c.n} website preview" loading="lazy"></span><span class="tx"><span class="mt"><span>${c.n}</span><span>${c.y}</span></span><span class="desc">${c.d}</span><span class="tags">${c.t.map(t=>`<span class="tag">${t}</span>`).join("")}</span></span><span class="vc">View case ${ARROW}</span></a>`;
