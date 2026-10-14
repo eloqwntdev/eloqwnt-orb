@@ -1560,7 +1560,7 @@ function renderExport(){
   $("#panel").innerHTML = `
     <span class="eyebrow">Export for ElevenLabs</span>
     <p class="note">Save this file and upload it to your agent’s Knowledge Base in ElevenLabs, replacing the previous version. Missing facts are listed so the orb knows to offer a call instead of guessing.</p>
-    <div class="row"><button class="btn primary" id="dlMd" type="button" ${downloads ? "" : "hidden"}>Download .md</button><button class="btn" id="cpMd" type="button">Copy text</button></div>
+    <div class="row"><button class="btn primary" id="dlMd" type="button" ${downloads ? "" : "hidden"}>Download.md</button><button class="btn" id="cpMd" type="button">Copy text</button></div>
     <pre class="md" id="mdOut" tabindex="0">${esc(md)}</pre>
     ${pb.plays.length ? `<div class="divider"></div>
     <span class="eyebrow">Sales instructions · private</span>
