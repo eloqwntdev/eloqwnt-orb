@@ -749,12 +749,12 @@ function renderImport(){
   }
   if (s === "preview"){
     const c = imp.changes;
-    const view = c.items.length ? (imp.view || "list") : "list";
+    const view = c.items.length ? (imp.view || "preview") : "list";
     p.innerHTML = `<div class="qcard">
       <span class="eyebrow">Review before saving</span>
       <p class="qtext" style="font-size:18px">${esc(c.summary || "Suggested changes")}</p>
       ${imp.fixError ? `<p class="note warn">${esc(imp.fixError)}</p>` : ""}
-      ${c.items.length ? `<div class="seg" role="group" aria-label="View"><button type="button" data-view="list" aria-pressed="${view === "list"}">Changes</button><button type="button" data-view="preview" aria-pressed="${view === "preview"}">Preview</button></div>` : ""}
+      ${c.items.length ? `<div class="seg" role="group" aria-label="View"><button type="button" data-view="preview" aria-pressed="${view === "preview"}">Preview</button><button type="button" data-view="list" aria-pressed="${view === "list"}">Changes · ${c.items.length}</button></div>` : ""}
       ${!c.items.length ? `<p class="note">Nothing new for the knowledge base in those sources.</p>` : view === "list" ? changesHtml(c) : previewHtml(c)}
       ${imp.notes.length ? `<span class="eyebrow">Worth a look</span><ul class="notes">${imp.notes.map((n, i) => `<li>
           <p><span>${esc(n.text)}</span><button class="x" type="button" data-dismiss="${i}" aria-label="Dismiss this note"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 3l8 8M11 3l-8 8"/></svg></button></p>
@@ -778,7 +778,7 @@ function renderImport(){
     p.querySelectorAll(".fixrow textarea").forEach(el => { grow(el); el.addEventListener("input", () => grow(el)); });
     p.querySelectorAll(".fixrow textarea").forEach(el => el.onkeydown = e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) el.nextElementSibling.click(); });
     $("#impSave") && ($("#impSave").onclick = () => saveChanges(c, "#impSave", () => { imp = {state: "idle", url: "", text: "", focus: "", files: []}; renderImport(); }));
-    $("#impBack").onclick = () => { imp.state = "idle"; imp.view = "list"; renderImport(); };
+    $("#impBack").onclick = () => { imp.state = "idle"; imp.view = "preview"; renderImport(); };
     return;
   }
   const off = !sample || !canWrite;
@@ -951,7 +951,7 @@ knowledge_base: ${kbForPrompt()}`;
     imp.changes = makeChanges(r);
     imp.notes = [...toNotes(notes), ...toNotes(r.notes).slice(0, 4)];
     if (truncated) imp.notes.unshift({text: "The sources were long, so Claude stopped early. Import the rest separately to catch anything missed.", fix: ""});
-    imp.view = "list"; imp.fixAny = ""; imp.fixError = "";
+    imp.view = "preview"; imp.fixAny = ""; imp.fixError = "";
     imp.state = "preview"; renderImport();
   } catch (e){
     if (e && e.code === "cancelled") return;
