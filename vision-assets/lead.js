@@ -77,7 +77,11 @@
   /* ---------- composers ---------- */
   $$("[data-composer]").forEach((form) => {
     const ta = $("textarea", form), send = $(".c-send", form);
-    const fit = () => { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 144) + "px"; send.disabled = !ta.value.trim() || chat.busy; };
+    const fit = () => {
+      send.disabled = !ta.value.trim() || chat.busy;
+      if (!ta.value || !ta.offsetParent) { ta.style.height = ""; return; } // empty or hidden: one line
+      ta.style.height = "auto"; ta.style.height = Math.min(Math.max(ta.scrollHeight, 44), 144) + "px";
+    };
     ta.addEventListener("input", fit);
     ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); form.requestSubmit(); } });
     form.addEventListener("submit", (e) => {
