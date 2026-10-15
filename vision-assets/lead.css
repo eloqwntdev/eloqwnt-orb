@@ -252,3 +252,12 @@ a.ccase:hover .lnk svg{transform:translateX(3px)}
 .stage .orb{transition:width .5s var(--ease),height .5s var(--ease)}
 .stage.orb-small .orb-ui .lbl{display:none}
 .stage.orb-small .orb-ui svg{width:24px;height:31px}
+/* chat start: one calm, centred group — headline, orb, composer, chips */
+[data-mode="chat"] .stage{justify-content:center;padding-top:clamp(84px,10vh,120px);padding-bottom:clamp(32px,8vh,96px);--orb:clamp(160px,min(280px,52vw,calc(100dvh - 440px)),280px)}
+[data-mode="chat"] .stage .head{min-height:0;margin-bottom:clamp(16px,3vh,28px)}
+[data-mode="chat"] .stage .head > div{position:static}
+[data-mode="chat"] .stage .head > div:not(.on){display:none}
+[data-mode="chat"] .display{font-size:clamp(28px,min(3.6vw,5.2vh),44px)}
+[data-mode="chat"] .cstart{max-width:600px;margin-top:clamp(24px,4vh,40px);gap:14px}
+[data-mode="chat"] .cstart .composer{min-height:56px;padding-top:6px;padding-bottom:6px}
+[data-mode="chat"] .cstart .chip{height:36px;font-size:14px;padding:0 15px}
