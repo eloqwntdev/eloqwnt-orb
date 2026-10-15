@@ -95,6 +95,17 @@ export async function GET(request) {
     return json({ hits: hits.slice(0, 12) });
   }
 
+  if (u.searchParams.get("view") === "convs" && !(await redis("GET", "keep:forever:v1"))) {
+    // conversations and briefs saved before used to expire (90 days / 1 year); keep them for good from now on
+    const all = (await redis("ZRANGE", "convs", 0, -1)) || [];
+    for (const id of all) await redis("PERSIST", "conv:" + id);
+    const flat = (await redis("HGETALL", "convsums")) || [];
+    for (let i = 1; i < flat.length; i += 2) { const b = parse(flat[i])?.briefId; if (b) await redis("PERSIST", "brief:" + b); }
+    const lids = (await redis("ZRANGE", "leads", 0, -1)) || [];
+    const ls = await many("lead:", lids);
+    for (const l of ls) if (l?.briefId) await redis("PERSIST", "brief:" + l.briefId);
+    await redis("SET", "keep:forever:v1", new Date().toISOString());
+  }
   if (u.searchParams.get("view") === "convs") {
     const ids = (await redis("ZREVRANGE", "convs", 0, 1999)) || [];
     if (!ids.length) return json({ convs: [] });

@@ -2064,7 +2064,6 @@ function leadsList(){
     ${leads.selecting ? `<div class="lbulk vcard vg vgc"><span class="note">${leads.sel.size ? plural(leads.sel.size, "selected item", "selected items") : "Tick what to remove"}</span><span class="spacer"></span>
       <button class="btn plain" type="button" data-selall>${rows.every(r => leads.sel.has((tab === "leads" ? "l:" : "c:") + r.id)) && rows.length ? "Clear" : "Select all"}</button>
       <button class="btn ${leads.confirmBulk ? "cta" : "vg"}" type="button" data-bulkdel ${leads.sel.size ? "" : "disabled"}>${leads.confirmBulk ? "Delete for good?" : "Delete"}</button></div>` : ""}
-    ${tab === "convs" ? `<p class="note">Transcripts are kept for 90 days; the summary of each conversation stays for good, so the numbers hold for any period. Voice calls show up here once the visitor asks for a brief.</p>` : ""}
   </div>`, bind: v => {
     $$("[data-lt]", v).forEach(b => b.onclick = () => { leads.tab = b.dataset.lt; refresh(); });
     $$("[data-pick]", v).forEach(x => x.onchange = () => { x.checked ? leads.sel.add(x.dataset.pick) : leads.sel.delete(x.dataset.pick); leads.confirmBulk = false; refresh(); });
@@ -2165,7 +2164,7 @@ function leadDetail(){
     </div>
     ${briefHtml(b)}
     ${transcriptHtml(conv)}
-    ${!conv ? `<p class="note">The conversation has expired (kept 90 days) or was a voice call.</p>` : ""}
+    ${!conv ? `<p class="note">The conversation is no longer stored.</p>` : ""}
     <div class="row" style="justify-content:flex-end"><button class="btn plain ${leads.confirmDel ? "danger" : ""}" type="button" data-del>${leads.confirmDel ? "Delete lead, brief and conversation?" : "Delete lead"}</button></div>
   </div>`, bind: v => {
     $$("[data-copy]", v).forEach(x => x.onclick = async () => { try { await navigator.clipboard.writeText(x.dataset.copy); toast("Email copied"); } catch { toast("Couldn’t copy", false); } });
@@ -2203,7 +2202,7 @@ function convDetail(){
       <div class="pcard vcard"><header><b>Where they came from</b></header>${dl(sourceRows(c.source, c.channel, c.mode).map(([k, v]) => [k, esc(v)]))}</div>
     </div>
     ${briefHtml(d.brief)}
-    ${c.expired ? `<p class="note">The transcript was deleted after 90 days. The summary above stays for your stats.</p>` : transcriptHtml(c)}
+    ${c.expired ? `<p class="note">The transcript of this older conversation was deleted before transcripts were kept for good. The summary above stays for your stats.</p>` : transcriptHtml(c)}
     <div class="row" style="justify-content:flex-end"><button class="btn plain ${leads.confirmDel ? "danger" : ""}" type="button" data-cdel>${leads.confirmDel ? "Delete it for good?" : "Delete conversation"}</button></div>
   </div>`, bind: v => {
     $$("[data-cdel]", v).forEach(x => x.onclick = async () => {
