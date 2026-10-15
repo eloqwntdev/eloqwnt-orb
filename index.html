@@ -198,7 +198,7 @@ svg{display:block}
 .toggle button[aria-pressed="true"]{color:var(--ink)}
 .toggle .thumb{position:absolute;top:3px;left:3px;width:36px;height:26px;border-radius:999px;background:var(--card);box-shadow:0 1px 3px rgba(11,16,32,.12);transition:transform .35s cubic-bezier(.3,.8,.3,1)}
 .is-dark .toggle .thumb{background:rgba(255,255,255,.14)}
-.toggle.list .thumb{transform:translateX(38px)}
+.toggle.is-list .thumb{transform:translateX(38px)}
 .toggle svg{width:16px;height:16px}
 .grid{margin-top:24px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px 32px}
 .case{display:flex;flex-direction:column;gap:14px;color:inherit;text-decoration:none;min-width:0}
@@ -306,7 +306,7 @@ svg{display:block}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
 </style>
-<link rel="stylesheet" href="/vision-assets/lead.css?v=092829">
+<link rel="stylesheet" href="/vision-assets/lead.css?v=093215">
 </head>
 <body>
 <div id="root" class="" data-view="voice" data-state="idle">
@@ -441,7 +441,7 @@ svg{display:block}
 
     <div class="sec reveal" style="animation-delay:.12s">
       <div class="sec-head">
-        <div class="sec-title"><h2>Related work</h2><span>10 projects</span></div>
+        <div class="sec-title"><h2>Related work</h2><span id="caseCount">10 projects</span></div>
         <div class="sec-right">
           <span class="ai"><svg viewBox="0 0 14 14" fill="currentColor"><path d="M7 0c.4 3.6 2.4 5.6 7 7-4.6 1.4-6.6 3.4-7 7-.4-3.6-2.4-5.6-7-7 4.6-1.4 6.6-3.4 7-7Z"/></svg>Based on your question</span>
           <div class="toggle" id="viewToggle" role="group" aria-label="Layout">
@@ -584,7 +584,7 @@ $("#cases2").innerHTML=MORE.map(caseHTML).join("");
 /* view toggle */
 const tog=$("#viewToggle");
 tog.addEventListener("click",e=>{const b=e.target.closest("button"); if(!b)return; const v=b.dataset.v;
-  tog.classList.toggle("list",v==="list");
+  tog.classList.toggle("is-list",v==="list");
   tog.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));
   ["#cases","#cases2"].forEach(s=>{const el=$(s); el.className=v==="list"?"list":"grid"; if(s==="#cases2") el.style.marginTop="0";});
   if(moreOpen) moreWrap.style.height=$("#moreInner").offsetHeight+"px";
@@ -593,7 +593,7 @@ tog.addEventListener("click",e=>{const b=e.target.closest("button"); if(!b)retur
 const moreWrap=$("#moreWrap"), moreBtn=$("#moreBtn"); let moreOpen=false;
 moreBtn.addEventListener("click",()=>{
   moreOpen=!moreOpen; moreBtn.classList.toggle("open",moreOpen); moreBtn.setAttribute("aria-expanded",moreOpen);
-  moreBtn.querySelector("span").textContent=moreOpen?"Show less":"Show 4 more";
+  moreBtn.querySelector("span").textContent=moreOpen?"Show less":(moreBtn.dataset.label||"Show 4 more");
   const h=$("#moreInner").offsetHeight;
   if(moreOpen){ moreWrap.style.height=h+"px"; $$("#cases2 .case").forEach((c,i)=>{c.style.animation="none";c.offsetWidth;c.style.animation=`rise .7s cubic-bezier(.2,.8,.2,1) ${.08*i}s both`}); }
   else { moreWrap.style.height="0px"; }
@@ -1042,7 +1042,7 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
       try { conv && conv.setMicMuted(live.muted); } catch (e) { console.warn("mute", e); }
       const b = document.querySelector("#vinput .mic-btn");
       if (b) { b.classList.toggle("muted", live.muted); b.setAttribute("aria-label", live.muted ? "Unmute microphone" : "Mute microphone"); }
-      const ph = document.querySelector("#vinput .ph"); if (ph) ph.textContent = live.muted ? "Mic muted · tap to unmute" : "Ask a follow-up";
+      const ph = document.querySelector("#vinput .ph"); if (ph) ph.textContent = live.muted ? "Mic muted" : "Ask a follow-up";
     },
     ask(text) {
       if (conv) { conv.sendUserMessage(text); EV.transcript(text); EV.setState("processing"); lastUser = text; }
@@ -1061,6 +1061,6 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
   }
 })();
 </script>
-<script src="/vision-assets/lead.js?v=092829" defer></script>
+<script src="/vision-assets/lead.js?v=093215" defer></script>
 </body>
 </html>

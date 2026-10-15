@@ -401,7 +401,56 @@
     $("#briefLinkWrap").hidden = !(ok || userTurns() >= 2);
   }
   $("#briefLink").addEventListener("click", (e) => { e.preventDefault(); openBrief(voiceTurns() >= userTurns() ? "voice" : "chat"); });
-  new MutationObserver(() => { if (app.dataset.view === "results") voiceNudge(); }).observe(app, { attributes: true, attributeFilter: ["data-view"] });
+  new MutationObserver(() => { if (app.dataset.view === "results") { voiceNudge(); relatedWork(); } }).observe(app, { attributes: true, attributeFilter: ["data-view"] });
+
+  /* ---------- related work: the cases the orb talked about first, then the closest matches ---------- */
+  let kbCases = null;
+  const loadCases = () => kbCases || (kbCases = fetch("/api/cases").then((r) => r.json()).then((d) => d.cases || []).catch(() => []));
+  loadCases();
+  const norm = (t) => String(t || "").toLowerCase();
+  const words = (t) => new Set(norm(t).match(/[a-z]{4,}/g) || []);
+  async function relatedWork() {
+    const kb = await loadCases();
+    const statics = EV.cases || [];
+    const talk = [...(EV.voiceLog || []), ...chat.msgs.filter((m) => !m.err)];
+    const orbText = norm(talk.filter((m) => m.role === "orb").map((m) => m.text).join(" "));
+    const userWords = words(talk.filter((m) => m.role === "user").map((m) => m.text).join(" "));
+    const seen = new Set();
+    const items = [];
+    const add = (title, extra) => {
+      const key = norm(title).replace(/[^a-z0-9]/g, "");
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      const st = statics.find((c) => norm(c.n).replace(/[^a-z0-9]/g, "") === key);
+      const desc = (st && st.d) || extra?.result || "";
+      const tagsText = (st ? st.t.join(" ") : "") + " " + (extra?.tag || "");
+      let score = 0;
+      if (orbText.includes(norm(title))) score += 100;
+      for (const w of words(desc + " " + tagsText)) if (userWords.has(w)) score += 3;
+      items.push({ title, img: st?.img || "", year: st?.y || "", desc, tags: st ? st.t : String(extra?.tag || "").split(" · ").filter((t) => t && t !== "Case"), link: extra?.link || "", mentioned: score >= 100, score, order: items.length });
+    };
+    kb.forEach((c) => add(c.title, c));
+    statics.forEach((c) => add(c.n, null));
+    items.sort((a, b) => b.score - a.score || (b.img ? 1 : 0) - (a.img ? 1 : 0) || a.order - b.order);
+    const top = items.slice(0, 10);
+    if (!top.length) return;
+    const ARROW = svg(I.arrow);
+    const card = (c) => {
+      const pv = c.img ? `<img src="${c.img}" alt="${esc(c.title)} preview" loading="lazy">` : `<span class="pv-ph">${esc(c.title)}</span>`;
+      const tags = (c.mentioned ? `<span class="tag mention">Mentioned</span>` : "") + c.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("");
+      const attrs = c.link ? `href="${esc(c.link)}" target="_blank" rel="noopener"` : `href="#" onclick="return false"`;
+      return `<a class="case${c.mentioned ? " is-mentioned" : ""}" ${attrs}><span class="pv">${pv}${c.mentioned ? `<span class="pv-badge"><i></i>Mentioned</span>` : ""}</span><span class="tx"><span class="mt"><span>${esc(c.title)}</span><span>${esc(c.year)}</span></span><span class="desc">${esc(c.desc)}</span><span class="tags">${tags}</span></span><span class="vc">View case ${ARROW}</span></a>`;
+    };
+    $("#cases").innerHTML = top.slice(0, 6).map(card).join("");
+    const rest = top.slice(6);
+    $("#cases2").innerHTML = rest.map(card).join("");
+    $("#caseCount").textContent = `${top.length} project${top.length === 1 ? "" : "s"}`;
+    const mb = $("#moreBtn"); const row = mb.closest(".more-btn-row");
+    row.hidden = !rest.length;
+    mb.dataset.label = `Show ${rest.length} more`;
+    if (mb.getAttribute("aria-expanded") !== "true") mb.querySelector("span").textContent = mb.dataset.label;
+    const lbl = $("#moreInner .divider .ai"); if (lbl && lbl.lastChild) lbl.lastChild.textContent = `${rest.length} more, ranked by relevance`;
+  }
 
   window.EVLead = {
     setName(n) { name = String(n).trim().slice(0, 60); store.set("ev-name", name); },
