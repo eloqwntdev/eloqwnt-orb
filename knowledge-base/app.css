@@ -470,3 +470,5 @@ pre.md{margin:0;padding:16px 18px;border-radius:16px;font-family:var(--f-mono);f
 .lbulk{position:sticky;bottom:16px;z-index:5;display:flex;align-items:center;gap:8px;padding:8px 8px 8px 18px;border-radius:999px;background:color-mix(in srgb,var(--card) 88%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
 .lbulk .btn[disabled]{opacity:.45;pointer-events:none}
 @media (max-width:760px){.lbulk{bottom:calc(env(safe-area-inset-bottom) + 92px)}}
+.lall{font-size:14px;color:var(--ink-2)}
+.lall .grow{flex-direction:row;align-items:center}

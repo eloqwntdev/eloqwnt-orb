@@ -2017,7 +2017,10 @@ function leadsList(){
     <h1 class="h1 big vtx desk-only">Who talked to the orb</h1>
     <div class="stack" style="gap:10px">${periodSeg()}<div class="lstats">${leadsStats().map(([k, v]) => `<div class="vcard"><span class="note">${k}</span><b>${v}</b></div>`).join("")}</div></div>
     <div class="seg" role="group" aria-label="Show" style="align-self:flex-start"><button type="button" data-lt="leads" aria-pressed="${tab === "leads"}">Leads ${lp.length}</button><button type="button" data-lt="convs" aria-pressed="${tab === "convs"}">Conversations ${cp.length}</button></div>
-    ${rows.length ? `<div class="card vcard ${leads.selecting ? "" : "stagger"}">${rows.map(tab === "leads" ? leadRowHtml : convRowHtml).join("")}</div>` : empty}
+    ${rows.length ? `<div class="card vcard ${leads.selecting ? "" : "stagger"}">${leads.selecting ? (() => {
+      const keys = rows.map(r => (tab === "leads" ? "l:" : "c:") + r.id), on = keys.filter(k => leads.sel.has(k)).length;
+      return `<label class="rowlink lpick lall"><input type="checkbox" data-selall ${on === keys.length ? "checked" : ""}><span class="grow">Select all ${plural(keys.length, tab === "leads" ? "lead" : "conversation")}${leads.period === "all" ? "" : " in this period"}</span>${on ? `<span class="label">${on} selected</span>` : ""}</label>`;
+    })() : ""}${rows.map(tab === "leads" ? leadRowHtml : convRowHtml).join("")}</div>` : empty}
     ${leads.selecting ? `<div class="lbulk vcard vg vgc"><span class="note">${leads.sel.size ? plural(leads.sel.size, "selected item", "selected items") : "Tick what to remove"}</span><span class="spacer"></span>
       <button class="btn plain" type="button" data-selall>${rows.every(r => leads.sel.has((tab === "leads" ? "l:" : "c:") + r.id)) && rows.length ? "Clear" : "Select all"}</button>
       <button class="btn ${leads.confirmBulk ? "cta" : "vg"}" type="button" data-bulkdel ${leads.sel.size ? "" : "disabled"}>${leads.confirmBulk ? "Delete for good?" : "Delete"}</button></div>` : ""}
@@ -2025,7 +2028,7 @@ function leadsList(){
   </div>`, bind: v => {
     $$("[data-lt]", v).forEach(b => b.onclick = () => { leads.tab = b.dataset.lt; refresh(); });
     $$("[data-pick]", v).forEach(x => x.onchange = () => { x.checked ? leads.sel.add(x.dataset.pick) : leads.sel.delete(x.dataset.pick); leads.confirmBulk = false; refresh(); });
-    $$("[data-selall]", v).forEach(b => b.onclick = () => {
+    $$("[data-selall]", v).forEach(b => b[b.tagName === "INPUT" ? "onchange" : "onclick"] = () => {
       const keys = rows.map(r => (tab === "leads" ? "l:" : "c:") + r.id);
       if (keys.every(k => leads.sel.has(k))) keys.forEach(k => leads.sel.delete(k)); else keys.forEach(k => leads.sel.add(k));
       leads.confirmBulk = false; refresh();
