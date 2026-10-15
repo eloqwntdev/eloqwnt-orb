@@ -8,6 +8,15 @@ const parse = (raw) => { try { return JSON.parse(raw); } catch { return raw; } }
 export async function GET(request) {
   if (!(await isAuthed(request))) return json({ error: "Sign in first." }, 401);
   const u = new URL(request.url);
+  if (u.searchParams.get("action") === "ping") {
+    // call our own public webhook address from outside, like ElevenLabs would; an unsigned call should be logged and refused
+    const url = new URL("/api/elevenlabs", request.url).toString();
+    try {
+      const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const text = (await r.text()).slice(0, 200);
+      return json({ url, status: r.status, server: r.headers.get("server"), body: text, verdict: r.status === 401 ? "Reachable. Check deliveries: a “signature didn’t match” line from this test should now be there." : "Not reachable as expected: something in front of the site answered." });
+    } catch (e) { return json({ url, error: e.message }, 502); }
+  }
   if (u.searchParams.get("action") === "import") {
     if (!elevenConfigured()) return json({ error: "Add ELEVENLABS_API_KEY in Vercel first." }, 400);
     try {
