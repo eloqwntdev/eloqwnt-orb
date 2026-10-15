@@ -409,7 +409,23 @@
   loadCases();
   const norm = (t) => String(t || "").toLowerCase();
   const words = (t) => new Set(norm(t).match(/[a-z]{4,}/g) || []);
+  // Does the visitor's side of the talk say anything about their project yet?
+  const PROJECT = /\b(brand|branding|logo|site|website|web|landing|page|app|startup|company|business|launch|product|store|shop|e-?commerce|fintech|health|clinic|saas|platform|redesign|rebrand|identity|video|investors?|raise|series|customers?|sell|selling|jewel\w*|fashion|label)\b/i;
+  const hasContext = () => [...(EV.voiceLog || []), ...chat.msgs].some((m) => m.role === "user" && !m.kind && PROJECT.test(m.text || ""));
+  const ctaLabel = () => {
+    const cta = $("#cta"); if (!cta) return;
+    const t = [...cta.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
+    const want = hasContext() ? "Show relevant work " : "Show our work ";
+    if (t && t.textContent !== want) t.textContent = want;
+  };
+  new MutationObserver(ctaLabel).observe($("#cta"), { attributes: true, attributeFilter: ["class"] });
+  ctaLabel();
+
   async function relatedWork() {
+    const ctx = hasContext();
+    $("#workTitle").textContent = ctx ? "Related work" : "Our work";
+    const chip = $("#workTitle").closest(".sec-head")?.querySelector(".sec-right .ai");
+    if (chip && chip.lastChild) chip.lastChild.textContent = ctx ? "Based on your question" : "Recent launches";
     const kb = await loadCases();
     const statics = EV.cases || [];
     const talk = [...(EV.voiceLog || []), ...chat.msgs.filter((m) => !m.err)];

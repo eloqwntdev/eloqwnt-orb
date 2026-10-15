@@ -243,3 +243,6 @@ a.ccase:hover .lnk svg{transform:translateX(3px)}
 .case .pv-badge i{width:6px;height:6px;border-radius:50%;background:#c7f59a;box-shadow:0 0 8px #c7f59a}
 .list .case .pv-badge{display:none}
 .tag.mention{background:var(--lime);color:var(--lime-ink)}
+/* a closed sheet must never catch clicks */
+.bsheet[hidden],.bscrim[hidden]{display:none!important}
+.bsheet:not(.on),.bscrim:not(.on){pointer-events:none}
