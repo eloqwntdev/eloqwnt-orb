@@ -1,5 +1,11 @@
 {
   "functions": {
-    "api/ask.js": { "maxDuration": 120 }
-  }
+    "api/ask.js": { "maxDuration": 120 },
+    "api/chat.js": { "maxDuration": 45 },
+    "api/brief.js": { "maxDuration": 60 },
+    "api/lead.js": { "maxDuration": 30 }
+  },
+  "rewrites": [
+    { "source": "/brief/:id", "destination": "/brief.html" }
+  ]
 }

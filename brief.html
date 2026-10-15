@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Your brief · Eloqwnt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Besley:wght@400&family=Zalando+Sans:wght@300;400;500&display=swap">
+<style>
+:root{--page:#f6f8fc;--ink:#0b1020;--ink-2:#2a3248;--ink-3:#4a5268;--muted:#6b7489;--faint:#a4abbc;--chip:#eef1f5;--line:#e4e7ee;--hair:rgba(11,16,32,.08);--card:#ffffff;--btn:#0b1020;--btn-ink:#ffffff;--lime-dot:#a6e46a;color-scheme:light}
+:root[data-theme="dark"]{--page:#0d161b;--ink:#eef3f6;--ink-2:#d6dfe5;--ink-3:#b6c3cc;--muted:#8e9ca7;--faint:#93aebc;--chip:rgba(255,255,255,.06);--line:rgba(255,255,255,.16);--hair:rgba(255,255,255,.09);--card:rgba(255,255,255,.04);--btn:#eef3f6;--btn-ink:#0b1020;--lime-dot:#c7f59a;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--page);color:var(--ink);font-family:"Zalando Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+svg{display:block}
+header{display:flex;align-items:center;justify-content:space-between;padding:32px clamp(20px,4vw,48px)}
+.brand{display:flex;align-items:flex-start;gap:6px;color:var(--ink);text-decoration:none}
+.brand .logo{width:107px;height:22px}
+.brand span{font-family:Besley,Georgia,serif;font-size:16px;line-height:20px;margin-top:-1px}
+.btn{height:48px;border-radius:999px;background:var(--btn);color:var(--btn-ink);display:inline-flex;align-items:center;justify-content:center;gap:12px;padding:0 22px;font-weight:500;text-decoration:none;white-space:nowrap;transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(11,16,32,.18)}
+.ghost{height:40px;border-radius:999px;border:1px solid var(--line);background:var(--chip);display:inline-flex;align-items:center;gap:10px;padding:0 18px;font-size:15px;color:var(--ink-2);text-decoration:none;white-space:nowrap;transition:border-color .2s}
+.ghost:hover{border-color:var(--faint)}
+.btn svg,.ghost svg{width:18px;height:18px}
+main{width:min(760px,100% - 40px);margin:56px auto 0;display:flex;flex-direction:column;gap:36px;animation:rise .8s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.eyebrow{font-size:14px;color:var(--muted)}
+h1{font-weight:300;letter-spacing:-.02em;margin:0;line-height:1.1;font-size:clamp(34px,5vw,52px);text-wrap:balance}
+.sec{display:flex;flex-direction:column;gap:10px;padding-top:20px;border-top:1px solid var(--hair)}
+.sec h2{margin:0;font-size:13px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.sec ul.dots{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.sec ul.dots li{display:flex;gap:10px;font-size:16px;line-height:1.5;color:var(--ink-2)}
+.sec ul.dots li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--lime-dot);flex:none;margin-top:9px}
+.sec p{margin:0;font-size:16px;line-height:1.55;color:var(--ink-2)}
+.sec p.big{font-size:18px}
+.phase{display:grid;grid-template-columns:160px 1fr;gap:8px 24px;padding:18px 0;border-top:1px solid var(--hair)}
+.phase:first-of-type{border-top:0}
+.phase b{font-weight:500;font-size:18px}
+.phase ul{margin:8px 0 0;padding-left:18px;color:var(--ink-2);font-size:16px;line-height:1.6}
+.phase .wk{font-size:15px;color:var(--ink-3)}
+.price{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--hair)}
+.price span:last-child{color:var(--ink-3);white-space:nowrap}
+.fine{font-size:13px;line-height:1.5;color:var(--muted)}
+.case{display:flex;gap:14px;align-items:center;padding:14px;border-radius:18px;background:var(--card);border:1px solid var(--line);text-decoration:none;color:inherit;transition:border-color .2s,transform .3s cubic-bezier(.2,.8,.2,1)}
+a.case:hover{border-color:var(--faint);transform:translateY(-2px)}
+.case .img{width:96px;height:64px;border-radius:12px;flex:none;background:radial-gradient(70% 70% at 30% 25%,#2d5a73,#0b1a22)}
+.case .tx{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.case .tag{font-size:13px;color:var(--muted)}
+.case b{font-weight:500;font-size:17px}
+.case .res{font-size:15px;color:var(--ink-2)}
+.case svg{width:18px;height:18px;flex:none;color:var(--ink-3)}
+.talk{display:flex;gap:16px;align-items:center;padding:28px 32px;border-radius:24px;background:var(--card);border:1px solid var(--line);margin-bottom:60px}
+.talk .who{display:flex;gap:14px;align-items:center;flex:1}
+.talk img{width:48px;height:48px;border-radius:50%}
+.talk b{font-weight:500;font-size:18px;display:block}
+.talk .who span span{color:var(--ink-3);font-size:15px}
+.state{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px}
+.state h1{font-size:34px}
+.state p{color:var(--ink-3);margin:0;max-width:440px}
+footer{width:min(760px,100% - 40px);margin:0 auto;padding:24px 0 40px;border-top:1px solid var(--hair);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--faint);font-size:14px}
+footer a{color:var(--ink-3)}
+@media (max-width:640px){
+  header{padding:24px 20px 0}
+  .brand span,.hide-sm{display:none}
+  main{margin-top:28px;gap:28px}
+  .phase{grid-template-columns:1fr}
+  .case .img{width:72px;height:56px}
+  .case svg{display:none}
+  .talk{flex-direction:column;align-items:stretch;padding:22px}
+}
+@media print{header .ghost,.talk .btn{display:none}body{background:#fff}}
+@media (prefers-reduced-motion:reduce){main{animation:none}}
+</style>
+</head>
+<body>
+<header><a class="brand" href="/" aria-label="Eloqwnt Vision"><svg class="logo" aria-hidden="true" viewBox="0 0 107.25 22.1145" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g>
+<g>
+<path d="M1.02976 16.0577C1.59848 16.0577 2.05951 13.8141 2.05951 11.0464C2.05951 8.27874 1.59848 6.0351 1.02976 6.0351C0.461038 6.0351 0 8.27874 0 11.0464C0 13.8141 0.461038 16.0577 1.02976 16.0577Z" fill="currentColor"/>
+<path d="M22 11.0464C22 13.7062 21.2895 15.8828 20.3913 16.0487C20.3354 16.0595 20.2813 16.018 20.2813 15.9603C20.2813 14.9866 20.2813 7.10624 20.2813 6.13247C20.2813 6.07477 20.3336 6.03329 20.3913 6.04411C21.2895 6.20821 22 8.38477 22 11.0464Z" fill="currentColor"/>
+<path d="M19.9369 11.0572C19.9369 15.9026 18.6041 19.8464 16.9396 19.9907C16.8891 19.9943 16.844 19.951 16.844 19.9005C16.844 19.8554 16.844 3.54477 16.844 2.21575C16.844 2.16346 16.8873 2.12198 16.9378 2.12559C18.6023 2.26985 19.9369 6.21362 19.9369 11.059V11.0572Z" fill="currentColor"/>
+<path d="M4.12444 19.9943C5.07363 19.9943 5.8431 15.993 5.8431 11.0572C5.8431 6.12143 5.07363 2.12018 4.12444 2.12018C3.17524 2.12018 2.40577 6.12143 2.40577 11.0572C2.40577 15.993 3.17524 19.9943 4.12444 19.9943Z" fill="currentColor"/>
+<path d="M8.93778 22.0572C10.4567 22.0572 11.688 17.1324 11.688 11.0572C11.688 4.98209 10.4567 0.0572271 8.93778 0.0572271C7.41887 0.0572271 6.18756 4.98209 6.18756 11.0572C6.18756 17.1324 7.41887 22.0572 8.93778 22.0572Z" fill="currentColor"/>
+<path d="M16.4995 11.0572C16.4995 17.0603 14.395 21.94 11.7818 22.0536C11.7295 22.0554 11.688 22.0158 11.688 21.9635C11.688 20.483 11.688 1.62969 11.688 0.149194C11.688 0.0968993 11.7295 0.0572271 11.7818 0.0590304C14.3968 0.172637 16.4995 5.05231 16.4995 11.0554V11.0572Z" fill="currentColor"/>
+</g>
+<g>
+<path d="M41.2801 0H39.0195C38.9694 0 38.9289 0.0405811 38.9289 0.0906404V17.0223C38.9289 17.0723 38.9694 17.1129 39.0195 17.1129H41.2801C41.3301 17.1129 41.3707 17.0723 41.3707 17.0223V0.0906404C41.3707 0.0405811 41.3301 0 41.2801 0Z" fill="currentColor"/>
+<path d="M48.3881 17.4102C47.2333 17.4102 46.1729 17.151 45.2338 16.6416C44.2966 16.1322 43.5443 15.3889 43.0022 14.4336C42.4602 13.4782 42.1847 12.3416 42.1847 11.0563C42.1847 9.77104 42.4765 8.58184 43.0276 7.65549C43.5896 6.71283 44.3528 5.97864 45.2991 5.47106C46.2454 4.95985 47.3204 4.70243 48.4914 4.70243C49.6625 4.70243 50.7357 4.96166 51.682 5.47106C52.6283 5.98046 53.3933 6.71646 53.9534 7.65549C54.5118 8.59453 54.7964 9.73841 54.7964 11.0545C54.7964 12.2727 54.5208 13.3749 53.9788 14.3303C53.435 15.2856 52.6754 16.0452 51.72 16.589C50.7647 17.1329 49.6462 17.4066 48.3935 17.4066H48.3899L48.3881 17.4102ZM48.4606 6.79622C47.6829 6.79622 46.9759 6.99019 46.4158 7.35819C45.852 7.728 45.4151 8.24103 45.1178 8.88458C44.8241 9.52087 44.6737 10.2496 44.6737 11.0545C44.6737 11.9609 44.8495 12.744 45.1957 13.3803C45.5402 14.0203 46.0061 14.5079 46.5825 14.8288C47.1572 15.1496 47.7736 15.311 48.4135 15.311C49.1767 15.311 49.8529 15.1225 50.4221 14.749C50.9931 14.3792 51.4536 13.8626 51.7907 13.2154C52.1261 12.57 52.2965 11.825 52.2965 11.0019C52.2965 10.1789 52.1352 9.42298 51.8161 8.79031C51.4953 8.15583 51.0402 7.65912 50.4656 7.31468C49.8927 6.97025 49.2184 6.79441 48.4588 6.79441L48.4606 6.79622Z" fill="currentColor"/>
+<path d="M105.381 17.1129C104.197 17.1129 103.273 16.8174 102.633 16.2373C102.002 15.6627 101.681 14.7001 101.681 13.3785V7.0192H99.9136C99.8628 7.0192 99.8229 6.97931 99.8229 6.92856V5.07587C99.8229 5.02873 99.8592 4.99066 99.9063 4.98704C100.909 4.90002 101.681 4.06069 101.681 3.04552V2.11374C101.681 2.06298 101.721 2.02309 101.772 2.02309H104.034C104.085 2.02309 104.125 2.06298 104.125 2.11374V4.99973H107.158C107.208 4.99973 107.248 5.03961 107.248 5.09037V6.93218C107.248 6.98294 107.208 7.02282 107.158 7.02282H104.125V13.3822C104.125 14.0456 104.273 14.4843 104.582 14.72C104.877 14.9466 105.339 15.0626 105.954 15.0626H107.159C107.21 15.0626 107.25 15.1025 107.25 15.1533V17.0205C107.25 17.0712 107.21 17.1111 107.159 17.1111H105.381V17.1129Z" fill="currentColor"/>
+<path d="M97.6766 6.00946C98.5413 6.88324 99.0072 8.24465 99.0072 9.9922V17.0168C99.0072 17.0676 98.9673 17.1075 98.9165 17.1075H96.6559C96.6052 17.1075 96.5653 17.0676 96.5653 17.0168V10.3149C96.5653 9.20544 96.3043 8.32623 95.7894 7.70263C95.2637 7.0627 94.515 6.75271 93.5017 6.75271C92.4883 6.75271 91.6653 7.10077 91.0652 7.78601C90.4652 8.46944 90.1625 9.41936 90.1625 10.6104V17.0168C90.1625 17.0676 90.1226 17.1075 90.0718 17.1075H87.8113C87.7605 17.1075 87.7206 17.0676 87.7206 17.0168V5.08855C87.7206 5.0378 87.7605 4.99791 87.8113 4.99791H89.9794C90.0283 4.99791 90.0682 5.0378 90.07 5.08674L90.1244 7.03732L90.2857 6.76903C90.6827 6.10917 91.2502 5.59614 91.968 5.24083C92.6913 4.88552 93.4654 4.70424 94.2703 4.70424C95.6589 4.70424 96.8119 5.15744 97.6766 6.01127" fill="currentColor"/>
+<path d="M80.7159 17.0477L78.013 7.49778L75.3101 17.0477C75.2992 17.0875 75.263 17.1129 75.2231 17.1129H72.7269C72.687 17.1129 72.6507 17.0857 72.6399 17.0477L69.1049 5.11756C69.0886 5.05955 69.1321 5.00154 69.1919 5.00154H71.4561C71.4978 5.00154 71.534 5.03054 71.5431 5.07043L73.9976 14.7617L76.6788 5.06861C76.6897 5.02873 76.7259 5.00154 76.7658 5.00154H79.3364C79.3781 5.00154 79.4125 5.02873 79.4234 5.06861L82.081 14.7381L84.5355 5.07043C84.5464 5.03054 84.5826 5.00154 84.6225 5.00154H86.8124C86.8722 5.00154 86.9157 5.05955 86.8994 5.11756L83.388 17.0477C83.3771 17.0857 83.3409 17.1129 83.301 17.1129H80.7993C80.7594 17.1129 80.7232 17.0857 80.7123 17.0477H80.7159Z" fill="currentColor"/>
+<path d="M32.2015 17.4102C31.0015 17.4102 29.9337 17.1383 29.0291 16.6035C28.1209 16.0687 27.403 15.3128 26.8936 14.3574C26.3697 13.3767 26.125 12.3289 26.125 11.0563C26.125 9.78373 26.3842 8.64347 26.8936 7.70444C27.4048 6.76359 28.1227 6.02215 29.0291 5.49825C29.921 4.97797 31.0268 4.70243 32.2269 4.70243C33.427 4.70243 34.424 4.96166 35.2924 5.47287C36.1589 5.98408 36.8514 6.68926 37.3535 7.57029L37.4115 7.67181H37.4134C37.8774 8.52564 38.1131 9.50637 38.1131 10.5814C38.1131 10.8207 38.1095 11.0038 38.0986 11.1578C38.0932 11.2847 38.0805 11.4298 38.0587 11.6002C38.0533 11.6437 38.017 11.6781 37.9735 11.6781C37.1741 11.6781 30.2963 11.6781 29.3989 11.6781C29.3464 11.6781 29.3029 11.6346 29.3083 11.582C29.4152 10.6013 31.0595 9.63145 32.7037 9.65321H35.6078L35.5951 9.54988C35.499 8.72324 35.1492 8.05068 34.5564 7.55035C33.8929 6.98475 33.0844 6.69833 32.158 6.69833C31.5507 6.69833 30.3887 6.86329 29.4424 7.96911C28.8732 8.65616 28.556 9.61695 28.498 10.8243C28.4671 11.437 28.498 12.9906 29.4352 14.1363C30.425 15.3491 31.8734 15.4107 32.1544 15.4107C32.894 15.4107 33.5285 15.2421 34.0361 14.9104C34.5183 14.5967 34.8954 14.1562 35.16 13.5997C35.1745 13.5689 35.2054 13.5489 35.2398 13.5489H37.5983C37.6599 13.5489 37.7052 13.6106 37.6853 13.6686C37.4696 14.3067 37.1396 14.8995 36.7009 15.4306C36.2078 16.0289 35.577 16.5129 34.8247 16.8682C34.0687 17.2253 33.1859 17.4048 32.1979 17.4048L32.2015 17.4102Z" fill="currentColor"/>
+<path d="M65.9343 22.1145C65.8835 22.1145 65.8436 22.0746 65.8436 22.0238V11.069C65.8436 10.3167 65.666 9.55894 65.327 8.87551C65.0134 8.24103 64.5638 7.73344 63.9928 7.36544C63.4145 6.99382 62.722 6.80529 61.9352 6.80529C61.2083 6.80529 60.5484 6.98838 59.9774 7.35094C59.4245 7.70263 58.9658 8.21384 58.6196 8.87007C58.286 9.50093 58.1247 10.2116 58.1247 11.0436C58.1247 11.8757 58.2951 12.628 58.6305 13.2679C58.9858 13.9441 59.4607 14.4807 60.0046 14.8179C60.5484 15.1569 61.4077 15.3853 62.1999 15.3853H64.9409C64.9934 15.3853 65.0369 15.4288 65.0315 15.4814C64.93 16.4603 63.2894 17.4102 61.6452 17.4102C61.6452 17.4102 61.5708 17.4138 61.3986 17.4138C60.184 17.4084 59.265 17.1637 58.4057 16.618C57.5664 16.0814 56.8811 15.3001 56.3681 14.294C55.8786 13.3332 55.623 12.2383 55.6085 11.04C55.6085 9.87256 55.8551 8.79756 56.3427 7.84946C56.8394 6.87236 57.5283 6.09829 58.3912 5.54538C59.2613 4.98704 60.3037 4.70424 61.4893 4.70424C62.383 4.70424 63.2042 4.88008 63.9293 5.22633C64.6363 5.56532 65.2255 6.07654 65.6787 6.7509L65.8309 6.9775L65.9379 5.08674C65.9397 5.03961 65.9796 5.00154 66.0285 5.00154H68.1967C68.2474 5.00154 68.2873 5.04142 68.2873 5.09218V22.0238C68.2873 22.0746 68.2456 22.1145 68.1967 22.1145H65.9343Z" fill="currentColor"/>
+</g>
+</g>
+</svg><span>vision</span></a><a class="ghost hide-sm" href="https://calendly.com/eloqwnt" target="_blank" rel="noopener"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5h13v11h-13zM3.5 8.5h13M7 3v3.5M13 3v3.5"/></svg>Book a call</a></header>
+<div id="out"><div class="state" aria-busy="true"><p>Opening your brief…</p></div></div>
+<script>
+(() => {
+  try { const t = localStorage.getItem("ev-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+  const out = document.getElementById("out");
+  const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const CAL = "https://calendly.com/eloqwnt";
+  const cal = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5h13v11h-13zM3.5 8.5h13M7 3v3.5M13 3v3.5"/></svg>';
+  const arrow = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>';
+  const id = (location.pathname.match(/\/brief\/([a-z0-9]+)/) || [])[1] || new URLSearchParams(location.search).get("id");
+  const fail = (h, p) => { out.innerHTML = `<div class="state"><h1>${h}</h1><p>${p}</p><a class="btn" href="/">Talk to the orb ${arrow}</a></div>`; };
+  if (!id) return fail("No brief here", "This link is missing its brief. Ask the orb for a new one.");
+  fetch("/api/brief?id=" + encodeURIComponent(id)).then(async (r) => {
+    const b = await r.json().catch(() => ({}));
+    if (!r.ok) return fail(r.status === 403 ? "Almost there" : "Brief not found", esc(b.error || "Ask the orb for a new one."));
+    const date = new Date(b.sentAt || b.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const words = esc(b.headline).split(" ");
+    const head = words.length > 4 ? words.slice(0, -2).join(" ") + ` <em style="font-style:normal;color:var(--faint)">${words.slice(-2).join(" ")}</em>` : esc(b.headline);
+    document.title = (b.company ? `Brief for ${b.company}` : "Your brief") + " · Eloqwnt";
+    const dots = (a) => `<ul class="dots">${a.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>`;
+    out.innerHTML = `<main>
+      <div style="display:flex;flex-direction:column;gap:14px"><span class="eyebrow">${[b.company ? "Brief for " + esc(b.company) : "Your brief", b.name ? "prepared for " + esc(b.name.split(" ")[0]) : "", date].filter(Boolean).join(" · ")}</span><h1>${head}</h1></div>
+      ${b.told?.length ? `<section class="sec"><h2>What you told us</h2>${dots(b.told)}</section>` : ""}
+      ${b.recommendation || b.approach ? `<section class="sec"><h2>Our recommendation</h2><p class="big">${esc(b.recommendation || b.approach)}</p></section>` : ""}
+      ${b.phases?.length ? `<section class="sec" style="gap:0"><h2 style="margin-bottom:6px">Plan and timeline</h2>${b.phases.map((p, i) => `<div class="phase"><div><span class="eyebrow">Phase ${i + 1}</span><div class="wk">${esc(p.weeks)}</div></div><div><b>${esc(p.name)}</b>${p.items?.length ? `<ul>${p.items.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</div></div>`).join("")}</section>` : ""}
+      ${b.prices?.length ? `<section class="sec"><h2>Starting prices</h2><div>${b.prices.map((p) => `<div class="price"><span>${esc(p.service)}</span><span>${esc(p.price)}</span></div>`).join("")}</div><p class="fine">Final scope and price are agreed on the call.</p></section>` : ""}
+      ${b.cases?.length ? `<section class="sec"><h2>Similar work</h2><div style="display:flex;flex-direction:column;gap:10px">${b.cases.map((c) => { const inner = `<span class="img"></span><span class="tx"><span class="tag">${esc(c.tag)}</span><b>${esc(c.title)}</b>${c.result ? `<span class="res">${esc(c.result)}</span>` : ""}</span>${c.link ? arrow : ""}`; return c.link ? `<a class="case" href="${esc(c.link)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="case">${inner}</div>`; }).join("")}</div></section>` : ""}
+      ${b.prep?.length ? `<section class="sec"><h2>To get the most from the call</h2>${dots(b.prep)}</section>` : ""}
+      <div class="talk"><div class="who"><img src="/kb-assets/orb-logo.png" alt=""><span><b>Talk it through with Mir</b><span>Founder · 20 minutes, no pitch deck needed</span></span></div><a class="btn" href="${CAL}" target="_blank" rel="noopener">${cal}Book a 20-minute call</a></div>
+    </main>
+    <footer><span>© ${new Date().getFullYear()} Eloqwnt</span><a href="mailto:hi@eloqwnt.com">hi@eloqwnt.com</a></footer>`;
+  }).catch(() => fail("Couldn’t open the brief", "Check your connection and try again."));
+})();
+</script>
+</body>
+</html>

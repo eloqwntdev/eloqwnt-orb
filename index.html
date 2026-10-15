@@ -306,6 +306,7 @@ svg{display:block}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
 </style>
+<link rel="stylesheet" href="/vision-assets/lead.css">
 </head>
 <body>
 <div id="root" class="" data-view="voice" data-state="idle">
@@ -347,6 +348,7 @@ svg{display:block}
       <span class="knob"></span>
     </button>
     <div class="status"><i></i>Voice first</div>
+    <div class="mode" id="modeTog" role="group" aria-label="How to talk"><button type="button" data-mode="voice" aria-pressed="true"><i></i><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5a2.6 2.6 0 0 0-2.6 2.6v4.4a2.6 2.6 0 0 0 5.2 0V5.1A2.6 2.6 0 0 0 10 2.5zM5 9.5a5 5 0 0 0 10 0M10 14.5v3"/></svg><span>Voice</span></button><button type="button" data-mode="chat" aria-pressed="false"><i></i><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.2A2.2 2.2 0 0 1 6.2 3h7.6A2.2 2.2 0 0 1 16 5.2v6.1a2.2 2.2 0 0 1-2.2 2.2H9l-3.6 3v-3H6.2A2.2 2.2 0 0 1 4 11.3z"/></svg><span>Chat</span></button></div>
   </div>
 </header>
 
@@ -404,7 +406,20 @@ svg{display:block}
         <button class="cta wait" id="cta" type="button">Show relevant work <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h12M11 5l5 5-5 5"/></svg></button>
       </div>
     </div>
+    <div class="cstart" id="cstart">
+      <form class="composer" data-composer autocomplete="off"><label class="sr-only" for="cIn0" hidden>Your question</label><textarea id="cIn0" rows="1" placeholder="Type your question, or switch to voice" aria-label="Your question"></textarea><button class="c-ic" type="button" data-tovoice aria-label="Talk instead"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5a2.6 2.6 0 0 0-2.6 2.6v4.4a2.6 2.6 0 0 0 5.2 0V5.1A2.6 2.6 0 0 0 10 2.5zM5 9.5a5 5 0 0 0 10 0M10 14.5v3"/></svg></button><button class="c-send" type="submit" aria-label="Send" disabled><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 16V4.5M5.5 9l4.5-4.5L14.5 9"/></svg></button></form>
+      <div class="chips"><button class="chip" type="button" data-q="1">Our work</button><button class="chip" type="button" data-q="2">Discuss a project</button><button class="chip" type="button" data-q="3">Understand our services</button><button class="chip" type="button" data-q="4">How we work</button></div>
+    </div>
   </section>
+
+  <section class="chatv" id="chatv" aria-label="Chat with Eloqwnt">
+    <div class="ctop"><span class="who"><img src="/kb-assets/orb-logo.png" alt="">Eloqwnt · usually answers in seconds</span><button class="pillbtn" type="button" id="briefTop" hidden><i></i>Get your brief</button></div>
+    <div class="thread" id="thread" aria-live="polite"></div>
+  </section>
+  <div class="cdock" id="cdock">
+    <form class="composer" data-composer autocomplete="off"><textarea rows="1" placeholder="Reply, or switch to voice" aria-label="Your message"></textarea><button class="c-ic" type="button" data-tovoice aria-label="Talk instead"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5a2.6 2.6 0 0 0-2.6 2.6v4.4a2.6 2.6 0 0 0 5.2 0V5.1A2.6 2.6 0 0 0 10 2.5zM5 9.5a5 5 0 0 0 10 0M10 14.5v3"/></svg></button><button class="c-send" type="submit" aria-label="Send" disabled><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 16V4.5M5.5 9l4.5-4.5L14.5 9"/></svg></button></form>
+    <p class="cerr" id="cerr" role="status"></p>
+  </div>
 
   <section class="results" id="results" aria-label="Answer and related work">
     <div class="reveal">
@@ -500,7 +515,7 @@ svg{display:block}
       </div>
     </div>
 
-    <p class="closing">Want to discuss a project? — <a href="https://calendly.com/eloqwnt" target="_blank" rel="noopener" id="book">Book a strategy call</a></p>
+    <p class="closing">Want to discuss a project? — <a href="https://calendly.com/eloqwnt" target="_blank" rel="noopener" id="book">Book a strategy call</a><span id="briefLinkWrap" hidden> · <a href="#" id="briefLink">get a brief by email</a></span></p>
     <footer class="footer"><span>© 2026 Eloqwnt Vision</span><span class="em">hi@eloqwnt.com</span></footer>
   </section>
 </main>
@@ -618,7 +633,9 @@ window.EV={
   showCta:()=>$("#cta").classList.remove("wait"),
   hideCta:()=>$("#cta").classList.add("wait"),
   showResults:()=>{ if(app.dataset.view==="voice") showResults(); },
-  view:()=>app.dataset.view
+  view:()=>app.dataset.view,
+  cases:[...CASES,...MORE],
+  toIdle:()=>toIdle()
 };
 function words(html){ // returns spans for words; <m>…</m> marks muted
   const out=[]; let muted=false;
@@ -938,6 +955,15 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
               setTimeout(() => EV.showResults(), 600);
               return "The related work is now on screen.";
             },
+            save_name: (p) => {
+              const n = p && (p.name || p.first_name);
+              if (n && window.EVLead) window.EVLead.setName(String(n));
+              return "Saved.";
+            },
+            offer_brief: () => {
+              setTimeout(() => window.EVLead && window.EVLead.openBrief("voice"), 400);
+              return "The brief form is now on screen. Tell them it takes a few seconds and the full version goes to their email.";
+            },
             open_booking: () => {
               window.open("https://calendly.com/eloqwnt", "_blank", "noopener");
               return "The booking calendar is open in a new tab.";
@@ -962,6 +988,7 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
             const who = m.role || m.source;
             m = { ...m, message: cleanText(m.message) };
             if (!m.message) return;
+            (EV.voiceLog = EV.voiceLog || []).push({ role: who === "user" ? "user" : "orb", text: m.message });
             if (who === "user") {
               lastUser = m.message;
               if (EV.view() === "voice") { EV.transcript(m.message); EV.setState("processing"); }
@@ -1015,8 +1042,10 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
     setBadge("Live voice");
     if (EV.view() === "voice") EV.setState("idle");
     if (failed === "timeout") { EV.label("Couldn’t connect"); setBadge("Offline"); failed = null; }
+    window.EVLead && window.EVLead.voiceEnded();
   }
 })();
 </script>
+<script src="/vision-assets/lead.js" defer></script>
 </body>
 </html>
