@@ -261,3 +261,14 @@ a.ccase:hover .lnk svg{transform:translateX(3px)}
 [data-mode="chat"] .cstart{max-width:600px;margin-top:clamp(24px,4vh,40px);gap:14px}
 [data-mode="chat"] .cstart .composer{min-height:56px;padding-top:6px;padding-bottom:6px}
 [data-mode="chat"] .cstart .chip{height:36px;font-size:14px;padding:0 15px}
+/* phones: lighter label and mic inside the orb */
+@media (max-width:640px){
+  .orb-ui{gap:10px}
+  .orb-ui svg{width:22px;height:28px}
+  .orb-ui .lbl{font-size:13px;line-height:16px}
+}
+@media (max-width:640px){
+  [data-mode="chat"] .orb-ui{gap:7px}
+  [data-mode="chat"] .orb-ui svg{width:18px;height:23px}
+  [data-mode="chat"] .orb-ui .lbl{font-size:12px;line-height:14px}
+}
