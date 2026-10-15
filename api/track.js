@@ -4,6 +4,7 @@
 import { allow, clientIp, json } from "../lib/server.js";
 import { loadConv, saveConv } from "../lib/conv.js";
 import { cleanSource, newId, sourceLabel } from "../lib/orb-context.js";
+import { linkCall } from "../lib/voice.js";
 
 const clip = (v, n) => String(v ?? "").slice(0, n).trim();
 const EVENTS = ["book_click", "brief_open", "case_shown", "brief_offered"];
@@ -38,6 +39,8 @@ export async function POST(request) {
     if (body.name && !conv.name) conv.name = clip(body.name, 60);
     addEvents(conv, Array.isArray(body.events) ? body.events.map(String) : []);
     await saveConv(conv);
+    // link each ElevenLabs call to this conversation, so its webhook lands here
+    for (const id of (Array.isArray(body.callIds) ? body.callIds : []).slice(0, 10)) await linkCall(String(id), conv.id);
     return json({ ok: true, convId: conv.id });
   }
 

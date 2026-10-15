@@ -59,7 +59,7 @@ export async function GET(request) {
     return json({
       lead: { ...lead, ghlUrl: ghlUrl(lead.ghl?.contactId) },
       brief: brief ? { ...brief, convId: undefined, contactId: undefined } : null,
-      conv: conv ? { id: conv.id, mode: conv.mode, startedAt: conv.startedAt, source: conv.source || {}, channel: conv.channel, messages: transcript(conv), events: conv.events || [] } : null,
+      conv: conv ? { id: conv.id, mode: conv.mode, startedAt: conv.startedAt, source: conv.source || {}, channel: conv.channel, messages: transcript(conv), events: conv.events || [], calls: conv.calls || [] } : null,
     });
   }
 
@@ -70,7 +70,7 @@ export async function GET(request) {
     if (!sum) return json({ error: "This conversation doesn’t exist any more." }, 404);
     const brief = sum.briefId ? await getBrief(sum.briefId) : null;
     return json({
-      conv: { ...convRow(sum, !conv), source: sum.source || {}, messages: conv ? transcript(conv) : [], events: conv?.events || [] },
+      conv: { ...convRow(sum, !conv), source: sum.source || {}, messages: conv ? transcript(conv) : [], events: conv?.events || [], calls: conv?.calls || [] },
       brief: brief ? { ...brief, convId: undefined, contactId: undefined } : null,
     });
   }

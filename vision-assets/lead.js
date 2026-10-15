@@ -228,11 +228,11 @@
   let voiceConvId = store.get("ev-vconv", "", sessionStorage) || "";
   const voiceEvents = new Set();
   const post = (body) => fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), keepalive: true }).then((r) => r.json()).catch(() => ({}));
-  let voiceSaving = null;
+  let voiceSaving = null, callIds = [];
   function trackVoice() {
     if (!voiceTurns()) return Promise.resolve();
     if (voiceSaving) return voiceSaving.then(() => trackVoice());
-    voiceSaving = post({ type: "voice", convId: voiceConvId, messages: (EV.voiceLog || []).slice(-60), name, source: source(), events: [...voiceEvents] })
+    voiceSaving = post({ type: "voice", convId: voiceConvId, messages: (EV.voiceLog || []).slice(-60), name, source: source(), events: [...voiceEvents], callIds })
       .then((d) => { if (d && d.convId) { voiceConvId = d.convId; store.set("ev-vconv", voiceConvId, sessionStorage); } })
       .finally(() => { voiceSaving = null; });
     return voiceSaving;
@@ -557,6 +557,7 @@
     setName(n) { name = String(n).trim().slice(0, 60); store.set("ev-name", name); },
     openBrief,
     voiceEnded() { trackVoice(); voiceNudge(); },
+    setCallId(id) { if (id && !callIds.includes(id)) { callIds.push(id); if (voiceConvId) trackVoice(); } },
     track,
     async openBooking() { if (!voiceConvId) await trackVoice(); window.open(bookUrl("voice"), "_blank", "noopener"); },
     setMode,

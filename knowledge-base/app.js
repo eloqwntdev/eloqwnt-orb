@@ -2100,10 +2100,18 @@ function briefHtml(b){
       ${sec("Cases we matched", (b.cases || []).length ? `<p class="ltext">${b.cases.map(c => esc(c.title || c.client || c.id)).join(", ")}</p>` : "")}
     </div></section>`;
 }
+function callsHtml(conv){
+  const calls = (conv && conv.calls) || [];
+  if (!calls.length) return "";
+  const len = s => s >= 60 ? `${Math.floor(s / 60)} min ${s % 60 ? (s % 60) + " s" : ""}`.trim() : `${s} s`;
+  return `<section class="stack" style="gap:10px"><span class="label">Voice ${calls.length === 1 ? "call" : "calls"} · from ElevenLabs</span>
+    <div class="card vcard">${calls.map(c => `<div class="rowlink" style="cursor:default;align-items:flex-start">${ic("chat")}<span class="grow"><span>${esc(fullDate(c.startedAt))} · ${esc(len(c.duration || 0))}${c.successful === "success" ? ` <span class="chip lchip ok">Successful</span>` : c.successful === "failure" ? ` <span class="chip lchip">Unsuccessful</span>` : ""}</span>${c.summary ? `<small style="line-height:1.5">${esc(c.summary)}</small>` : ""}</span></div>`).join("")}</div></section>`;
+}
 function transcriptHtml(conv){
+  const callsBlock = callsHtml(conv);
   const msgs = (conv && conv.messages || []).filter(m => !m.kind || m.kind === "text" || m.role === "orb");
-  if (!msgs.length) return "";
-  return `<section class="stack" style="gap:10px"><span class="label">Conversation · ${plural(msgs.filter(m => m.role === "user").length, "message")} from the visitor</span>
+  if (!msgs.length) return callsBlock;
+  return callsBlock + `<section class="stack" style="gap:10px"><span class="label">Conversation · ${plural(msgs.filter(m => m.role === "user").length, "message")} from the visitor</span>
     <div class="card vcard pad"><div class="chat ltrans">${msgs.map(m => m.role === "user"
       ? `<div class="bubble-me vcard">${esc(m.text)}</div>`
       : `<div class="orbmsg"><img src="/kb-assets/orb-logo.png" alt=""><div>${m.play || m.stage ? `<span class="label">${esc([m.play, m.stage].filter(Boolean).join(" · "))}</span>` : ""}<span>${esc(plainOrb(m.text))}</span></div></div>`).join("")}</div></div></section>`;
