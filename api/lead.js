@@ -5,6 +5,7 @@ import { getBrief, loadConv, putBrief, saveConv } from "../lib/conv.js";
 import { cleanSource, newId, sourceLabel } from "../lib/orb-context.js";
 import { ghlConfigured, pushLead, resendBrief } from "../lib/ghl.js";
 import { mailConfigured, sendBriefEmail } from "../lib/mail.js";
+import { notify } from "../lib/notify.js";
 
 const clip = (v, n) => String(v ?? "").slice(0, n).trim();
 const EMAIL = /^[^\s@<>()[\]\\,;:"]{1,64}@[^\s@<>()[\]\\,;:"]+\.[a-z]{2,}$/i;
@@ -75,5 +76,6 @@ export async function POST(request) {
     conv.events = [...(conv.events || []), { type: "lead", at: Date.now() }];
     await saveConv(conv).catch(() => {});
   }
+  await notify("lead", { name, email, company, headline: brief.headline, channel, mode, leadUrl: `${origin}/knowledge-base#/leads/${lead.id}`, briefUrl });
   return json({ ok: true, briefUrl, emailed, name: name.split(/\s+/)[0] || "" });
 }
