@@ -394,7 +394,7 @@
   }
   function sentHTML() {
     const first = esc((brief.name || name || "").split(/\s+/)[0]);
-    const open = `<a class="btng wide" href="${esc(brief.url)}" target="_blank" rel="noopener">${svg(I.ext, 1.5)}Open the brief now</a>`;
+    const open = `<a class="btng wide" href="${esc(brief.url)}?from=site" target="_blank" rel="noopener">${svg(I.ext, 1.5)}Open the brief now</a>`;
     return `<div class="bstate bsent">
       <span class="okmark">${svg(I.check, 2)}</span>
       ${brief.emailed

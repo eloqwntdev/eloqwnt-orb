@@ -1,6 +1,7 @@
 // The brief: Claude turns a conversation with the orb into a short plan.
 // POST makes it and returns the preview part. GET returns the full brief once the visitor asked for it by email.
-import { allow, clientIp, json } from "../lib/server.js";
+import { allow, clientIp, isAuthed, json } from "../lib/server.js";
+import { loadLead, saveLead } from "../lib/booking.js";
 import { getBrief, loadConv, putBrief, saveConv } from "../lib/conv.js";
 import { caseCard, claude, cleanSource, loadContext, newId, sourceLabel } from "../lib/orb-context.js";
 
@@ -111,6 +112,21 @@ export async function GET(request) {
   const b = await getBrief(id);
   if (!b) return json({ error: "This brief doesn’t exist or has expired." }, 404);
   if (!b.unlocked) return json({ error: "This brief hasn’t been sent yet." }, 403);
+  // count the visitor opening their full brief (not you, signed in to the dashboard; once per half hour per device)
+  const from = ["email", "site", "page"].includes(new URL(request.url).searchParams.get("from")) ? new URL(request.url).searchParams.get("from") : "link";
+  if (!(await isAuthed(request)) && !(await allow(`orb:view:${b.id}:${clientIp(request)}`, 1, 1800).then((ok) => !ok))) await recordView(b, from).catch((e) => console.error("brief view", e.message));
   const { convId, contactId, leadId, email, ...pub } = b;
   return json(pub);
+}
+
+async function recordView(b, from) {
+  const at = new Date().toISOString();
+  const conv = await loadConv(b.convId);
+  if (conv && !(conv.events || []).some((e) => e.type === "brief_view")) { (conv.events = conv.events || []).push({ type: "brief_view", at: Date.now(), from }); await saveConv(conv); }
+  const lead = await loadLead(b.leadId);
+  if (lead) {
+    const v = lead.views || { count: 0, from: [] };
+    lead.views = { count: v.count + 1, first: v.first || at, last: at, from: [...new Set([...(v.from || []), from])] };
+    await saveLead(lead);
+  }
 }

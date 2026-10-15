@@ -2055,6 +2055,11 @@ function sourceRows(src = {}, channel, mode){
 }
 const dl = rows => `<dl>${rows.map(([k, v, cls]) => `<dt>${esc(k)}</dt><dd ${cls ? `class="${cls}"` : ""}>${v}</dd>`).join("")}</dl>`;
 
+const VIEW_FROM = {email: "the email", site: "the site", page: "the page", link: "a shared link"};
+function viewsHtml(v){
+  if (!v || !v.count) return `<span class="lst off"><i></i>Not opened yet</span>`;
+  return `${stDot("sent", `Opened ${v.count === 1 ? "once" : v.count + " times"}`)}<small>Last ${esc(fullDate(v.last))} · from ${esc((v.from || []).map(f => VIEW_FROM[f] || f).join(", "))}</small>`;
+}
 function callHtml(b){
   if (!b || (!b.status && !(b.clicks || []).length)) return `<span class="lst off"><i></i>Not yet</span>`;
   const froms = [...new Set((b.clicks || []).map(c => FROM_NAME[c.from] || c.from))];
@@ -2074,6 +2079,7 @@ function leadDetail(){
   const statusRows = [
     ["Brief email", `${stDot(mailSt, MAIL_ST[mailSt] ? MAIL_ST[mailSt][0] : "Off")}${l.mail && l.mail.error ? `<small class="lerr">${esc(l.mail.error)}</small>` : ""}`],
     ["GoHighLevel", `${stDot(l.ghl ? l.ghl.status : "off", MAIL_ST[l.ghl && l.ghl.status] ? MAIL_ST[l.ghl.status][0] : "Off")}${l.ghl && l.ghl.error ? `<small class="lerr">${esc(l.ghl.error)}</small>` : ""}${l.ghl && l.ghl.opportunityId ? `<small>Opportunity in “Orb leads”</small>` : ""}`],
+    ["Full brief", viewsHtml(l.views)],
     ["Discovery call", callHtml(l.booking)],
     ["Newsletter", l.newsletter ? "Opted in" : "No"],
     ["Asked", esc(fullDate(l.createdAt))],
@@ -2143,15 +2149,15 @@ const pct = (a, b) => b ? Math.round(a * 100 / b) : 0;
 function insightTable(title, col, rows, note = ""){
   if (!rows.length) return "";
   return `<section class="stack" style="gap:10px"><span class="label">${title}</span>
-    <div class="card vcard itable-wrap"><table class="itable"><thead><tr><th scope="col">${col}</th><th scope="col">Talks</th><th scope="col" class="dk">Engaged</th><th scope="col" class="dk">Brief</th><th scope="col">Leads</th><th scope="col">Conversion</th></tr></thead>
-    <tbody>${rows.map(r => `<tr><th scope="row">${esc(r.name)}</th><td>${r.n}</td><td class="dk">${pct(r.engaged, r.n)}%</td><td class="dk">${r.brief}</td><td>${r.lead}</td><td><span class="ibarcell"><i style="width:${pct(r.lead, r.n)}%"></i></span><b>${pct(r.lead, r.n)}%</b></td></tr>`).join("")}</tbody></table></div>
+    <div class="card vcard itable-wrap"><table class="itable"><thead><tr><th scope="col">${col}</th><th scope="col">Talks</th><th scope="col" class="dk">Engaged</th><th scope="col" class="dk">Brief</th><th scope="col">Leads</th><th scope="col" class="dk">Calls</th><th scope="col">Conversion</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><th scope="row">${esc(r.name)}</th><td>${r.n}</td><td class="dk">${pct(r.engaged, r.n)}%</td><td class="dk">${r.brief}</td><td>${r.lead}</td><td class="dk">${r.booked}</td><td><span class="ibarcell"><i style="width:${pct(r.lead, r.n)}%"></i></span><b>${pct(r.lead, r.n)}%</b></td></tr>`).join("")}</tbody></table></div>
     ${note ? `<p class="note">${note}</p>` : ""}</section>`;
 }
 function groupBy(convs, keyFn){
   const m = new Map();
   for (const c of convs) for (const k of [].concat(keyFn(c))){
-    const r = m.get(k) || {name: k, n: 0, engaged: 0, brief: 0, lead: 0}; m.set(k, r);
-    r.n++; if (c.turns >= 2) r.engaged++; if (c.brief) r.brief++; if (c.leadId) r.lead++;
+    const r = m.get(k) || {name: k, n: 0, engaged: 0, brief: 0, lead: 0, booked: 0}; m.set(k, r);
+    r.n++; if (c.turns >= 2) r.engaged++; if (c.brief) r.brief++; if (c.leadId) r.lead++; if (c.bookedCall) r.booked++;
   }
   return [...m.values()].sort((a, b) => b.n - a.n || b.lead - a.lead);
 }
@@ -2199,9 +2205,13 @@ VIEW.insights = () => {
     ["Was offered a brief", convs.filter(c => c.offered || c.briefOpened).length, "The orb offered the brief, or the visitor opened it."],
     ["Got a brief", convs.filter(c => c.brief).length, "The brief preview was made."],
     ["Left their email", convs.filter(c => c.leadId).length, "Asked for the full brief by email."],
+    ["Opened the full brief", convs.filter(c => c.briefViewed).length, "Opened the brief page, from the email or right after asking for it."],
     ["Clicked to book a call", convs.filter(c => c.booked).length, "Opened the booking link, from the site, the email or the brief page."],
     ["Booked a call", convs.filter(c => c.bookedCall).length, "Calendly confirmed a booking (cancelled ones don’t count)."],
   ];
+  const CLICK_NAME = {chat: "Chat", voice: "Voice call", email: "Email", page: "Brief page", site: "Site"};
+  const clicks = {}; convs.forEach(c => (c.clickFrom || []).forEach(f => { clicks[f] = (clicks[f] || 0) + 1; }));
+  const clickSrc = Object.keys(clicks).length ? `<div class="row isrc"><span class="label">Booking clicks came from</span>${Object.entries(clicks).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<span class="chip lchip">${esc(CLICK_NAME[k] || k)} · ${n}</span>`).join("")}</div>` : "";
   let worst = -1, worstRate = 0;
   for (let i = 1; i < steps.length - 1; i++){ const a = steps[i - 1][1], b = steps[i][1]; if (a >= 3 && (a - b) / a > worstRate){ worstRate = (a - b) / a; worst = i; } }
   const funnel = `<section class="stack" style="gap:10px"><span class="label">How far conversations get</span>
@@ -2212,6 +2222,7 @@ VIEW.insights = () => {
         <span class="in"><b>${n}</b><span class="label">${pct(n, N)}%</span></span>
         <span class="idrop label">${drop ? "−" + drop + "%" : ""}</span></div>`;
     }).join("")}</div>
+    ${clickSrc}
     ${worst > 0 ? `<p class="note">${pct(steps[worst - 1][1] - steps[worst][1], steps[worst - 1][1])}% don’t get from “${steps[worst - 1][0]}” to “${steps[worst][0]}”. That’s the first place to improve the script.</p>` : ""}
   </section>`;
 

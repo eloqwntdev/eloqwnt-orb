@@ -78,7 +78,7 @@ export async function GET(request) {
     if (!ids.length) return json({ convs: [] });
     const sums = ((await redis("HMGET", "convsums", ...ids)) || []).map(parse);
     // conversations from before summaries existed: build the summary from the full record while it's still there
-    const missing = ids.filter((_, i) => !sums[i] || sums[i].v !== 3);
+    const missing = ids.filter((_, i) => !sums[i] || sums[i].v !== 4);
     if (missing.length) {
       const full = await many("conv:", missing);
       const add = [];

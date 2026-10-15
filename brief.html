@@ -118,7 +118,8 @@ footer a{color:var(--ink-3)}
   if (!id) return fail("No brief here", "This link is missing its brief. Ask the orb for a new one.");
   CAL = "/book/" + encodeURIComponent(id) + "?from=page"; // counted, then on to Calendly with their name and email filled in
   document.getElementById("topBook").href = CAL;
-  fetch("/api/brief?id=" + encodeURIComponent(id)).then(async (r) => {
+  const from = new URLSearchParams(location.search).get("from") || "";
+  fetch("/api/brief?id=" + encodeURIComponent(id) + (from ? "&from=" + encodeURIComponent(from) : "")).then(async (r) => {
     const b = await r.json().catch(() => ({}));
     if (!r.ok) return fail(r.status === 403 ? "Almost there" : "Brief not found", esc(b.error || "Ask the orb for a new one."));
     const date = new Date(b.sentAt || b.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });

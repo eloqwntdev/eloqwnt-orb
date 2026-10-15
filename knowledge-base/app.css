@@ -462,3 +462,5 @@ pre.md{margin:0;padding:16px 18px;border-radius:16px;font-family:var(--f-mono);f
   .ibarcell{display:none}
 }
 @media (max-width:760px){.itable .dk{display:none}.itable th[scope="row"],.itable thead th:first-child{min-width:0}}
+.isrc{gap:6px;margin-top:2px}
+.isrc .label{margin-right:4px}
