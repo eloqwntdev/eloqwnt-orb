@@ -2,10 +2,30 @@
 // POST makes it and returns the preview part. GET returns the full brief once the visitor asked for it by email.
 import { allow, clientIp, json } from "../lib/server.js";
 import { getBrief, loadConv, putBrief, saveConv } from "../lib/conv.js";
-import { caseCard, claude, cleanSource, loadContext, newId, parseJson, sourceLabel } from "../lib/orb-context.js";
+import { caseCard, claude, cleanSource, loadContext, newId, sourceLabel } from "../lib/orb-context.js";
 
 const clip = (v, n) => String(v ?? "").slice(0, n).trim();
 const strs = (v, max, n) => (Array.isArray(v) ? v : []).map((x) => clip(x, n)).filter(Boolean).slice(0, max);
+const STR = { type: "string" }, LIST = (d) => ({ type: "array", items: STR, description: d });
+const BRIEF_TOOL = {
+  name: "write_brief",
+  description: "The project brief for the visitor.",
+  input_schema: {
+    type: "object",
+    properties: {
+      company: { type: "string", description: "The visitor's company name if they said it, else empty." },
+      headline: { type: "string", description: "One sentence, at most 14 words: what Eloqwnt would make and the outcome for them." },
+      told: LIST("2 to 4 short points: their situation and goal, in their terms."),
+      approach: { type: "string", description: "2 sentences: how Eloqwnt would approach it." },
+      recommendation: { type: "string", description: "2 to 3 sentences: the recommended path and why it fits." },
+      phases: { type: "array", items: { type: "object", properties: { name: STR, weeks: { type: "string", description: "e.g. Weeks 1–3" }, items: LIST("2 to 3 deliverables") }, required: ["name", "weeks", "items"] } },
+      prices: { type: "array", description: "Only services and starting prices that are in the knowledge base.", items: { type: "object", properties: { service: STR, price: STR }, required: ["service", "price"] } },
+      case_ids: LIST("Up to 3 ids of the most relevant cases from the knowledge base."),
+      prep: LIST("3 things to bring to the call."),
+    },
+    required: ["company", "headline", "told", "approach", "recommendation", "phases", "prices", "case_ids", "prep"],
+  },
+};
 const LOCKED = ["Plan with weeks", "Starting prices", "Matching case studies", "What to prepare for the call"];
 
 function prompt(ctx, conv) {
@@ -22,18 +42,7 @@ ${ctx.knowledge}
 ${talk}
 </conversation>
 
-Reply with only JSON:
-{
-  "company": "the visitor's company name if they said it, else empty",
-  "headline": "one sentence, at most 14 words: what Eloqwnt would make and the outcome for them",
-  "told": ["2 to 4 short points: their situation and goal, in their terms"],
-  "approach": "2 sentences: how Eloqwnt would approach it",
-  "recommendation": "2 to 3 sentences: the recommended path and why it fits",
-  "phases": [{"name": "phase name", "weeks": "e.g. Weeks 1–3", "items": ["2 to 3 deliverables"]}],
-  "prices": [{"service": "service name from the knowledge base", "price": "its starting price from the knowledge base"}],
-  "case_ids": ["up to 3 ids of the most relevant cases from the knowledge base"],
-  "prep": ["3 things to bring to the call"]
-}`;
+Answer with the write_brief tool.`;
 }
 
 export async function POST(request) {
@@ -58,8 +67,7 @@ export async function POST(request) {
   let ctx, out;
   try {
     ctx = await loadContext();
-    const raw = await claude({ system: "You write concise, accurate project briefs. Reply with only JSON.", messages: [{ role: "user", content: prompt(ctx, conv) }], maxTokens: 1800, model: process.env.ORB_BRIEF_MODEL });
-    out = parseJson(raw);
+    out = await claude({ system: "You write concise, accurate project briefs.", messages: [{ role: "user", content: prompt(ctx, conv) }], maxTokens: 2500, model: process.env.ORB_BRIEF_MODEL, tool: BRIEF_TOOL });
     if (!out || !out.headline) throw new Error("Unreadable brief");
   } catch (e) {
     console.error("brief", e);
