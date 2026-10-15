@@ -1,5 +1,5 @@
 /* Orb Knowledge — the knowledge base editor behind vision.eloqwnt.com.
-   Views: map, gaps, interview, import, node editor, playbook, export. Hash routes (#/map, #/node/<id> …).
+   Views: map, gaps, interview, import, node editor, playbook, export, leads. Hash routes (#/map, #/node/<id> …).
    Data: /api/kb (nodes), /api/playbook (private sales know-how + plays), /api/ask (Claude). */
 (() => {
 "use strict";
@@ -32,7 +32,8 @@ const IC = {
   side: "M3.5 3.5h9a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1zM6.5 3.5v9",
   link: "M7 9a2.5 2.5 0 0 0 3.5 0l2-2A2.5 2.5 0 0 0 9 3.5l-.5.5M9 7a2.5 2.5 0 0 0-3.5 0l-2 2A2.5 2.5 0 0 0 7 12.5l.5-.5",
   file: "M4.5 2.5h5l3 3v8h-8zM9.5 2.5v3h3", note: "M3.5 4h9M3.5 8h9M3.5 12h5", alert: "M8 2.5 14 13H2zM8 6.5v3M8 11.5v.01",
-  open: "M9.5 3.5h3v3M12.5 3.5 8 8M11 9.5v3H3.5V5H7", more: "M3.5 8h.01M8 8h.01M12.5 8h.01", trash: "M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.5 8h5l.5-8", lock: "M4 7.5h8v6H4zM5.5 7.5V5.5a2.5 2.5 0 0 1 5 0v2"
+  open: "M9.5 3.5h3v3M12.5 3.5 8 8M11 9.5v3H3.5V5H7", more: "M3.5 8h.01M8 8h.01M12.5 8h.01", trash: "M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.5 8h5l.5-8", lock: "M4 7.5h8v6H4zM5.5 7.5V5.5a2.5 2.5 0 0 1 5 0v2",
+  leads: "M2.5 9.5h3l1 1.5h3l1-1.5h3M2.5 9.5 4 4h8l1.5 5.5V13h-11z"
 };
 const ic = (k, sw = 1.4) => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
 
@@ -120,7 +121,7 @@ function unexported(){ const e = store.get("kb-exported", null); return loaded &
 function markExported(){ store.set("kb-exported", {sig: exportSig(), at: Date.now()}); renderSide(); renderTabbar(); }
 
 /* ---------- routing ---------- */
-const VIEWS = ["map", "gaps", "interview", "import", "node", "playbook", "export"];
+const VIEWS = ["map", "gaps", "interview", "import", "node", "playbook", "export", "leads"];
 function parseHash(){
   const [v, a, b] = location.hash.replace(/^#\/?/, "").split("/").map(x => decodeURIComponent(x || ""));
   return {view: VIEWS.includes(v) ? v : "map", arg: a || null, arg2: b || null};
@@ -152,7 +153,7 @@ function onRoute(){
 const NAV = [
   {k: "new", label: "New node", ic: "plus", act: () => openNewNode()},
   {k: "search", label: "Search", ic: "search", act: () => openSearch()},
-  {k: "map", label: "Map", ic: "map"}, {k: "import", label: "Import", ic: "import"}, {k: "interview", label: "Interview", ic: "chat"},
+  {k: "map", label: "Map", ic: "map"}, {k: "leads", label: "Leads", ic: "leads"}, {k: "import", label: "Import", ic: "import"}, {k: "interview", label: "Interview", ic: "chat"},
   {k: "gaps", label: "Gaps", ic: "gaps"}, {k: "playbook", label: "Playbook", ic: "book"}, {k: "export", label: "Export", ic: "export"}
 ];
 function activeNav(){ return route.view === "node" ? "map" : route.view; }
@@ -169,6 +170,8 @@ function renderSide(){
   if (route.view === "playbook"){
     groups.push({name: "Plays", items: pb.plays.map(p => ({href: "#/playbook/" + encodeURIComponent(p.id), title: p.title, cur: pb.state === "play" && pb.draft && pb.draft.id === p.id}))});
     if (pb.sources.length) groups.push({name: "Sales know-how · private", items: pb.sources.map(s => ({href: "#/playbook", title: s.name}))});
+  } else if (route.view === "leads"){
+    if (leads.list.length) groups.push({name: "Latest leads", items: leads.list.slice(0, 6).map(l => ({href: "#/leads/" + encodeURIComponent(l.id), title: who(l), chip2: ago(l.createdAt), cur: route.arg === l.id}))});
   } else {
     const need = [...nodes.values()].map(n => ({n, g: gapsOf(n).length})).filter(x => x.g).sort((a, b) => b.g - a.g).slice(0, 5);
     if (need.length) groups.push({name: "Needs attention", items: need.map(({n, g}) => ({href: "#/node/" + encodeURIComponent(n.id), title: n.title, chip: g, cur: route.view === "node" && route.arg === n.id}))});
@@ -176,7 +179,7 @@ function renderSide(){
     if (rec.length) groups.push({name: "Recently edited", items: rec.map(n => ({href: "#/node/" + encodeURIComponent(n.id), title: n.title, cur: route.view === "node" && route.arg === n.id}))});
   }
   $("#lists").innerHTML = groups.map(g => `<div class="group"><span class="group-h">${esc(g.name)}</span>${g.items.map(it =>
-    `<a class="list-item" href="${it.href}" ${it.cur ? 'aria-current="true"' : ""}><span class="t">${esc(it.title)}</span>${it.chip ? `<span class="chip vchip">${plural(it.chip, "gap")}</span>` : ""}</a>`).join("")}</div>`).join("");
+    `<a class="list-item" href="${it.href}" ${it.cur ? 'aria-current="true"' : ""}><span class="t">${esc(it.title)}</span>${it.chip ? `<span class="chip vchip">${plural(it.chip, "gap")}</span>` : ""}${it.chip2 ? `<span class="label" style="margin-left:auto;flex:none">${esc(it.chip2)}</span>` : ""}</a>`).join("")}</div>`).join("");
   const m = theme();
   $("#themeBtn").innerHTML = ic(THEME_IC[m]);
   $("#themeBtn").setAttribute("aria-label", `Theme: ${THEME_NAME[m]}. Switch to ${THEME_NAME[THEME_NEXT[m]]}`);
@@ -198,7 +201,7 @@ function placePill(wrap, activeSel, pillSel, vertical){
 function placeSegPills(root = document){
   $$(".seg", root).forEach(s => { if (!$(".pill", s)) s.insertAdjacentHTML("afterbegin", '<span class="pill vg" aria-hidden="true"></span>'); placePill(s, 'button[aria-pressed="true"]', ".pill", false); });
 }
-const TABS = [["map", "Map", "map"], ["gaps", "Gaps", "gaps"], ["interview", "Interview", "chat"], ["playbook", "Playbook", "book"], ["export", "Export", "export"]];
+const TABS = [["map", "Map", "map"], ["leads", "Leads", "leads"], ["interview", "Interview", "chat"], ["playbook", "Playbook", "book"], ["export", "Export", "export"]];
 function renderTabbar(){
   const t = $("#tabbar"); if (!t) return;
   const act = activeNav(), dot = unexported();
@@ -482,7 +485,7 @@ function mapList(){
   const segs = [["all", `All ${t.nodes}`], ...groups.slice(0, 3).map(([k, l]) => [k, `${l} ${[...nodes.values()].filter(n => n.type === k).length}`])];
   return `<div class="mlist">
     <div class="seg" role="group" aria-label="Filter" style="align-self:flex-start;max-width:100%;overflow:auto">${segs.map(([k, l]) => `<button type="button" data-mf="${k}" aria-pressed="${f === k}">${l}</button>`).join("")}</div>
-    <div class="covbar"><div class="track"><i style="width:${t.coverage}%"></i></div><span class="label">${t.coverage}% covered</span></div>
+    <a class="covbar" href="#/gaps" style="text-decoration:none;color:inherit"><div class="track"><i style="width:${t.coverage}%"></i></div><span class="label">${t.coverage}% covered${t.gaps ? ` · ${plural(t.gaps, "gap")} ›` : ""}</span></a>
     ${groups.filter(([k]) => f === "all" || f === k).map(([k, l]) => {
       const list = [...nodes.values()].filter(n => n.type === k).sort((a, b) => gapsOf(b).length - gapsOf(a).length || a.title.localeCompare(b.title));
       if (!list.length) return "";
@@ -1912,6 +1915,200 @@ VIEW.export = () => {
 function markExportedSoon(){ markExported(); if (route.view === "export") setTimeout(refresh, 300); }
 
 /* =====================================================================
+   LEADS — people who asked for the brief by email, and every
+   conversation with the orb (with or without a lead).
+   Data: /api/leads. Routes: #/leads, #/leads/<leadId>, #/leads/c/<convId>.
+   ===================================================================== */
+let leads = {loaded: false, list: [], convs: [], tab: "leads", err: "", detail: null, busy: "", confirmDel: false};
+const ago = d => {
+  const s = (Date.now() - new Date(d).getTime()) / 1000;
+  if (!isFinite(s)) return "";
+  if (s < 60) return "just now"; if (s < 3600) return Math.round(s / 60) + " min ago"; if (s < 86400) return Math.round(s / 3600) + " h ago";
+  if (s < 86400 * 7) return Math.round(s / 86400) + " d ago"; return fmtDate(d);
+};
+const fullDate = d => d ? new Date(d).toLocaleString("en-US", {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}) : "";
+const plainOrb = t => String(t || "").replace(/<\/?m>/g, "").replace(/<[^>]+>/g, "");
+const who = l => l.name || (l.email ? l.email.split("@")[0] : "") || "Visitor";
+const initial = l => (who(l)[0] || "V").toUpperCase();
+const MAIL_ST = {sent: ["Sent", "ok"], ghl: ["Via GHL", "ok"], failed: ["Failed", "bad"], off: ["Off", "off"], pending: ["Pending", "off"]};
+const stDot = (k, label) => { const [t, c] = MAIL_ST[k] || MAIL_ST.off; return `<span class="lst ${c}" title="${esc(label)}: ${t}"><i></i>${esc(label)}</span>`; };
+
+async function loadLeads(){
+  try {
+    const [a, b] = await Promise.all([fetch("/api/leads", {cache: "no-store"}), fetch("/api/leads?view=convs", {cache: "no-store"})]);
+    if (a.status === 401){ location.reload(); return; }
+    const ja = await a.json().catch(() => ({})), jb = await b.json().catch(() => ({}));
+    if (!a.ok) throw new Error(ja.error || "Couldn’t load leads.");
+    const sig = JSON.stringify([ja.leads, jb.convs]);
+    const changed = sig !== leads.sig;
+    Object.assign(leads, {loaded: true, err: "", list: ja.leads || [], convs: b.ok ? jb.convs || [] : [], sig});
+    if (changed && route.view === "leads" && !route.arg && !dialogOpen()) refresh();
+    else renderSide();
+  } catch (e){ leads.loaded = true; leads.err = e.message || "Couldn’t load leads."; if (route.view === "leads") refresh(); }
+}
+async function loadLeadDetail(kind, id){
+  const key = kind + ":" + id;
+  if (leads.detail && leads.detail.key === key && !leads.detail.err) return;
+  leads.detail = {key, loading: true};
+  try {
+    const r = await fetch(`/api/leads?${kind === "c" ? "conv" : "id"}=${encodeURIComponent(id)}`, {cache: "no-store"});
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "Couldn’t open this.");
+    leads.detail = {key, ...j};
+  } catch (e){ leads.detail = {key, err: e.message}; }
+  if (route.view === "leads" && route.arg) refresh();
+}
+
+function leadsStats(){
+  const week = Date.now() - 7 * 864e5;
+  const l7 = leads.list.filter(l => new Date(l.createdAt) > week).length;
+  const c7 = leads.convs.filter(c => new Date(c.startedAt) > week).length;
+  const b7 = leads.convs.filter(c => new Date(c.startedAt) > week && c.brief).length;
+  return [["Conversations", c7], ["Briefs made", b7], ["Leads", l7], ["Conversion", c7 ? Math.round(l7 * 100 / c7) + "%" : "–"]];
+}
+function leadRowHtml(l){
+  return `<a class="rowlink lrow" href="#/leads/${encodeURIComponent(l.id)}"><span class="avatar">${esc(initial(l))}</span>
+    <span class="grow"><span class="lname">${esc(who(l))}${l.company ? `<span class="lco"> · ${esc(l.company)}</span>` : ""}</span><small>${esc(l.headline || l.email)}</small></span>
+    <span class="lmeta desk-only"><span class="label">${esc(l.channel)} · ${esc(l.mode || "chat")}</span><span class="lsts">${stDot(l.mail, "Email")}${stDot(l.ghl, "GHL")}</span></span>
+    <span class="label ltime">${esc(ago(l.createdAt))}</span><span class="chev">${ic("chev")}</span></a>`;
+}
+function convRowHtml(c){
+  const tag = c.leadId ? `<span class="chip lchip ok">Lead</span>` : c.brief ? `<span class="chip lchip">Brief</span>` : "";
+  return `<a class="rowlink lrow" href="#/leads/c/${encodeURIComponent(c.id)}"><span class="avatar">${esc((c.name || "V")[0].toUpperCase())}</span>
+    <span class="grow"><span class="lname">${esc(c.name || "Anonymous visitor")} ${tag}</span><small>${esc(c.first ? "“" + c.first + "”" : "")}</small></span>
+    <span class="lmeta desk-only"><span class="label">${esc(c.channel)} · ${esc(c.mode || "chat")}</span><span class="label">${plural(c.turns, "message")}</span></span>
+    <span class="label ltime">${esc(ago(c.updatedAt || c.startedAt))}</span><span class="chev">${ic("chev")}</span></a>`;
+}
+function leadsList(){
+  const top = {title: "Leads", sub: leads.loaded && !leads.err ? `${plural(leads.list.length, "lead")} · ${plural(leads.convs.length, "conversation")}` : ""};
+  if (!leads.loaded) return {top, body: `<div class="page wide"><p class="note">Loading…</p></div>`};
+  if (leads.err) return {top, body: `<div class="page wide"><p class="note err">${esc(leads.err)}</p><button class="btn vg" type="button" data-reload style="align-self:flex-start">Try again</button></div>`, bind: v => { $("[data-reload]", v).onclick = () => { leads.loaded = false; refresh(); loadLeads(); }; }};
+  const tab = leads.tab, rows = tab === "leads" ? leads.list : leads.convs;
+  const empty = tab === "leads"
+    ? `<div class="card vcard pad stack"><p class="lead" style="font-size:15px">No leads yet. When a visitor asks the orb for their brief by email, they show up here with the brief, the conversation and where they came from.</p></div>`
+    : `<div class="card vcard pad"><p class="lead" style="font-size:15px">No conversations yet.</p></div>`;
+  return {top, body: `<div class="page wide">
+    <h1 class="h1 big vtx desk-only">Who talked to the orb</h1>
+    <div class="stack" style="gap:8px"><span class="label">Last 7 days</span><div class="lstats">${leadsStats().map(([k, v]) => `<div class="vcard"><span class="note">${k}</span><b>${v}</b></div>`).join("")}</div></div>
+    <div class="seg" role="group" aria-label="Show" style="align-self:flex-start"><button type="button" data-lt="leads" aria-pressed="${tab === "leads"}">Leads ${leads.list.length}</button><button type="button" data-lt="convs" aria-pressed="${tab === "convs"}">Conversations ${leads.convs.length}</button></div>
+    ${rows.length ? `<div class="card vcard stagger">${rows.map(tab === "leads" ? leadRowHtml : convRowHtml).join("")}</div>` : empty}
+    ${tab === "convs" ? `<p class="note">Conversations are kept for 90 days. Voice calls show up here once the visitor asks for a brief.</p>` : ""}
+  </div>`, bind: v => { $$("[data-lt]", v).forEach(b => b.onclick = () => { leads.tab = b.dataset.lt; refresh(); }); }};
+}
+
+function briefHtml(b){
+  if (!b) return "";
+  const sec = (title, inner) => inner ? `<div class="lsec"><span class="label">${title}</span>${inner}</div>` : "";
+  const ul = a => (a || []).length ? `<ul class="lul">${a.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+  return `<section class="stack" style="gap:10px"><div class="row" style="justify-content:space-between"><span class="label">Brief</span>${b.unlocked ? `<a class="linkbtn" href="/brief/${encodeURIComponent(b.id)}" target="_blank" rel="noopener">Open the page ${ic("open")}</a>` : `<span class="label">Preview only · no email yet</span>`}</div>
+    <div class="card vcard pad stack" style="gap:16px">
+      <p class="h2" style="font-size:17px">${esc(b.headline)}</p>
+      ${sec("What they told us", ul(b.told))}
+      ${sec("Recommendation", b.recommendation ? `<p class="ltext">${esc(b.recommendation)}</p>` : "")}
+      ${sec("Plan", (b.phases || []).length ? `<div class="lphases">${b.phases.map(p => `<div><b>${esc(p.name)}</b><span class="label">${esc(p.weeks)}</span><small>${esc(p.items.join(", "))}</small></div>`).join("")}</div>` : "")}
+      ${sec("Starting prices", (b.prices || []).length ? `<div class="lprices">${b.prices.map(p => `<span>${esc(p.service)}</span><b>${esc(p.price)}</b>`).join("")}</div>` : "")}
+      ${sec("Cases we matched", (b.cases || []).length ? `<p class="ltext">${b.cases.map(c => esc(c.title || c.client || c.id)).join(", ")}</p>` : "")}
+    </div></section>`;
+}
+function transcriptHtml(conv){
+  const msgs = (conv && conv.messages || []).filter(m => !m.kind || m.kind === "text" || m.role === "orb");
+  if (!msgs.length) return "";
+  return `<section class="stack" style="gap:10px"><span class="label">Conversation · ${plural(msgs.filter(m => m.role === "user").length, "message")} from the visitor</span>
+    <div class="card vcard pad"><div class="chat ltrans">${msgs.map(m => m.role === "user"
+      ? `<div class="bubble-me vcard">${esc(m.text)}</div>`
+      : `<div class="orbmsg"><img src="/kb-assets/orb-logo.png" alt=""><div>${m.play || m.stage ? `<span class="label">${esc([m.play, m.stage].filter(Boolean).join(" · "))}</span>` : ""}<span>${esc(plainOrb(m.text))}</span></div></div>`).join("")}</div></div></section>`;
+}
+function sourceRows(src = {}, channel, mode){
+  const rows = [["Came from", channel || "direct"], ["Mode", mode === "voice" ? "Voice" : "Chat"]];
+  if (src.utm_campaign) rows.push(["Campaign", src.utm_campaign]);
+  if (src.utm_source || src.utm_medium) rows.push(["UTM", [src.utm_source, src.utm_medium].filter(Boolean).join(" / ")]);
+  if (src.utm_term) rows.push(["Keyword", src.utm_term]);
+  if (src.landing) rows.push(["Landed on", src.landing]);
+  if (src.referrer) rows.push(["Referrer", src.referrer]);
+  if (src.gclid) rows.push(["Ad click", "Google Ads"]); else if (src.fbclid) rows.push(["Ad click", "Meta"]);
+  if (src.firstSeen) rows.push(["First visit", fullDate(src.firstSeen)]);
+  return rows;
+}
+const dl = rows => `<dl>${rows.map(([k, v, cls]) => `<dt>${esc(k)}</dt><dd ${cls ? `class="${cls}"` : ""}>${v}</dd>`).join("")}</dl>`;
+
+function leadDetail(){
+  const id = route.arg, d = leads.detail;
+  const back = backBtn("#/leads");
+  const crumb = isPhone() ? "" : `<a href="#/leads">Leads</a><span>/</span>`;
+  if (!d || d.key !== "l:" + id || d.loading){ loadLeadDetail("l", id); return {top: {title: "Lead", crumb, mobileLeft: back}, body: `<div class="page wide"><p class="note">Loading…</p></div>`}; }
+  if (d.err) return {top: {title: "Lead", crumb, mobileLeft: back}, body: `<div class="page wide"><p class="note err">${esc(d.err)}</p><a class="btn vg" href="#/leads" style="align-self:flex-start">Back to leads</a></div>`};
+  const l = d.lead, b = d.brief, conv = d.conv;
+  const mailSt = l.mail ? l.mail.status : l.ghl && l.ghl.status === "sent" ? "ghl" : "off";
+  const statusRows = [
+    ["Brief email", `${stDot(mailSt, MAIL_ST[mailSt] ? MAIL_ST[mailSt][0] : "Off")}${l.mail && l.mail.error ? `<small class="lerr">${esc(l.mail.error)}</small>` : ""}`],
+    ["GoHighLevel", `${stDot(l.ghl ? l.ghl.status : "off", MAIL_ST[l.ghl && l.ghl.status] ? MAIL_ST[l.ghl.status][0] : "Off")}${l.ghl && l.ghl.error ? `<small class="lerr">${esc(l.ghl.error)}</small>` : ""}${l.ghl && l.ghl.opportunityId ? `<small>Opportunity in “Orb leads”</small>` : ""}`],
+    ["Newsletter", l.newsletter ? "Opted in" : "No"],
+    ["Asked", esc(fullDate(l.createdAt))],
+  ];
+  const acts = `${b && b.unlocked ? `<a class="btn vg" href="/brief/${encodeURIComponent(b.id)}" target="_blank" rel="noopener">Open brief</a>` : ""}
+    <button class="btn vg" type="button" data-resend ${leads.busy ? "disabled" : ""}>${leads.busy === "resend" ? "Sending…" : "Resend email"}</button>
+    ${l.ghlUrl ? `<a class="btn vg" href="${esc(l.ghlUrl)}" target="_blank" rel="noopener">Open in GHL</a>` : ""}
+    <a class="btn cta" href="mailto:${esc(l.email)}?subject=${encodeURIComponent("Your brief from Eloqwnt")}">Email ${esc(who(l).split(" ")[0])}</a>`;
+  return {top: {title: who(l), crumb, mobileLeft: back}, body: `<div class="page wide">
+    <header class="lhead"><span class="avatar lg">${esc(initial(l))}</span><div class="stack" style="gap:2px;min-width:0"><h1 class="h1">${esc(who(l))}</h1>
+      <span class="lead" style="font-size:14px"><button class="linkbtn" type="button" data-copy="${esc(l.email)}" title="Copy email">${esc(l.email)}</button>${l.company ? ` · ${esc(l.company)}` : ""}</span></div></header>
+    <div class="row lacts">${acts}</div>
+    <div class="lgrid">
+      <div class="pcard vcard"><header><b>Status</b></header>${dl(statusRows)}</div>
+      <div class="pcard vcard"><header><b>Where they came from</b></header>${dl(sourceRows(conv ? conv.source : l.source, l.channel, l.mode).map(([k, v]) => [k, esc(v)]))}</div>
+    </div>
+    ${briefHtml(b)}
+    ${transcriptHtml(conv)}
+    ${!conv ? `<p class="note">The conversation has expired (kept 90 days) or was a voice call.</p>` : ""}
+    <div class="row" style="justify-content:flex-end"><button class="btn plain ${leads.confirmDel ? "danger" : ""}" type="button" data-del>${leads.confirmDel ? "Remove from the list?" : "Remove lead"}</button></div>
+  </div>`, bind: v => {
+    $$("[data-copy]", v).forEach(x => x.onclick = async () => { try { await navigator.clipboard.writeText(x.dataset.copy); toast("Email copied"); } catch { toast("Couldn’t copy", false); } });
+    $$("[data-resend]", v).forEach(x => x.onclick = async () => {
+      leads.busy = "resend"; refresh();
+      try {
+        const r = await fetch("/api/lead", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({briefId: l.briefId, resend: true})});
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || "Couldn’t resend.");
+        toast(j.emailed ? "Brief sent again" : "Email isn’t connected", !!j.emailed);
+      } catch (e){ toast(e.message, false); }
+      leads.busy = ""; refresh();
+    });
+    $$("[data-del]", v).forEach(x => x.onclick = async () => {
+      if (!leads.confirmDel){ leads.confirmDel = true; refresh(); setTimeout(() => { if (leads.confirmDel){ leads.confirmDel = false; if (route.view === "leads") refresh(); } }, 4000); return; }
+      leads.confirmDel = false;
+      const r = await fetch("/api/leads?id=" + encodeURIComponent(l.id), {method: "DELETE"}).catch(() => null);
+      if (!r || !r.ok){ toast("Couldn’t remove it", false); return; }
+      leads.list = leads.list.filter(x => x.id !== l.id); leads.sig = ""; toast("Removed. The contact stays in GHL."); go("leads"); loadLeads();
+    });
+  }};
+}
+function convDetail(){
+  const id = route.arg2, d = leads.detail;
+  const back = backBtn("#/leads"), crumb = isPhone() ? "" : `<a href="#/leads">Leads</a><span>/</span>`;
+  if (!d || d.key !== "c:" + id || d.loading){ loadLeadDetail("c", id); return {top: {title: "Conversation", crumb, mobileLeft: back}, body: `<div class="page wide"><p class="note">Loading…</p></div>`}; }
+  if (d.err) return {top: {title: "Conversation", crumb, mobileLeft: back}, body: `<div class="page wide"><p class="note err">${esc(d.err)}</p><a class="btn vg" href="#/leads" style="align-self:flex-start">Back to leads</a></div>`};
+  const c = d.conv;
+  const status = c.leadId ? "Left their email" : c.brief ? "Made a brief, no email" : "No brief";
+  return {top: {title: c.name || "Anonymous visitor", crumb, mobileLeft: back}, body: `<div class="page wide">
+    <header class="lhead"><span class="avatar lg">${esc((c.name || "V")[0].toUpperCase())}</span><div class="stack" style="gap:2px"><h1 class="h1">${esc(c.name || "Anonymous visitor")}</h1><span class="lead" style="font-size:14px">${esc(fullDate(c.startedAt))} · ${plural(c.turns, "message")}</span></div></header>
+    ${c.leadId ? `<div class="row lacts"><a class="btn cta" href="#/leads/${encodeURIComponent(c.leadId)}">Open the lead</a></div>` : ""}
+    <div class="lgrid">
+      <div class="pcard vcard"><header><b>Outcome</b></header>${dl([["Result", esc(status)], ["Last message", esc(fullDate(c.updatedAt || c.startedAt))]])}</div>
+      <div class="pcard vcard"><header><b>Where they came from</b></header>${dl(sourceRows(c.source, c.channel, c.mode).map(([k, v]) => [k, esc(v)]))}</div>
+    </div>
+    ${briefHtml(d.brief)}
+    ${transcriptHtml(c)}
+  </div>`};
+}
+VIEW.leads = () => {
+  if (route.arg === "c" && route.arg2) return convDetail();
+  if (route.arg) return leadDetail();
+  leads.detail = null; leads.confirmDel = false;
+  if (!leads.loaded) loadLeads();
+  return leadsList();
+};
+
+/* =====================================================================
    BOOT
    ===================================================================== */
 let refreshT = null;
@@ -1941,7 +2138,7 @@ function safeToRerender(){
   if (dialogOpen()) return false;
   const a = document.activeElement;
   if (a && a.matches && a.matches("input,textarea,select") && $("#view").contains(a)) return false;
-  return route.view === "map" || route.view === "gaps" || route.view === "export" || (route.view === "interview" && interview.state === "idle") || (route.view === "node" && !isDirty(drafts.get(route.arg))) || (route.view === "import" && imp.state === "idle" && !imp.files.length);
+  return route.view === "map" || route.view === "gaps" || route.view === "export" || (route.view === "interview" && interview.state === "idle") || (route.view === "node" && !isDirty(drafts.get(route.arg))) || (route.view === "import" && imp.state === "idle" && !imp.files.length) || (route.view === "leads" && !route.arg);
 }
 async function loadNodes(){
   let r, body = {};
@@ -1993,7 +2190,8 @@ render();
   await loadNodes();
   await loadPlaybook();
   if (route.view === "playbook" || !safeToRerender()) { onRoute(); } else refresh();
-  setInterval(() => { if (!document.hidden){ loadNodes(); loadPlaybook(); } }, 30000);
+  if (route.view === "leads") loadLeads();
+  setInterval(() => { if (!document.hidden){ loadNodes(); loadPlaybook(); if (route.view === "leads" && !route.arg) loadLeads(); } }, 30000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) loadNodes(); });
 })();
 })();
