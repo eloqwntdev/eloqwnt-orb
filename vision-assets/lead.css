@@ -295,3 +295,18 @@ a.ccase:hover .lnk svg{transform:translateX(3px)}
 @keyframes barShine{to{transform:translateX(100%)}}
 .bhint{font-size:14px!important;color:var(--muted)!important;min-height:20px}
 @media (prefers-reduced-motion:reduce){.bsteps span.now i,.bbar i::after{animation:none}}
+/* phones: on the chat start screen the chips + field sit fixed at the bottom, like in a messenger */
+@media (max-width:760px){
+  [data-mode="chat"] .stage{padding-bottom:calc(170px + env(safe-area-inset-bottom,0px));justify-content:center}
+  [data-mode="chat"] .cstart{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:auto;max-width:none;margin:0;z-index:15;gap:12px}
+  [data-mode="chat"] .cstart .chips{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent);padding-right:24px}
+  [data-mode="chat"] .cstart .chips::-webkit-scrollbar{display:none}
+  [data-mode="chat"] .cstart .chip[data-q="3"]{display:inline-flex}
+  [data-mode="chat"] .cstart .chip{flex:none}
+}
+@media (max-width:760px){
+  [data-mode="chat"] .cstart{align-items:stretch}
+  [data-mode="chat"] .cstart .chips{align-self:stretch;width:auto;align-items:center;margin:0 -12px;padding:0 24px 0 12px}
+  [data-mode="chat"] .cstart .chip{height:36px;white-space:nowrap;align-items:center;display:inline-flex}
+  [data-mode="chat"] .stage{--orb:clamp(140px,min(240px,56vw,calc(100dvh - 440px)),240px)}
+}
