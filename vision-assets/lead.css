@@ -203,3 +203,5 @@ a.ccase:hover .lnk svg{transform:translateX(3px)}
 @media (max-width:760px){.cstart .chips{order:-1}}
 .cfade{display:none;position:fixed;left:0;right:0;bottom:0;height:calc(110px + env(safe-area-inset-bottom,0px));z-index:14;pointer-events:none;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 45%);mask-image:linear-gradient(180deg,transparent 0,#000 45%)}
 [data-view="chat"] .cfade{display:block}
+.cdock #briefTop{position:absolute;right:8px;bottom:calc(100% + 10px);background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:rise .5s var(--ease) both}
+.is-dark .cdock #briefTop{background:rgba(13,22,27,.55)}

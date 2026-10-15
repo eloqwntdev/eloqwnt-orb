@@ -122,7 +122,8 @@
       return h;
     }).join("") + (chat.nameBox ? `<form class="namebox" id="nameBox" autocomplete="on"><input name="given-name" autocomplete="given-name" placeholder="Your first name" aria-label="Your first name" maxlength="60"><button class="skip" type="button" data-skip>Skip</button><button class="c-send" type="submit" aria-label="Save name" disabled>${svg(I.arrow, 1.8)}</button></form>` : "")
       + (chat.busy ? `<div class="cmsg orb"><img class="av" src="/kb-assets/orb-logo.png" alt=""><p><span class="typing" aria-label="Typing"><i></i><i></i><i></i></span></p></div>` : "");
-    $("#briefTop").hidden = !(userTurns() >= 3 || chat.offeredBrief);
+    const lastMsg = chat.msgs[chat.msgs.length - 1];
+    $("#briefTop").hidden = !(userTurns() >= 3 || chat.offeredBrief) || chat.busy || !!(lastMsg && lastMsg.offerBrief); // not twice next to the inline button
     bindThread();
     requestAnimationFrame(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? "auto" : "smooth" }));
   }
@@ -147,8 +148,20 @@
 
   /* ---------- talking to /api/chat ---------- */
   let lastReq = null;
+  // "yes" / "brief" right after the orb offered the brief: open it instead of asking the orb again.
+  const BRIEF_YES = /^(?:yes|yeah|yep|yup|sure|ok(?:ay)?|please|go|let'?s do it|sounds good|да|давай|ок|хочу)\b|\bbrief\b|бриф/i;
   async function sendText(text, kind) {
     if (app.dataset.mode !== "chat") setMode("chat", { stage: true });
+    const lastOrb = [...chat.msgs].reverse().find((m) => m.role === "orb" && !m.err);
+    const asksBrief = !kind && userTurns() >= 2 && (/\bbrief\b|бриф/i.test(text) || (lastOrb && lastOrb.offerBrief && BRIEF_YES.test(text.trim())));
+    if (asksBrief && text.length < 80) {
+      chat.nameBox = false;
+      chat.msgs.push({ role: "user", text }, { role: "orb", text: "Here it is. It takes a few seconds to put together.", offerBrief: true });
+      chat.offeredBrief = true;
+      persist(); app.dataset.view = "chat"; render();
+      openBrief("chat");
+      return;
+    }
     chat.nameBox = false;
     chat.msgs = chat.msgs.filter((m) => !m.err);
     chat.msgs.push(kind ? { role: "user", text, kind } : { role: "user", text });

@@ -44,7 +44,7 @@ ${ctx.knowledge}
 What the site can do for you (set the matching field in orb_reply):
 - Show a case card under your message: set "case_id" to the id of a case from the knowledge base when you mention a case and the visitor wants to see it, or when it clearly answers them. Otherwise null.
 - Ask the visitor's name: ${conv.name ? `you know it already: ${conv.name}. Use it now and then, never in every reply.` : conv.askedName ? "you already asked; don't ask again." : userTurns >= 2 ? "you don't know it yet. Ask once, at a natural moment soon, as the last sentence of your reply, for example \"One quick thing before we go on: what should I call you?\" and set \"ask_name\": true in that reply." : "not yet; wait until the visitor has told you a bit more."}
-- Offer a brief: ${conv.offeredBrief ? "already offered; don't offer it again unless they ask." : "once you understand what they need, offer to put together a short brief from this chat (a plan, starting prices and matching work), and set \"offer_brief\": true in that reply. The site shows a button for it."}
+- Offer a brief: the site makes the brief itself, in a few seconds, when the visitor presses the "Get my brief" button that appears under your message whenever you set "offer_brief": true. ${conv.offeredBrief ? "You already offered it once; don't push it again on your own." : "Once you understand what they need, offer a short brief from this chat (a plan, starting prices and matching work) and set \"offer_brief\": true."} Whenever the visitor asks for the brief, says yes to it, or asks where it is, set "offer_brief": true again and tell them to press "Get my brief" just below. Never say you will send or make the brief yourself, never promise it will appear on its own, and never send them to email for it.
 - Book a call: when the visitor agrees to a call, set "book_call": true. The site opens the calendar; never read out web addresses.
 
 Always answer with the orb_reply tool. Put only what the visitor should read in "reply".`;
@@ -107,7 +107,7 @@ export async function POST(request) {
   const reply = clip(String(out.reply || "").replace(/,?\s*"?(case_id|ask_name|offer_brief|book_call|play|stage)"?\s*:[\s\S]*$/, ""), 1200) || "Sorry, could you say that another way?";
   const card = out.case_id ? caseCard(ctx.byId.get(String(out.case_id)), ctx.byId) : null;
   const askName = !!out.ask_name && !conv.name && !conv.askedName;
-  const offerBrief = !!out.offer_brief && !conv.offeredBrief;
+  const offerBrief = !!out.offer_brief;
   if (askName) conv.askedName = true;
   if (offerBrief) conv.offeredBrief = true;
   conv.messages.push({
