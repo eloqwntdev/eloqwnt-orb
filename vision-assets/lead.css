@@ -58,8 +58,8 @@
 .cmsg.orb{display:flex;gap:12px;align-items:flex-start;max-width:88%}
 .cmsg.orb .av{width:30px;height:30px;border-radius:50%;flex:none;margin-top:1px}
 .cmsg.orb p{margin:0;font-size:18px;line-height:1.55;color:var(--ink);overflow-wrap:anywhere}
-.cmsg.orb p .m,.answer .m{color:#3f6f12}
-.is-dark .cmsg.orb p .m,.is-dark .answer .m{color:#c7f59a}
+.cmsg.orb p .m,.answer .m{color:var(--ink);background:linear-gradient(180deg,transparent 58%,#d6ffac 58%,#d6ffac 92%,transparent 92%);-webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 2px}
+.is-dark .cmsg.orb p .m,.is-dark .answer .m{color:#c7f59a;background:none;padding:0}
 .cmsg.err p{color:var(--muted)}
 .typing{display:inline-flex;gap:5px;align-items:center;height:28px}
 .typing i{width:7px;height:7px;border-radius:50%;background:var(--faint);animation:tdot 1.2s ease-in-out infinite}
