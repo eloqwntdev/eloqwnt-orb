@@ -224,12 +224,33 @@
   sheet.className = "bsheet"; sheet.hidden = true;
   sheet.setAttribute("role", "dialog"); sheet.setAttribute("aria-modal", "true"); sheet.setAttribute("aria-label", "Your brief");
   app.append(scrim, sheet);
+  /* ---------- analytics: voice calls and the steps around a conversation ---------- */
+  let voiceConvId = store.get("ev-vconv", "", sessionStorage) || "";
+  const voiceEvents = new Set();
+  const post = (body) => fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), keepalive: true }).then((r) => r.json()).catch(() => ({}));
+  let voiceSaving = null;
+  function trackVoice() {
+    if (!voiceTurns()) return Promise.resolve();
+    if (voiceSaving) return voiceSaving.then(() => trackVoice());
+    voiceSaving = post({ type: "voice", convId: voiceConvId, messages: (EV.voiceLog || []).slice(-60), name, source: source(), events: [...voiceEvents] })
+      .then((d) => { if (d && d.convId) { voiceConvId = d.convId; store.set("ev-vconv", voiceConvId, sessionStorage); } })
+      .finally(() => { voiceSaving = null; });
+    return voiceSaving;
+  }
+  function track(event, mode) {
+    mode = mode || (app.dataset.mode === "chat" ? "chat" : "voice");
+    if (mode === "voice") { voiceEvents.add(event); if (voiceConvId) post({ type: "event", convId: voiceConvId, event }); else trackVoice(); }
+    else if (chat.convId) post({ type: "event", convId: chat.convId, event });
+  }
+  document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest('a[href*="calendly.com"]')) track("book_click", sheet && !sheet.hidden ? briefMode : undefined); }, true);
+
   let brief = null, briefMode = "chat", lastFocus = null, stepTimer = null;
 
   function openBrief(mode) {
     briefMode = mode === "voice" ? "voice" : "chat";
     if (briefMode === "voice" && EV.live && EV.live.active) { /* keep the call going; the sheet sits on top */ }
     lastFocus = document.activeElement;
+    track("brief_open", briefMode);
     scrim.hidden = sheet.hidden = false;
     requestAnimationFrame(() => { scrim.classList.add("on"); sheet.classList.add("on"); });
     document.documentElement.style.overflow = "hidden";
@@ -310,8 +331,9 @@
     step("loading");
     const turns = turnsNow();
     try {
+      if (briefMode === "voice") await trackVoice();
       const body = briefMode === "voice"
-        ? { mode: "voice", messages: EV.voiceLog || [], name, source: source() }
+        ? { mode: "voice", convId: voiceConvId || undefined, messages: EV.voiceLog || [], name, source: source() }
         : { mode: "chat", convId: chat.convId, messages: chat.msgs.filter((m) => !m.err && !m.kind).map((m) => ({ role: m.role, text: m.text })), name, source: source() };
       const r = await fetch("/api/brief", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const d = await r.json().catch(() => ({}));
@@ -522,7 +544,8 @@
   window.EVLead = {
     setName(n) { name = String(n).trim().slice(0, 60); store.set("ev-name", name); },
     openBrief,
-    voiceEnded: voiceNudge,
+    voiceEnded() { trackVoice(); voiceNudge(); },
+    track,
     setMode,
   };
 })();

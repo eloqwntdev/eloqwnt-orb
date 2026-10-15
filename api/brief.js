@@ -64,6 +64,10 @@ export async function POST(request) {
     const source = cleanSource(body.source);
     conv = { id: newId(), mode: body.mode === "voice" ? "voice" : "chat", startedAt: new Date().toISOString(), messages: msgs, name: clip(body.name, 60), source, channel: sourceLabel(source) };
   }
+  else if (conv.mode === "voice" && Array.isArray(body.messages) && body.messages.length > conv.messages.length) {
+    // a voice call saved earlier: take the fuller transcript from the page
+    conv.messages = body.messages.slice(-40).map((m) => ({ role: m.role === "orb" ? "orb" : "user", text: clip(m.text, 1500), at: Date.now() })).filter((m) => m.text);
+  }
   if (body.name && !conv.name) conv.name = clip(body.name, 60);
   const said = conv.messages.filter((m) => m.role === "user" && (!m.kind || m.kind === "text"));
   if (said.length < 2 || said.reduce((n, m) => n + m.text.length, 0) < 40) {

@@ -430,3 +430,35 @@ pre.md{margin:0;padding:16px 18px;border-radius:16px;font-family:var(--f-mono);f
 .lmeta{gap:7px;min-width:150px}
 .ltime{width:84px;min-width:0}
 @media (max-width:760px){.lrow{padding:15px 0;gap:12px}.ltime{width:auto}}
+
+/* ---------- insights ---------- */
+.ifun{display:flex;flex-direction:column;gap:4px}
+.irow{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr) 78px 48px;align-items:center;gap:14px;padding:8px 0;font-size:14px}
+.irow .it{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--ink-2)}
+.ibar{height:10px;border-radius:999px;background:var(--hl);overflow:hidden}
+.ibar i{display:block;height:100%;border-radius:999px;background:var(--pk);transition:width var(--t-slow) var(--ease-out)}
+.ibar.mut i{background:var(--ink-3)}
+.irow.worst .ibar{box-shadow:0 0 0 2px var(--amber-soft)}
+.in{display:flex;align-items:baseline;justify-content:flex-end;gap:8px}
+.in b{font-weight:450;font-variant-numeric:tabular-nums}
+.idrop{text-align:right;color:var(--mut)}
+.irow.worst .idrop{color:var(--amber-ink)}
+.iworst{background:var(--amber-soft);color:var(--amber-ink);height:20px;gap:4px}
+.iworst svg{width:11px;height:11px}
+.itable-wrap{overflow-x:auto;padding:4px 16px}
+.itable{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.itable th,.itable td{padding:11px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--hl)}
+.itable tr:last-child th,.itable tr:last-child td{border-bottom:0}
+.itable thead th{font-family:var(--f-mono);font-size:11px;font-weight:400;letter-spacing:.02em;text-transform:uppercase;color:var(--mut)}
+.itable th[scope="row"],.itable thead th:first-child{text-align:left;font-weight:400;color:var(--ink);white-space:normal;padding-left:0;min-width:140px}
+.itable td:last-child{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding-right:0}
+.itable td b{font-weight:450;min-width:36px}
+.ibarcell{width:64px;height:6px;border-radius:999px;background:var(--hl);overflow:hidden;display:inline-block}
+.ibarcell i{display:block;height:100%;background:var(--pk);border-radius:999px}
+@media (max-width:760px){
+  .irow{grid-template-columns:minmax(0,1fr) 70px 40px;grid-template-areas:"t n d" "b b b";gap:6px 10px;padding:10px 0}
+  .irow .it{grid-area:t}.irow .ibar{grid-area:b}.irow .in{grid-area:n}.irow .idrop{grid-area:d}
+  .itable-wrap{padding:4px 12px}
+  .ibarcell{display:none}
+}
+@media (max-width:760px){.itable .dk{display:none}.itable th[scope="row"],.itable thead th:first-child{min-width:0}}

@@ -33,6 +33,7 @@ const IC = {
   link: "M7 9a2.5 2.5 0 0 0 3.5 0l2-2A2.5 2.5 0 0 0 9 3.5l-.5.5M9 7a2.5 2.5 0 0 0-3.5 0l-2 2A2.5 2.5 0 0 0 7 12.5l.5-.5",
   file: "M4.5 2.5h5l3 3v8h-8zM9.5 2.5v3h3", note: "M3.5 4h9M3.5 8h9M3.5 12h5", alert: "M8 2.5 14 13H2zM8 6.5v3M8 11.5v.01",
   open: "M9.5 3.5h3v3M12.5 3.5 8 8M11 9.5v3H3.5V5H7", more: "M3.5 8h.01M8 8h.01M12.5 8h.01", trash: "M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.5 8h5l.5-8", lock: "M4 7.5h8v6H4zM5.5 7.5V5.5a2.5 2.5 0 0 1 5 0v2",
+  chart: "M3 13V8.5M6.5 13V5M10 13V9.5M13.5 13V3",
   leads: "M2.5 9.5h3l1 1.5h3l1-1.5h3M2.5 9.5 4 4h8l1.5 5.5V13h-11z"
 };
 const ic = (k, sw = 1.4) => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
@@ -121,7 +122,7 @@ function unexported(){ const e = store.get("kb-exported", null); return loaded &
 function markExported(){ store.set("kb-exported", {sig: exportSig(), at: Date.now()}); renderSide(); renderTabbar(); }
 
 /* ---------- routing ---------- */
-const VIEWS = ["map", "gaps", "interview", "import", "node", "playbook", "export", "leads"];
+const VIEWS = ["map", "gaps", "interview", "import", "node", "playbook", "export", "leads", "insights"];
 function parseHash(){
   const [v, a, b] = location.hash.replace(/^#\/?/, "").split("/").map(x => decodeURIComponent(x || ""));
   return {view: VIEWS.includes(v) ? v : "map", arg: a || null, arg2: b || null};
@@ -153,10 +154,11 @@ function onRoute(){
 const NAV = [
   {k: "new", label: "New node", ic: "plus", act: () => openNewNode()},
   {k: "search", label: "Search", ic: "search", act: () => openSearch()},
-  {k: "map", label: "Map", ic: "map"}, {k: "leads", label: "Leads", ic: "leads"}, {k: "import", label: "Import", ic: "import"}, {k: "interview", label: "Interview", ic: "chat"},
+  {k: "map", label: "Map", ic: "map"}, {k: "leads", label: "Leads", ic: "leads"}, {k: "insights", label: "Insights", ic: "chart"}, {k: "import", label: "Import", ic: "import"}, {k: "interview", label: "Interview", ic: "chat"},
   {k: "gaps", label: "Gaps", ic: "gaps"}, {k: "playbook", label: "Playbook", ic: "book"}, {k: "export", label: "Export", ic: "export"}
 ];
 function activeNav(){ return route.view === "node" ? "map" : route.view; }
+const tabOf = v => v === "insights" ? "leads" : v;
 function renderSide(){
   const side = $("#side"); if (!side) return;
   const act = activeNav(), dot = unexported();
@@ -170,7 +172,7 @@ function renderSide(){
   if (route.view === "playbook"){
     groups.push({name: "Plays", items: pb.plays.map(p => ({href: "#/playbook/" + encodeURIComponent(p.id), title: p.title, cur: pb.state === "play" && pb.draft && pb.draft.id === p.id}))});
     if (pb.sources.length) groups.push({name: "Sales know-how · private", items: pb.sources.map(s => ({href: "#/playbook", title: s.name}))});
-  } else if (route.view === "leads"){
+  } else if (route.view === "leads" || route.view === "insights"){
     if (leads.list.length) groups.push({name: "Latest leads", items: leads.list.slice(0, 6).map(l => ({href: "#/leads/" + encodeURIComponent(l.id), title: who(l), chip2: ago(l.createdAt), cur: route.arg === l.id}))});
   } else {
     const need = [...nodes.values()].map(n => ({n, g: gapsOf(n).length})).filter(x => x.g).sort((a, b) => b.g - a.g).slice(0, 5);
@@ -204,7 +206,7 @@ function placeSegPills(root = document){
 const TABS = [["map", "Map", "map"], ["leads", "Leads", "leads"], ["interview", "Interview", "chat"], ["playbook", "Playbook", "book"], ["export", "Export", "export"]];
 function renderTabbar(){
   const t = $("#tabbar"); if (!t) return;
-  const act = activeNav(), dot = unexported();
+  const act = tabOf(activeNav()), dot = unexported();
   t.innerHTML = `<span class="tpill vrow" aria-hidden="true"></span>` + TABS.map(([k, label, i]) => `<a href="#/${k}" ${act === k ? 'aria-current="page"' : ""}>${ic(i, 1.5)}<span>${label}</span>${k === "export" && dot ? '<span class="dot"></span>' : ""}</a>`).join("");
   placePill(t, "a[aria-current]", ".tpill", false);
 }
@@ -1942,9 +1944,9 @@ async function loadLeads(){
     const sig = JSON.stringify([ja.leads, jb.convs]);
     const changed = sig !== leads.sig;
     Object.assign(leads, {loaded: true, err: "", list: ja.leads || [], convs: b.ok ? jb.convs || [] : [], sig});
-    if (changed && route.view === "leads" && !route.arg && !dialogOpen()) refresh();
+    if (changed && (route.view === "insights" || route.view === "leads" && !route.arg) && !dialogOpen()) refresh();
     else renderSide();
-  } catch (e){ leads.loaded = true; leads.err = e.message || "Couldn’t load leads."; if (route.view === "leads") refresh(); }
+  } catch (e){ leads.loaded = true; leads.err = e.message || "Couldn’t load leads."; if (route.view === "leads" || route.view === "insights") refresh(); }
 }
 async function loadLeadDetail(kind, id){
   const key = kind + ":" + id;
@@ -1984,8 +1986,11 @@ function convRowHtml(c){
     <span class="lmeta desk-only"><span class="label">${esc(c.channel)} · ${esc(c.mode || "chat")}</span><span class="label">${plural(c.turns, "message")}${c.expired ? " · archived" : ""}</span></span>
     <span class="label ltime">${esc(ago(c.updatedAt || c.startedAt))}</span><span class="chev">${ic("chev")}</span></a>`;
 }
+const periodSeg = () => `<div class="seg text" role="group" aria-label="Period" style="align-self:flex-start;max-width:100%;overflow:auto">${PERIODS.map(([k, t]) => `<button type="button" data-lp="${k}" aria-pressed="${leads.period === k}">${t}</button>`).join("")}</div>`;
+const bindPeriod = v => $$("[data-lp]", v).forEach(b => b.onclick = () => { leads.period = b.dataset.lp; store.set("kb-lperiod", leads.period); refresh(); });
 function leadsList(){
-  const top = {title: "Leads", sub: leads.loaded && !leads.err ? `${plural(leads.list.length, "lead")} · ${plural(leads.convs.length, "conversation")}` : ""};
+  const top = {title: "Leads", sub: leads.loaded && !leads.err ? `${plural(leads.list.length, "lead")} · ${plural(leads.convs.length, "conversation")}` : "",
+    right: `<a class="btn vg" href="#/insights">${ic("chart")}Insights</a>`, mobileRight: `<a class="icon-btn vg" href="#/insights" aria-label="Insights" style="border-radius:50%;width:36px;height:36px;color:var(--ink)">${ic("chart", 1.5)}</a>`};
   if (!leads.loaded) return {top, body: `<div class="page wide"><p class="note">Loading…</p></div>`};
   if (leads.err) return {top, body: `<div class="page wide"><p class="note err">${esc(leads.err)}</p><button class="btn vg" type="button" data-reload style="align-self:flex-start">Try again</button></div>`, bind: v => { $("[data-reload]", v).onclick = () => { leads.loaded = false; refresh(); loadLeads(); }; }};
   const tab = leads.tab;
@@ -1996,13 +2001,13 @@ function leadsList(){
     : `<div class="card vcard pad"><p class="lead" style="font-size:15px">No conversations ${leads.convs.length ? "in this period" : "yet"}.</p></div>`;
   return {top, body: `<div class="page wide">
     <h1 class="h1 big vtx desk-only">Who talked to the orb</h1>
-    <div class="stack" style="gap:10px"><div class="seg text" role="group" aria-label="Period" style="align-self:flex-start">${PERIODS.map(([k, t]) => `<button type="button" data-lp="${k}" aria-pressed="${leads.period === k}">${t}</button>`).join("")}</div><div class="lstats">${leadsStats().map(([k, v]) => `<div class="vcard"><span class="note">${k}</span><b>${v}</b></div>`).join("")}</div></div>
+    <div class="stack" style="gap:10px">${periodSeg()}<div class="lstats">${leadsStats().map(([k, v]) => `<div class="vcard"><span class="note">${k}</span><b>${v}</b></div>`).join("")}</div></div>
     <div class="seg" role="group" aria-label="Show" style="align-self:flex-start"><button type="button" data-lt="leads" aria-pressed="${tab === "leads"}">Leads ${lp.length}</button><button type="button" data-lt="convs" aria-pressed="${tab === "convs"}">Conversations ${cp.length}</button></div>
     ${rows.length ? `<div class="card vcard stagger">${rows.map(tab === "leads" ? leadRowHtml : convRowHtml).join("")}</div>` : empty}
     ${tab === "convs" ? `<p class="note">Transcripts are kept for 90 days; the summary of each conversation stays for good, so the numbers hold for any period. Voice calls show up here once the visitor asks for a brief.</p>` : ""}
   </div>`, bind: v => {
     $$("[data-lt]", v).forEach(b => b.onclick = () => { leads.tab = b.dataset.lt; refresh(); });
-    $$("[data-lp]", v).forEach(b => b.onclick = () => { leads.period = b.dataset.lp; store.set("kb-lperiod", leads.period); refresh(); });
+    bindPeriod(v);
   }};
 }
 
@@ -2110,6 +2115,94 @@ function convDetail(){
     ${c.expired ? `<p class="note">The transcript was deleted after 90 days. The summary above stays for your stats.</p>` : transcriptHtml(c)}
   </div>`};
 }
+/* =====================================================================
+   INSIGHTS — script analytics: how far conversations get, which plays
+   and sources bring leads, and where people stop.
+   ===================================================================== */
+let insMode = store.get("kb-imode", "all");
+const STAGE_NAME = {opening: "Opening", discovery: "Discovery", proof: "Proof", objection: "Objection", close: "Close", answering: "Answering questions"};
+const pct = (a, b) => b ? Math.round(a * 100 / b) : 0;
+function insightTable(title, col, rows, note = ""){
+  if (!rows.length) return "";
+  return `<section class="stack" style="gap:10px"><span class="label">${title}</span>
+    <div class="card vcard itable-wrap"><table class="itable"><thead><tr><th scope="col">${col}</th><th scope="col">Talks</th><th scope="col" class="dk">Engaged</th><th scope="col" class="dk">Brief</th><th scope="col">Leads</th><th scope="col">Conversion</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><th scope="row">${esc(r.name)}</th><td>${r.n}</td><td class="dk">${pct(r.engaged, r.n)}%</td><td class="dk">${r.brief}</td><td>${r.lead}</td><td><span class="ibarcell"><i style="width:${pct(r.lead, r.n)}%"></i></span><b>${pct(r.lead, r.n)}%</b></td></tr>`).join("")}</tbody></table></div>
+    ${note ? `<p class="note">${note}</p>` : ""}</section>`;
+}
+function groupBy(convs, keyFn){
+  const m = new Map();
+  for (const c of convs) for (const k of [].concat(keyFn(c))){
+    const r = m.get(k) || {name: k, n: 0, engaged: 0, brief: 0, lead: 0}; m.set(k, r);
+    r.n++; if (c.turns >= 2) r.engaged++; if (c.brief) r.brief++; if (c.leadId) r.lead++;
+  }
+  return [...m.values()].sort((a, b) => b.n - a.n || b.lead - a.lead);
+}
+VIEW.insights = () => {
+  if (!leads.loaded) loadLeads();
+  const top = {title: "Insights", sub: "How the orb’s conversations go", right: `<a class="btn vg" href="#/leads">${ic("leads")}Leads</a>`, mobileLeft: backBtn("#/leads")};
+  if (!leads.loaded) return {top, body: `<div class="page wide"><p class="note">Loading…</p></div>`};
+  if (leads.err) return {top, body: `<div class="page wide"><p class="note err">${esc(leads.err)}</p></div>`};
+  const convs = leads.convs.filter(c => inPeriod(c.startedAt) && (insMode === "all" || c.mode === insMode));
+  const N = convs.length;
+  const modeSeg = `<div class="seg text" role="group" aria-label="Mode" style="align-self:flex-start">${[["all", "Chat + voice"], ["chat", "Chat"], ["voice", "Voice"]].map(([k, t]) => `<button type="button" data-im="${k}" aria-pressed="${insMode === k}">${t}</button>`).join("")}</div>`;
+  const filters = `<div class="row" style="gap:8px 16px">${periodSeg()}${modeSeg}</div>`;
+  const bind = v => { bindPeriod(v); $$("[data-im]", v).forEach(b => b.onclick = () => { insMode = b.dataset.im; store.set("kb-imode", insMode); refresh(); }); };
+  if (!N) return {top, bind, body: `<div class="page wide"><h1 class="h1 big vtx desk-only">How conversations go</h1>${filters}<div class="card vcard pad"><p class="lead" style="font-size:15px">No conversations in this period yet.</p></div></div>`};
+
+  const steps = [
+    ["Started a conversation", N, "Every chat or call with at least one message from the visitor."],
+    ["Kept talking", convs.filter(c => c.turns >= 2).length, "Sent two or more messages."],
+    ["Was offered a brief", convs.filter(c => c.offered || c.briefOpened).length, "The orb offered the brief, or the visitor opened it."],
+    ["Got a brief", convs.filter(c => c.brief).length, "The brief preview was made."],
+    ["Left their email", convs.filter(c => c.leadId).length, "Asked for the full brief by email."],
+    ["Clicked to book a call", convs.filter(c => c.booked).length, "Opened the Calendly link."],
+  ];
+  let worst = -1, worstRate = 0;
+  for (let i = 1; i < steps.length - 1; i++){ const a = steps[i - 1][1], b = steps[i][1]; if (a >= 3 && (a - b) / a > worstRate){ worstRate = (a - b) / a; worst = i; } }
+  const funnel = `<section class="stack" style="gap:10px"><span class="label">How far conversations get</span>
+    <div class="card vcard pad ifun">${steps.map(([t, n, hint], i) => {
+      const prev = i ? steps[i - 1][1] : n, drop = i && prev > n ? pct(prev - n, prev) : 0;
+      return `<div class="irow ${i === worst ? "worst" : ""}" title="${esc(hint)}"><span class="it">${t}${i === worst ? `<span class="chip iworst">${ic("alert", 1.6)}Biggest drop</span>` : ""}</span>
+        <span class="ibar"><i style="width:${Math.max(n ? 1.5 : 0, pct(n, N))}%"></i></span>
+        <span class="in"><b>${n}</b><span class="label">${pct(n, N)}%</span></span>
+        <span class="idrop label">${drop ? "−" + drop + "%" : ""}</span></div>`;
+    }).join("")}</div>
+    ${worst > 0 ? `<p class="note">${pct(steps[worst - 1][1] - steps[worst][1], steps[worst - 1][1])}% don’t get from “${steps[worst - 1][0]}” to “${steps[worst][0]}”. That’s the first place to improve the script.</p>` : ""}
+  </section>`;
+
+  const named = convs.filter(c => c.named).length, withCase = convs.filter(c => c.caseShown), noCase = convs.filter(c => !c.caseShown && c.turns >= 2);
+  const lr = list => list.length ? pct(list.filter(c => c.leadId).length, list.length) + "%" : "–";
+  const along = `<section class="stack" style="gap:10px"><span class="label">Along the way</span>
+    <div class="lstats">
+      <div class="vcard" title="Told the orb what to call them"><span class="note">Shared their name</span><b>${pct(named, N)}%</b></div>
+      <div class="vcard" title="The orb showed a matching case study"><span class="note">Saw a case</span><b>${pct(withCase.length, N)}%</b></div>
+      <div class="vcard" title="${withCase.length} conversations where a case was shown"><span class="note">Leads after a case</span><b>${lr(withCase)}</b></div>
+      <div class="vcard" title="${noCase.length} conversations with 2+ messages and no case shown"><span class="note">Leads without one</span><b>${lr(noCase)}</b></div>
+    </div></section>`;
+  const chats = convs.filter(c => c.mode !== "voice");
+  const plays = insMode === "voice" ? "" : insightTable("By play", "Play", groupBy(chats, c => c.plays && c.plays.length ? c.plays : ["No play"]), "Chat only: the voice agent doesn’t report which play it follows. A conversation counts for every play it used.");
+  const sources = insightTable("By source", "Source", groupBy(convs, c => c.channel || "direct"));
+  const modes = insMode === "all" ? insightTable("By mode", "Mode", groupBy(convs, c => c.mode === "voice" ? "Voice" : "Chat")) : "";
+
+  const stopped = chats.filter(c => !c.leadId && c.lastStage);
+  const st = groupBy(stopped, c => STAGE_NAME[c.lastStage] || c.lastStage);
+  const ends = insMode === "voice" || !stopped.length ? "" : `<section class="stack" style="gap:10px"><span class="label">Where people stop · ${plural(stopped.length, "chat")} without a lead</span>
+    <div class="card vcard pad ifun">${st.map(r => `<div class="irow" title="${r.n} of ${stopped.length} chats ended while the orb was at this stage"><span class="it">${esc(r.name)}</span><span class="ibar mut"><i style="width:${pct(r.n, stopped.length)}%"></i></span><span class="in"><b>${r.n}</b><span class="label">${pct(r.n, stopped.length)}%</span></span><span class="idrop"></span></div>`).join("")}</div>
+    <p class="note">The stage the orb was in at its last reply. Lots of chats ending in Discovery means the questions run too long; ending in Close means the offer isn’t landing.</p></section>`;
+
+  return {top, bind, body: `<div class="page wide">
+    <h1 class="h1 big vtx desk-only">How conversations go</h1>
+    ${filters}
+    ${funnel}
+    ${along}
+    ${ends}
+    ${plays}
+    ${sources}
+    ${modes}
+    ${N < 20 ? `<p class="note warn">Only ${plural(N, "conversation")} in this view. Percentages will settle once there are a few dozen.</p>` : ""}
+  </div>`};
+};
+
 VIEW.leads = () => {
   if (route.arg === "c" && route.arg2) return convDetail();
   if (route.arg) return leadDetail();
@@ -2148,7 +2241,7 @@ function safeToRerender(){
   if (dialogOpen()) return false;
   const a = document.activeElement;
   if (a && a.matches && a.matches("input,textarea,select") && $("#view").contains(a)) return false;
-  return route.view === "map" || route.view === "gaps" || route.view === "export" || (route.view === "interview" && interview.state === "idle") || (route.view === "node" && !isDirty(drafts.get(route.arg))) || (route.view === "import" && imp.state === "idle" && !imp.files.length) || (route.view === "leads" && !route.arg);
+  return route.view === "map" || route.view === "gaps" || route.view === "export" || (route.view === "interview" && interview.state === "idle") || (route.view === "node" && !isDirty(drafts.get(route.arg))) || (route.view === "import" && imp.state === "idle" && !imp.files.length) || (route.view === "leads" && !route.arg) || route.view === "insights";
 }
 async function loadNodes(){
   let r, body = {};
@@ -2200,8 +2293,8 @@ render();
   await loadNodes();
   await loadPlaybook();
   if (route.view === "playbook" || !safeToRerender()) { onRoute(); } else refresh();
-  if (route.view === "leads") loadLeads();
-  setInterval(() => { if (!document.hidden){ loadNodes(); loadPlaybook(); if (route.view === "leads" && !route.arg) loadLeads(); } }, 30000);
+  if (route.view === "leads" || route.view === "insights") loadLeads();
+  setInterval(() => { if (!document.hidden){ loadNodes(); loadPlaybook(); if (route.view === "insights" || route.view === "leads" && !route.arg) loadLeads(); } }, 30000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) loadNodes(); });
 })();
 })();
