@@ -40,7 +40,7 @@
 .c-send:not(:disabled):hover{transform:scale(1.06)}
 
 /* chat view */
-.chatv{display:none;position:relative;z-index:1;max-width:720px;margin:0 auto;min-height:100vh;min-height:100dvh;padding:calc(110px + env(safe-area-inset-top,0px)) 16px calc(130px + env(safe-area-inset-bottom,0px));box-sizing:content-box;flex-direction:column}
+.chatv{display:none;position:relative;z-index:1;max-width:720px;margin:0 auto;min-height:100vh;min-height:100dvh;padding:calc(110px + env(safe-area-inset-top,0px)) 16px calc(150px + env(safe-area-inset-bottom,0px));box-sizing:content-box;flex-direction:column}
 [data-view="chat"] .chatv{display:flex}
 [data-view="chat"] .stage{display:none}
 [data-view="chat"] .header{background:var(--header-solid);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom-color:var(--hair);padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:16px}
@@ -58,7 +58,7 @@
 .cmsg.orb{display:flex;gap:12px;align-items:flex-start;max-width:88%}
 .cmsg.orb .av{width:30px;height:30px;border-radius:50%;flex:none;margin-top:1px}
 .cmsg.orb p{margin:0;font-size:18px;line-height:1.55;color:var(--ink);overflow-wrap:anywhere}
-.cmsg.orb p .m{color:var(--faint)}
+.cmsg.orb p .m{color:var(--ink-3)}
 .cmsg.err p{color:var(--muted)}
 .typing{display:inline-flex;gap:5px;align-items:center;height:28px}
 .typing i{width:7px;height:7px;border-radius:50%;background:var(--faint);animation:tdot 1.2s ease-in-out infinite}
@@ -200,5 +200,5 @@ a.ccase:hover .lnk svg{transform:translateX(3px)}
 .composer,.cdock,.btnp,.btng,.pillbtn,.namebox,.bsheet,.bsheet *,.ccase,.ccase *,.cstart{box-sizing:border-box}
 [data-view="chat"] .vinput{display:none}
 @media (max-width:760px){.cstart .chips{order:-1}}
-.cfade{display:none;position:fixed;left:0;right:0;bottom:0;height:150px;z-index:14;pointer-events:none;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 60%);mask-image:linear-gradient(180deg,transparent 0,#000 60%)}
+.cfade{display:none;position:fixed;left:0;right:0;bottom:0;height:calc(110px + env(safe-area-inset-bottom,0px));z-index:14;pointer-events:none;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 45%);mask-image:linear-gradient(180deg,transparent 0,#000 45%)}
 [data-view="chat"] .cfade{display:block}
