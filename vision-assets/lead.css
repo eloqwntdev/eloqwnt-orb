@@ -273,3 +273,15 @@ a.ccase:hover .lnk svg{transform:translateX(3px)}
   [data-mode="chat"] .orb-ui .lbl{font-size:12px;line-height:14px}
 }
 .composer textarea::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* phones: the loading / error sheet is taller and its content sits higher */
+@media (max-width:760px){
+  .bsheet[data-step="loading"],.bsheet[data-step="error"]{min-height:min(600px,68dvh)}
+  .bsheet[data-step="loading"] .bstate,.bsheet[data-step="error"] .bstate{min-height:min(600px,68dvh);justify-content:center;padding-top:40px;padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+}
+/* phones: the "Email me the full brief" bar sticks to the bottom inside the scroll, never on top of the last block */
+@media (max-width:760px){
+  .bprev{padding-bottom:0}
+  .bmcta{position:sticky;left:auto;right:auto;bottom:0;margin:4px -20px 0;padding:28px 20px calc(18px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,transparent,var(--sheet) 34%);z-index:2}
+  .bprev.more{-webkit-mask-image:none;mask-image:none}
+}
+.bprev > *,.bform > *{flex-shrink:0}
