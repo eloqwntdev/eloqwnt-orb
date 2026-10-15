@@ -306,7 +306,7 @@ svg{display:block}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
 </style>
-<link rel="stylesheet" href="/vision-assets/lead.css?v=093531">
+<link rel="stylesheet" href="/vision-assets/lead.css?v=093638">
 </head>
 <body>
 <div id="root" class="" data-view="voice" data-state="idle">
@@ -735,7 +735,7 @@ function backToVoice(listen,keepCall){
 $("#vinput").addEventListener("click",e=>{
   // During a live call the mic button mutes or unmutes; the rest of the bar goes back to the orb without a new call.
   const L=window.EV&&window.EV.live;
-  if(L&&L.active){ if(e.target.closest(".mic-btn")) L.mute(!L.muted); else backToVoice(false,true); return; }
+  if(L&&L.active){ if(e.target.closest(".mic-btn")) L.mute(!L.muted); else { if(L.muted) L.mute(false); backToVoice(false,true); } return; }
   backToVoice(true);
 });
 
@@ -1043,6 +1043,7 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
       const b = document.querySelector("#vinput .mic-btn");
       if (b) { b.classList.toggle("muted", live.muted); b.setAttribute("aria-label", live.muted ? "Unmute microphone" : "Mute microphone"); }
       const ph = document.querySelector("#vinput .ph"); if (ph) ph.textContent = live.muted ? "Mic muted" : "Ask a follow-up";
+      if (EV.view() === "voice") EV.label(live.muted ? "Muted · tap to unmute" : "Listening…");
     },
     ask(text) {
       if (conv) { conv.sendUserMessage(text); EV.transcript(text); EV.setState("processing"); lastUser = text; }
@@ -1061,6 +1062,6 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
   }
 })();
 </script>
-<script src="/vision-assets/lead.js?v=093531" defer></script>
+<script src="/vision-assets/lead.js?v=093638" defer></script>
 </body>
 </html>

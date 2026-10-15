@@ -70,7 +70,11 @@
   setMode(store.get("ev-mode", "voice") === "chat" ? "chat" : "voice", { silent: true, stage: true });
 
   // In chat mode the orb still talks: clicking it switches to voice and starts.
-  $("#orb").addEventListener("click", () => { if (app.dataset.mode === "chat") setMode("voice"); }, true);
+  $("#orb").addEventListener("click", (e) => {
+    // A muted call: the orb unmutes instead of ending the call.
+    if (EV.live && EV.live.active && EV.live.muted) { e.stopImmediatePropagation(); EV.live.mute(false); return; }
+    if (app.dataset.mode === "chat") setMode("voice");
+  }, true);
   // The logo goes back to the start screen; the chat stays.
   $("#home").addEventListener("click", (e) => { if (app.dataset.view === "chat") { e.preventDefault(); e.stopImmediatePropagation(); app.dataset.view = "voice"; EV.setState("idle"); scrollTo(0, 0); } }, true);
 
