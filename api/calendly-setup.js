@@ -13,6 +13,7 @@ const parse = (raw) => { try { return JSON.parse(raw); } catch { return raw; } }
 
 export async function GET(request) {
   if (!(await isAuthed(request))) return json({ error: "Sign in first." }, 401);
+  if (new URL(request.url).searchParams.get("action") === "ping") return POST(request);
   if (!calendlyConfigured()) return json({ token: false, connected: false });
   try {
     const s = await state(request);
@@ -29,6 +30,15 @@ export async function GET(request) {
 export async function POST(request) {
   if (!(await isAuthed(request))) return json({ error: "Sign in first." }, 401);
   if (!calendlyConfigured()) return json({ error: "Add CALENDLY_TOKEN in Vercel first." }, 400);
+  if (new URL(request.url).searchParams.get("action") === "ping") {
+    // call our own public webhook address from outside the function, the way Calendly would
+    const url = new URL("/api/calendly", request.url).toString();
+    try {
+      const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "User-Agent": "Calendly-Webhook-Test" }, body: "{}" });
+      const text = (await r.text()).slice(0, 300);
+      return json({ url, status: r.status, server: r.headers.get("server"), vercelMitigated: r.headers.get("x-vercel-mitigated") || "", body: text, verdict: r.status === 401 && /signature/i.test(text) ? "Reachable: the webhook address answers. If Calendly still sends nothing, the problem is on Calendly’s side." : "Not reachable as expected: something in front of the function (Vercel Firewall, protection) answered instead." });
+    } catch (e) { return json({ url, error: e.message }, 502); }
+  }
   if (new URL(request.url).searchParams.get("action") === "sync") {
     try { return json({ ok: true, ...(await syncBookings()) }); }
     catch (e) { return json({ error: e.message }, 502); }
