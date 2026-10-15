@@ -18,6 +18,8 @@ Voice-first prototype of the Eloqwnt site, deployed on Vercel.
 | `GHL_PIPELINE_ID`, `GHL_STAGE_ID` | Optional. Each brief request opens an opportunity in this pipeline stage. |
 | `GHL_BRIEF_FIELD` | Optional. Key of the contact custom field that gets the brief link. Default `brief_link`. |
 | `ORB_MODEL`, `ORB_CHAT_MODEL`, `ORB_BRIEF_MODEL` | Optional model overrides. Default `claude-sonnet-5-5`. |
+| `RESEND_API_KEY` | Resend API key. The brief email is sent from our own domain. Without it, GHL's `orb-brief` workflow sends the email instead. |
+| `MAIL_FROM`, `MAIL_REPLY_TO`, `MAIL_BCC` | Optional. Defaults: `Eloqwnt Vision <brief@notify.eloqwnt.com>`, `hi@eloqwnt.com`, none. Check with `/api/mail-check?to=you@…` (signed in). |
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Added automatically when an Upstash Redis database is connected to the project (Storage tab). |
 
 ## Files

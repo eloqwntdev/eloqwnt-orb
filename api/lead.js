@@ -1,9 +1,10 @@
-// The visitor asks for the full brief by email: save the lead, unlock the brief page, and hand the contact to GoHighLevel,
-// where a workflow sends the email. Works without GHL too (the lead is saved and the brief opens on screen).
+// The visitor asks for the full brief by email: save the lead, unlock the brief page, email the brief from our own
+// domain (Resend) and hand the contact to GoHighLevel. Works without either (the lead is saved and the brief opens on screen).
 import { allow, clientIp, json, redis, redisConfigured } from "../lib/server.js";
 import { getBrief, loadConv, putBrief, saveConv } from "../lib/conv.js";
 import { cleanSource, newId, sourceLabel } from "../lib/orb-context.js";
 import { ghlConfigured, pushLead, resendBrief } from "../lib/ghl.js";
+import { mailConfigured, sendBriefEmail } from "../lib/mail.js";
 
 const clip = (v, n) => String(v ?? "").slice(0, n).trim();
 const EMAIL = /^[^\s@<>()[\]\\,;:"]{1,64}@[^\s@<>()[\]\\,;:"]+\.[a-z]{2,}$/i;
@@ -19,9 +20,11 @@ export async function POST(request) {
   const briefUrl = `${origin}/brief/${brief.id}`;
 
   if (body.resend) {
-    if (!brief.contactId || !ghlConfigured()) return json({ ok: true, briefUrl, emailed: false });
-    try { await resendBrief(brief.contactId); return json({ ok: true, briefUrl, emailed: true }); }
-    catch (e) { console.error("ghl resend", e.message); return json({ error: "Couldn’t resend just now. Open the brief below instead.", code: "upstream_error" }, 502); }
+    try {
+      if (mailConfigured() && brief.email) { await sendBriefEmail({ to: brief.email, name: brief.name, brief, briefUrl }); return json({ ok: true, briefUrl, emailed: true }); }
+      if (brief.contactId && ghlConfigured()) { await resendBrief(brief.contactId); return json({ ok: true, briefUrl, emailed: true }); }
+      return json({ ok: true, briefUrl, emailed: false });
+    } catch (e) { console.error("resend", e.message); return json({ error: "Couldn’t resend just now. Open the brief below instead.", code: "upstream_error" }, 502); }
   }
 
   const email = clip(body.email, 200).toLowerCase();
@@ -41,19 +44,23 @@ export async function POST(request) {
     briefId: brief.id, convId: brief.convId, mode, channel, source, ghl: { status: ghlConfigured() ? "pending" : "off" },
   };
 
-  Object.assign(brief, { unlocked: true, name, company: company || brief.company, leadId: lead.id, sentAt: new Date().toISOString() });
+  Object.assign(brief, { unlocked: true, email, name, company: company || brief.company, leadId: lead.id, sentAt: new Date().toISOString() });
 
+  // The email goes out from our own domain (Resend). GHL keeps the contact, tags, note and opportunity;
+  // without Resend, GHL's "orb-brief" workflow sends the email instead.
+  const viaMail = mailConfigured();
+  const [mail, crm] = await Promise.allSettled([
+    viaMail ? sendBriefEmail({ to: email, name, brief, briefUrl }) : Promise.resolve(null),
+    ghlConfigured() ? pushLead({ ...lead, briefUrl, brief, transcript, emailTag: !viaMail }) : Promise.resolve(null),
+  ]);
   let emailed = false;
+  if (viaMail) {
+    if (mail.status === "fulfilled") { emailed = true; lead.mail = { status: "sent", id: mail.value }; }
+    else { console.error("mail", mail.reason?.message); lead.mail = { status: "failed", error: clip(mail.reason?.message, 300) }; }
+  }
   if (ghlConfigured()) {
-    try {
-      const r = await pushLead({ ...lead, briefUrl, brief, transcript });
-      lead.ghl = { status: "sent", ...r };
-      brief.contactId = r.contactId;
-      emailed = true;
-    } catch (e) {
-      console.error("ghl", e.message);
-      lead.ghl = { status: "failed", error: clip(e.message, 300) };
-    }
+    if (crm.status === "fulfilled") { lead.ghl = { status: "sent", ...crm.value }; brief.contactId = crm.value.contactId; if (!viaMail) emailed = true; }
+    else { console.error("ghl", crm.reason?.message); lead.ghl = { status: "failed", error: clip(crm.reason?.message, 300) }; }
   }
 
   await putBrief(brief);

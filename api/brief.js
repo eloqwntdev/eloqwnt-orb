@@ -107,6 +107,6 @@ export async function GET(request) {
   const b = await getBrief(id);
   if (!b) return json({ error: "This brief doesn’t exist or has expired." }, 404);
   if (!b.unlocked) return json({ error: "This brief hasn’t been sent yet." }, 403);
-  const { convId, contactId, leadId, ...pub } = b;
+  const { convId, contactId, leadId, email, ...pub } = b;
   return json(pub);
 }
