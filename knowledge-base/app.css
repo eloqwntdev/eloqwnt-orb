@@ -475,3 +475,26 @@ pre.md{margin:0;padding:16px 18px;border-radius:16px;font-family:var(--f-mono);f
 /* search: the field and footer stay put, only the results scroll */
 .dialog.search{overflow:hidden}
 .search #sres{overflow-y:auto;min-height:0;flex:1 1 auto;overscroll-behavior:contain}
+/* ---------- phones: leads, lead card, insights ---------- */
+.lshort{display:none}
+@media (max-width:760px){
+  .lstats{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .lstats>div{padding:9px 10px;gap:3px;border-radius:12px}
+  .lstats b{font-size:19px}
+  .lfull{display:none}.lshort{display:inline}
+  .lrow .lco{display:none}
+  .lrow .chev{display:none}
+  .lrow .ltime{font-size:10px}
+  .lrow{gap:10px}
+  .lgrid dl{grid-template-columns:minmax(96px,.42fr) minmax(0,1fr)}
+  .lgrid dt,.lgrid dd{padding:7px 6px}
+  .lhead .avatar.lg{width:44px;height:44px;font-size:17px}
+  .lhead .h1{font-size:24px;line-height:1.2}
+  .lhead .lead{word-break:break-all}
+  .lacts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .lacts .btn{padding:0 8px;font-size:13px}
+  .lacts .btn.cta{grid-column:1/-1}
+  .ifun .irow .it{font-size:13.5px}
+  .card.vcard:has(> .lpick) ~ .lbulk, .lbulk{margin-top:-8px}
+  .page:has(.lbulk){padding-bottom:180px}
+}

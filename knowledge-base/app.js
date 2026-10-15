@@ -2020,7 +2020,7 @@ const inPeriod = d => new Date(d).getTime() >= since();
 function leadsStats(){
   const ls = leads.list.filter(l => inPeriod(l.createdAt)), cs = leads.convs.filter(c => inPeriod(c.startedAt));
   const l = ls.length, c = cs.length, b = cs.filter(x => x.brief).length;
-  return [["Conversations", c], ["Briefs made", b], ["Leads", l], ["Conversion", c ? Math.min(100, Math.round(l * 100 / c)) + "%" : "–"]];
+  return [["Conversations|Chats", c], ["Briefs made|Briefs", b], ["Leads|Leads", l], ["Conversion|Conv.", c ? Math.min(100, Math.round(l * 100 / c)) + "%" : "–"]];
 }
 const rowOpen = (kind, id, href, avatar) => leads.selecting
   ? `<label class="rowlink lrow lpick"><input type="checkbox" data-pick="${kind}:${esc(id)}" ${leads.sel.has(kind + ":" + id) ? "checked" : ""} aria-label="Select">`
@@ -2055,7 +2055,7 @@ function leadsList(){
     : `<div class="card vcard pad"><p class="lead" style="font-size:15px">No conversations ${leads.convs.length ? "in this period" : "yet"}.</p></div>`;
   return {top, body: `<div class="page wide">
     <h1 class="h1 big vtx desk-only">Who talked to the orb</h1>
-    <div class="stack" style="gap:10px">${periodSeg()}<div class="lstats">${leadsStats().map(([k, v]) => `<div class="vcard"><span class="note">${k}</span><b>${v}</b></div>`).join("")}</div></div>
+    <div class="stack" style="gap:10px">${periodSeg()}<div class="lstats">${leadsStats().map(([k, v]) => { const [full, short] = k.split("|"); return `<div class="vcard" title="${full}"><span class="note"><span class="lfull">${full}</span><span class="lshort">${short}</span></span><b>${v}</b></div>`; }).join("")}</div></div>
     <div class="seg" role="group" aria-label="Show" style="align-self:flex-start"><button type="button" data-lt="leads" aria-pressed="${tab === "leads"}">Leads ${lp.length}</button><button type="button" data-lt="convs" aria-pressed="${tab === "convs"}">Conversations ${cp.length}</button></div>
     ${rows.length ? `<div class="card vcard ${leads.selecting ? "" : "stagger"}">${leads.selecting ? (() => {
       const keys = rows.map(r => (tab === "leads" ? "l:" : "c:") + r.id), on = keys.filter(k => leads.sel.has(k)).length;
