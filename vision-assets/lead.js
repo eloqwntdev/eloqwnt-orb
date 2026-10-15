@@ -262,8 +262,22 @@
     sheet.dataset.step = s;
     clearInterval(stepTimer);
     if (s === "loading") {
-      sheet.innerHTML = `<div class="handle"></div>${X}<div class="bstate bload"><img class="orbimg" src="/kb-assets/orb-loop-${app.classList.contains("is-dark") ? "dark" : "light"}.webp" alt=""><h3>Writing your brief</h3><div class="bsteps">${["Reading our conversation", "Matching our work", "Drafting a plan"].map((t, i) => `<span class="${i ? "" : "on"}"><i></i>${t}</span>`).join("")}</div></div>`;
-      let k = 0; stepTimer = setInterval(() => { const sp = $$(".bsteps span", sheet); k = Math.min(k + 1, sp.length - 1); sp[k].classList.add("on"); }, 2200);
+      const STEPS = ["Reading our conversation", "Matching our work", "Drafting a plan"];
+      const MORE = ["Adding quick wins for this week", "Picking brands worth studying", "Checking prices and timing", "Almost there"];
+      sheet.innerHTML = `<div class="handle"></div>${X}<div class="bstate bload"><img class="orbimg" src="/kb-assets/orb-loop-${app.classList.contains("is-dark") ? "dark" : "light"}.webp" alt=""><h3>Writing your brief</h3>
+        <div class="bsteps">${STEPS.map((t, i) => `<span class="${i ? "" : "now"}"><i></i>${t}</span>`).join("")}</div>
+        <div class="bbar" role="progressbar" aria-label="Writing your brief" aria-valuemin="0" aria-valuemax="100"><i></i></div>
+        <p class="bhint" aria-live="polite">Usually takes 10 to 20 seconds</p></div>`;
+      const t0 = Date.now(), bar = $(".bbar i", sheet), pb = $(".bbar", sheet), hint = $(".bhint", sheet), sp = $$(".bsteps span", sheet);
+      stepTimer = setInterval(() => {
+        const sec = (Date.now() - t0) / 1000;
+        const pct = Math.round(94 * (1 - Math.exp(-sec / 8)));  // keeps moving, never claims to be done
+        bar.style.width = pct + "%"; pb.setAttribute("aria-valuenow", pct);
+        const k = Math.min(STEPS.length - 1, Math.floor(sec / 2.6));
+        const allDone = sec >= 2.6 * STEPS.length;
+        sp.forEach((el, i) => { el.classList.toggle("on", i < k || allDone); el.classList.toggle("now", i === k && !allDone); });
+        if (sec >= 2.6 * STEPS.length) { const m = MORE[Math.min(MORE.length - 1, Math.floor((sec - 2.6 * STEPS.length) / 3.5))]; if (hint.textContent !== m + "…") hint.textContent = m + "…"; }
+      }, 120);
     } else if (s === "error") {
       sheet.innerHTML = `<div class="handle"></div>${X}<div class="bstate berr"><h3>Not quite yet</h3><p>${esc(extra || "The brief didn’t come together. Try again.")}</p><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">${extra && /first/.test(extra) ? `<button class="btnp" type="button" data-close>Keep talking</button>` : `<button class="btnp" type="button" data-again>Try again</button><button class="btng" type="button" data-close>Close</button>`}</div></div>`;
     } else if (s === "preview" || s === "form") {
@@ -303,6 +317,9 @@
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || "The brief didn’t come together. Try again.");
       brief = { id: d.briefId, p: d.preview, mode: briefMode, turns };
+      if (sheet.hidden) return;
+      clearInterval(stepTimer);
+      const bar = $(".bbar i", sheet); if (bar) { bar.style.width = "100%"; await new Promise((r) => setTimeout(r, reduce ? 0 : 280)); }
       if (sheet.hidden) return;
       sheet.innerHTML = "";
       step("preview");
