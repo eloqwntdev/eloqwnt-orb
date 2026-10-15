@@ -13,6 +13,7 @@ export async function GET(request) {
       const me = await (await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getMe`)).json();
       out.bot = me.ok ? "@" + me.result.username : me.description;
       const up = await (await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/getUpdates`)).json();
+      if (!up.ok) out.updatesError = up.description; // e.g. the bot already has a webhook used by another service
       const chats = new Map();
       for (const u of up.result || []) { const c = (u.message || u.channel_post || u.my_chat_member || {}).chat; if (c) chats.set(c.id, { TELEGRAM_CHAT_ID: String(c.id), name: c.title || [c.first_name, c.last_name].filter(Boolean).join(" ") || c.username, type: c.type }); }
       out.chats = [...chats.values()];
