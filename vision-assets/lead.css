@@ -310,3 +310,13 @@ a.ccase:hover .lnk svg{transform:translateX(3px)}
   [data-mode="chat"] .cstart .chip{height:36px;white-space:nowrap;align-items:center;display:inline-flex}
   [data-mode="chat"] .stage{--orb:clamp(140px,min(240px,56vw,calc(100dvh - 440px)),240px)}
 }
+.stage{box-sizing:border-box}
+html,body{margin:0}
+/* phones, chat start (app-like): headline, orb and chips as one group in the upper-middle; only the field is pinned to the bottom */
+@media (max-width:760px){
+  [data-mode="chat"] .stage{justify-content:center;padding-top:calc(80px + env(safe-area-inset-top,0px));padding-bottom:calc(150px + 6vh + env(safe-area-inset-bottom,0px))}
+  [data-mode="chat"] .cstart{position:static;margin-top:clamp(18px,3vh,28px);left:auto;right:auto;bottom:auto;align-items:center}
+  [data-mode="chat"] .cstart .chips{order:0;margin:0 -16px;padding:0 16px;align-self:stretch;flex-wrap:wrap;justify-content:center;overflow:visible;-webkit-mask-image:none;mask-image:none}
+  [data-mode="chat"] .cstart .composer{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:auto;z-index:15}
+  [data-mode="chat"] .cstart .chip[data-q="3"]{display:none}
+}

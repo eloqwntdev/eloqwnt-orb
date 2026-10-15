@@ -509,6 +509,9 @@
     const def = orbBox.offsetWidth;
     if (free < def) stageEl.style.setProperty("--orb", Math.max(120, Math.floor(free)) + "px");
     stageEl.classList.toggle("orb-small", Math.min(def, free) < 200);
+    // second pass: whatever still spills below the screen comes off the orb
+    const over = stageEl.getBoundingClientRect().bottom + scrollY - innerHeight;
+    if (over > 0 && app.dataset.mode !== "chat") stageEl.style.setProperty("--orb", Math.max(120, orbBox.offsetWidth - over) + "px");
   }
   const queueFit = () => { if (!fitQueued) { fitQueued = true; requestAnimationFrame(fitStage); } };
   new MutationObserver(queueFit).observe(app, { attributes: true, attributeFilter: ["data-state", "data-view", "data-mode"] });
