@@ -472,3 +472,6 @@ pre.md{margin:0;padding:16px 18px;border-radius:16px;font-family:var(--f-mono);f
 @media (max-width:760px){.lbulk{bottom:calc(env(safe-area-inset-bottom) + 92px)}}
 .lall{font-size:14px;color:var(--ink-2)}
 .lall .grow{flex-direction:row;align-items:center}
+/* search: the field and footer stay put, only the results scroll */
+.dialog.search{overflow:hidden}
+.search #sres{overflow-y:auto;min-height:0;flex:1 1 auto;overscroll-behavior:contain}

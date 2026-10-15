@@ -75,6 +75,26 @@ export async function GET(request) {
     });
   }
 
+  // full-text search across transcripts and briefs (what people said, what the orb said, what the brief says)
+  const q = (u.searchParams.get("q") || "").trim().toLowerCase();
+  if (q) {
+    const words = q.split(/\s+/).filter(Boolean).slice(0, 6);
+    const has = (t) => { t = String(t || "").toLowerCase(); return words.every((w) => t.includes(w)); };
+    const snip = (t) => { t = String(t || "").replace(/<\/?m>/g, ""); const i = t.toLowerCase().indexOf(words[0]); const a = Math.max(0, i - 40); return (a ? "…" : "") + t.slice(a, a + 120) + (a + 120 < t.length ? "…" : ""); };
+    const ids = ((await redis("ZREVRANGE", "convs", 0, 499)) || []);
+    const convs = (await many("conv:", ids)).filter(Boolean);
+    const hits = [];
+    const briefs = await many("brief:", convs.map((c) => c.briefId || "none"));
+    convs.forEach((c, i) => {
+      const m = (c.messages || []).find((x) => (!x.kind || x.kind === "text") && has(x.text));
+      const b = briefs[i];
+      const btext = b ? [b.headline, ...(b.told || []), b.approach, b.recommendation, ...(b.quickWins || []), ...(b.pitfalls || []), ...(b.phases || []).flatMap((p) => [p.name, ...(p.items || [])])].join(" · ") : "";
+      if (m) hits.push({ convId: c.id, leadId: c.leadId || "", name: c.name || "", where: m.role === "user" ? "Visitor said" : "Orb said", text: snip(m.text), at: c.updatedAt || c.startedAt });
+      else if (b && has(btext)) hits.push({ convId: c.id, leadId: c.leadId || "", name: c.name || b.name || "", where: "In the brief", text: snip(btext), at: c.updatedAt || c.startedAt });
+    });
+    return json({ hits: hits.slice(0, 12) });
+  }
+
   if (u.searchParams.get("view") === "convs") {
     const ids = (await redis("ZREVRANGE", "convs", 0, 1999)) || [];
     if (!ids.length) return json({ convs: [] });

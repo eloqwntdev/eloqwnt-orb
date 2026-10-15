@@ -1318,20 +1318,60 @@ function openNewNode(name = ""){
 
 /* ---------- search (⌘K) ---------- */
 function openSearch(){
-  let q = "", sel = 0, results = [];
+  let q = "", sel = 0, results = [], deep = {q: "", hits: []}, deepT = null;
+  // ask the server to look inside transcripts and briefs too (debounced)
+  const deepSearch = () => {
+    clearTimeout(deepT);
+    const s = q.trim();
+    if (s.length < 3){ deep = {q: "", hits: []}; return; }
+    deepT = setTimeout(async () => {
+      try { const r = await fetch("/api/leads?q=" + encodeURIComponent(s), {cache: "no-store"}); const j = await r.json(); if (q.trim() === s && $("#sres")){ deep = {q: s, hits: j.hits || []}; run(); } } catch {}
+    }, 250);
+  };
+  if (!leads.loaded) loadLeads().then(() => { if ($("#sres")) run(); });
   const run = () => {
-    const s = q.trim().toLowerCase();
-    const hit = n => !s || n.title.toLowerCase().includes(s) || (n.summary || "").toLowerCase().includes(s) || (n.facts || []).some(f => String(f.v).toLowerCase().includes(s));
-    const ns = [...nodes.values()].filter(hit).sort((a, b) => (b.title.toLowerCase().startsWith(s) - a.title.toLowerCase().startsWith(s)) || gapsOf(b).length - gapsOf(a).length).slice(0, s ? 6 : 5);
-    const ps = pb.plays.filter(p => s && (p.title.toLowerCase().includes(s) || JSON.stringify(p).toLowerCase().includes(s))).slice(0, 3);
+    const s = q.trim().toLowerCase(), words = s.split(/\s+/).filter(Boolean);
+    const all = hay => words.every(w => hay.includes(w));
+    const snip = (text, max = 70) => { const t = String(text || ""), i = t.toLowerCase().indexOf(words[0] || ""); if (i < 0 || t.length <= max) return t.slice(0, max); const a = Math.max(0, i - 20); return (a ? "…" : "") + t.slice(a, a + max) + (a + max < t.length ? "…" : ""); };
+    const score = t => { t = t.toLowerCase(); return t.startsWith(s) ? 3 : t.split(/\W+/).some(x => words.some(w => x.startsWith(w))) ? 2 : t.includes(s) ? 1.5 : 0; };
     results = [];
-    ns.forEach(n => { const g = gapsOf(n).length; results.push({g: "Nodes", t: n.title, m: `${TYPE_ONE[n.type]}${g ? ` · ${g} missing` : ""}`, icon: `<span class="cdot ${tcls(n.type)}" style="width:10px;height:10px;margin:0 9px"></span>`, go: () => go("node/" + encodeURIComponent(n.id))}); });
-    ps.forEach(p => results.push({g: "Plays", t: p.title, m: s && p.title.toLowerCase().includes(s) ? "Play" : `Mentions “${q.trim()}”`, icon: `<span class="ib">${ic("book")}</span>`, go: () => go("playbook/" + encodeURIComponent(p.id))}));
-    const top = ns[0];
+    // knowledge base nodes: title, summary and every fact
+    const ns = [...nodes.values()].map(n => {
+      if (!s) return {n, r: 0};
+      const facts = (n.facts || []).filter(f => !isGap(f.v));
+      const hay = [n.title, n.summary, ...facts.map(f => f.k + " " + f.v)].join(" \n ").toLowerCase();
+      if (!all(hay)) return null;
+      const f = facts.find(f => all((f.k + " " + f.v).toLowerCase()));
+      return {n, r: score(n.title) * 10 + (f ? 1 : 0), hint: score(n.title) ? "" : f ? `${f.k}: ${snip(f.v)}` : snip(n.summary)};
+    }).filter(Boolean).sort((a, b) => b.r - a.r || gapsOf(b.n).length - gapsOf(a.n).length).slice(0, s ? 6 : 5);
+    ns.forEach(({n, hint, r}) => { const g = gapsOf(n).length; results.push({w: r, g: "Knowledge base", t: n.title, m: hint || `${TYPE_ONE[n.type]}${g ? ` · ${g} missing` : ""}`, icon: `<span class="cdot ${tcls(n.type)}" style="width:10px;height:10px;margin:0 9px"></span>`, go: () => go("node/" + encodeURIComponent(n.id))}); });
+    if (s){
+      pb.plays.filter(p => all(JSON.stringify(p).toLowerCase())).slice(0, 3).forEach(p => results.push({g: "Plays", t: p.title, m: all(p.title.toLowerCase()) ? "Play" : `Mentions “${q.trim()}”`, icon: `<span class="ib">${ic("book")}</span>`, go: () => go("playbook/" + encodeURIComponent(p.id))}));
+      // leads and conversations: name, email, company, brief headline, what they said first
+      leads.list.filter(l => all([l.name, l.email, l.company, l.headline, l.channel].join(" ").toLowerCase())).slice(0, 5)
+        .forEach(l => results.push({w: Math.max(score(who(l)), score(l.email), score(l.company || "")) * 10 + 1, g: "Leads", t: [who(l), l.company].filter(Boolean).join(" · "), m: `${l.email} · ${ago(l.createdAt)}`, icon: `<span class="ib">${ic("leads")}</span>`, go: () => go("leads/" + encodeURIComponent(l.id))}));
+      leads.convs.filter(c => !c.leadId && all([c.name, c.first, c.channel].join(" ").toLowerCase())).slice(0, 4)
+        .forEach(c => results.push({key: c.id, w: score(c.name || "") * 10, g: "Conversations", t: c.name || "Anonymous visitor", m: `“${snip(c.first, 60)}” · ${ago(c.updatedAt || c.startedAt)}`, icon: `<span class="ib">${ic("chat")}</span>`, go: () => go("leads/c/" + encodeURIComponent(c.id))}));
+      if (deep.q === q.trim()){
+        const listed = new Set(results.map(r => r.key).filter(Boolean));
+        leads.list.forEach(l => { if (results.some(r => r.g === "Leads" && r.go && r.t.startsWith(who(l)))) listed.add(l.id); });
+        deep.hits.filter(h => !listed.has(h.convId) && !(h.leadId && listed.has(h.leadId))).slice(0, 6).forEach(h => results.push({w: 5, g: "Inside conversations and briefs", t: `${h.name || "Anonymous visitor"} · ${h.where}`, m: h.text, icon: `<span class="ib">${ic("note")}</span>`, go: () => go(h.leadId ? "leads/" + encodeURIComponent(h.leadId) : "leads/c/" + encodeURIComponent(h.convId))}));
+      }
+      // screens
+      [["Map", "map", "map"], ["Leads", "leads", "leads"], ["Insights", "insights", "chart"], ["Gaps", "gaps", "gaps"], ["Playbook", "playbook", "book"], ["Import", "import", "import"], ["Interview", "interview", "chat"], ["Export", "export", "export"]]
+        .filter(([t]) => t.toLowerCase().startsWith(s)).forEach(([t, r, i]) => results.push({w: 25, g: "Go to", t, m: "", icon: `<span class="ib">${ic(i)}</span>`, go: () => go(r)}));
+    }
+    const top = ns[0] && ns[0].n;
     if (s && top && sample) results.push({g: "Actions", t: `Interview me about ${top.title}`, m: gapsOf(top).length ? plural(gapsOf(top).length, "question") : "Add more detail", icon: `<span class="ib">${ic("chat")}</span>`, go: () => startInterview(top.id)});
     if (s && top) results.push({g: "Actions", t: `Import a source for ${top.title}`, m: "Link, file or notes", icon: `<span class="ib">${ic("import")}</span>`, go: () => { imp.focus = top.title; go("import"); }});
-    if (s && !ns.some(n => n.title.toLowerCase() === s)) results.push({g: "Actions", t: `Add “${q.trim()}” as a new node`, m: "Case, service, sector…", icon: `<span class="ib">${ic("plus")}</span>`, go: () => openNewNode(q.trim())});
-    if (!s) [["New node", "plus", () => openNewNode()], ["Import a source", "import", () => go("import")], ["Start the interview", "chat", () => startInterview(null)], ["Export to agent", "export", () => go("export")]].forEach(([t, i, f]) => results.push({g: "Actions", t, m: "", icon: `<span class="ib">${ic(i)}</span>`, go: f}));
+    if (s && !ns.some(x => x.n.title.toLowerCase() === s)) results.push({g: "Actions", t: `Add “${q.trim()}” as a new node`, m: "Case, service, sector…", icon: `<span class="ib">${ic("plus")}</span>`, go: () => openNewNode(q.trim())});
+    if (!s) [["New node", "plus", () => openNewNode()], ["Import a source", "import", () => go("import")], ["Start the interview", "chat", () => startInterview(null)], ["Leads", "leads", () => go("leads")], ["Insights", "chart", () => go("insights")], ["Export to agent", "export", () => go("export")]].forEach(([t, i, f]) => results.push({g: "Actions", t, m: "", icon: `<span class="ib">${ic(i)}</span>`, go: f}));
+    // groups whose best match is strongest come first (a lead called "Aziz" beats a case that mentions Aziz); actions stay last
+    if (s){
+      const best = {}; results.forEach(r => { if (r.g !== "Actions") best[r.g] = Math.max(best[r.g] || 0, r.w || 0); });
+      const order = Object.keys(best).sort((a, b) => best[b] - best[a]);
+      results = [...order.flatMap(g => results.filter(r => r.g === g)), ...results.filter(r => r.g === "Actions")];
+    }
     sel = Math.min(sel, Math.max(0, results.length - 1));
     let last = "";
     $("#sres").innerHTML = results.length ? results.map((r, i) => { const h = r.g !== last ? `<span class="label" style="padding:10px 12px 4px">${r.g}</span>` : ""; last = r.g; return h + `<button type="button" class="res" role="option" data-i="${i}" aria-selected="${i === sel}">${r.icon}<span class="grow"><span>${esc(r.t)}</span>${r.m ? `<small>${esc(r.m)}</small>` : ""}</span></button>`; }).join("")
@@ -1340,12 +1380,12 @@ function openSearch(){
   };
   const paint = () => $$("#sres .res").forEach(b => b.setAttribute("aria-selected", +b.dataset.i === sel));
   const pick = i => { const r = results[i]; if (!r) return; closeDialog(true); r.go(); };
-  openDialog(`<div class="bar">${ic("search", 1.5).replace("<svg ", '<svg width="18" height="18" style="color:var(--mut)" ')}<input id="sq" type="search" placeholder="Search nodes, plays and actions" aria-label="Search" autocomplete="off" autofocus><kbd class="desk-only">esc</kbd><button class="btn plain mobile-only" type="button" data-close style="display:inline-flex">Cancel</button></div>
+  openDialog(`<div class="bar">${ic("search", 1.5).replace("<svg ", '<svg width="18" height="18" style="color:var(--mut)" ')}<input id="sq" type="search" placeholder="Search the knowledge base, leads, plays…" aria-label="Search" autocomplete="off" autofocus><kbd class="desk-only">esc</kbd><button class="btn plain mobile-only" type="button" data-close style="display:inline-flex">Cancel</button></div>
     <div id="sres" role="listbox" aria-label="Results" class="stack" style="gap:2px"></div>
     <div class="foot label desk-only"><span>↑ ↓ to move</span><span>↵ to open</span><span>⌘K anywhere</span></div>`,
   dlg => {
     const inp = $("#sq", dlg);
-    inp.oninput = () => { q = inp.value; sel = 0; run(); };
+    inp.oninput = () => { q = inp.value; sel = 0; run(); deepSearch(); };
     inp.onkeydown = e => {
       if (e.key === "ArrowDown"){ e.preventDefault(); sel = Math.min(results.length - 1, sel + 1); paint(); $(`#sres [data-i="${sel}"]`)?.scrollIntoView({block: "nearest"}); }
       else if (e.key === "ArrowUp"){ e.preventDefault(); sel = Math.max(0, sel - 1); paint(); $(`#sres [data-i="${sel}"]`)?.scrollIntoView({block: "nearest"}); }
