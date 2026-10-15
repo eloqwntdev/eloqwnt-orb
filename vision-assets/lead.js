@@ -275,6 +275,11 @@
     $$("[data-resend]", sheet).forEach((b) => b.onclick = resend);
     const f = $("form", sheet);
     if (f) f.onsubmit = submitLead;
+    // fade the bottom edge of a column while there is more to scroll
+    $$(".bprev,.bform", sheet).forEach((col) => {
+      const edge = () => col.classList.toggle("more", col.scrollHeight - col.scrollTop - col.clientHeight > 8);
+      col.onscroll = edge; requestAnimationFrame(edge);
+    });
   }
   function keepTalking() {
     if (briefMode === "chat") { setMode("chat"); showChat(); }

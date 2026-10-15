@@ -205,3 +205,28 @@ a.ccase:hover .lnk svg{transform:translateX(3px)}
 [data-view="chat"] .cfade{display:block}
 .cdock #briefTop{position:absolute;right:8px;bottom:calc(100% + 10px);background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:rise .5s var(--ease) both}
 .is-dark .cdock #briefTop{background:rgba(13,22,27,.55)}
+/* brief sheet: columns scroll inside the frame; the locked part sits in the flow */
+.bsheet{grid-template-rows:minmax(0,1fr)}
+.bprev,.bform{min-height:0}
+.blocked{min-height:0;display:flex;flex-direction:column}
+.blocked .blur{max-height:96px;overflow:hidden}
+.blocked .fade{bottom:auto;height:96px}
+.lockcard{position:relative;left:auto;right:auto;bottom:auto;margin-top:-28px}
+@media (max-height:780px) and (min-width:761px){
+  .bprev,.bform{padding:28px 32px}
+  .bprev{gap:18px}
+  .bp-h{font-size:28px}
+  .bform form{gap:10px}
+  .fld input{height:46px}
+}
+@media (max-width:760px){.blocked{min-height:0}}
+/* right column: never clip the top when the form is taller than the frame */
+.bform{justify-content:flex-start;padding-top:56px}
+.bform form{margin:auto 0}
+/* a soft edge where a column continues below */
+.bprev.more,.bform.more{-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 56px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 56px),transparent)}
+.bprev,.bform{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+@media (max-height:780px) and (min-width:761px){.bform{padding-top:52px}}
+.blocked .blur{min-height:72px}
+.blocked .fade{background:linear-gradient(180deg,transparent 15%,var(--sheet) 95%)}
+.lockcard{margin-top:-20px}
