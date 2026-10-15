@@ -230,3 +230,6 @@ a.ccase:hover .lnk svg{transform:translateX(3px)}
 .blocked .blur{min-height:72px}
 .blocked .fade{background:linear-gradient(180deg,transparent 15%,var(--sheet) 95%)}
 .lockcard{margin-top:-20px}
+.freebie{padding:16px 18px;border:1px solid var(--line);border-radius:16px;background:var(--chip)}
+.freebie h4{display:flex;align-items:center;gap:8px}
+.freebie h4::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--lime-dot);box-shadow:0 0 8px var(--lime-dot)}

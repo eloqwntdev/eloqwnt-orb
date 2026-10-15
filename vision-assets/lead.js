@@ -5,7 +5,7 @@
   const EV = window.EV;
   const $ = (s, el = document) => el.querySelector(s), $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const app = $("#root");
-  const CAL = "https://calendly.com/eloqwnt";
+  const CAL = "https://calendly.com/eloqwnt/discovery-call";
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const rich = (t) => esc(t).replace(/&lt;m&gt;([\s\S]*?)&lt;\/m&gt;/g, '<span class="m">$1</span>').replace(/&lt;\/?m&gt;/g, "");
@@ -312,15 +312,16 @@
       <h2 class="bp-h">${esc(p.headline)}</h2>
       ${p.told?.length ? `<div class="bsec"><h4>What you told us</h4><ul>${p.told.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>` : ""}
       ${p.approach ? `<div class="bsec"><h4>How we’d approach it</h4><p>${esc(p.approach)}</p></div>` : ""}
+      ${p.freebie ? `<div class="bsec freebie"><h4>A quick win for this week</h4><p>${esc(p.freebie)}</p></div>` : ""}
       <div class="blocked"><div class="blur" aria-hidden="true"><div class="bsec"><h4>Plan and timeline</h4><p>${esc(p.teaser || "Phase 1 and phase 2 with weeks and deliverables.")}</p></div></div><div class="fade"></div>
         <div class="lockcard"><b>${svg(I.lock)}In the full brief</b><ul>${(p.locked || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div></div>
-      <div class="bmcta"><button class="btnp wide" type="button" data-toform>Email me the full brief ${svg(I.arrow)}</button><span class="fine" style="text-align:center">Free. Plan, prices and matching work.</span></div>
+      <div class="bmcta"><button class="btnp wide" type="button" data-toform>Email me the full brief ${svg(I.arrow)}</button><span class="fine" style="text-align:center">Free. Plan, prices, quick wins and more.</span></div>
     </div>`;
   }
   function formHTML() {
     const p = brief.p;
     return `<div class="bform"><form novalidate>
-      <div><h3>Get the full brief by email</h3><p class="fine" style="font-size:15px">Plan, prices and matching cases. Free, no call required.</p></div>
+      <div><h3>Get the full brief by email</h3><p class="fine" style="font-size:15px">Plan and prices, quick wins for this week, and questions to ask any agency. Free, no call required.</p></div>
       <div class="fld"><label for="bf-name">Name</label><input id="bf-name" name="name" autocomplete="name" value="${esc(name || p.name || "")}" maxlength="80"></div>
       <div class="fld"><label for="bf-email">Work email</label><input id="bf-email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@company.com" required maxlength="200"></div>
       <div class="fld"><label for="bf-company">Company <span class="opt">· optional</span></label><input id="bf-company" name="company" autocomplete="organization" value="${esc(p.company || "")}" maxlength="120"></div>
