@@ -423,3 +423,10 @@ pre.md{margin:0;padding:16px 18px;border-radius:16px;font-family:var(--f-mono);f
   .lstats>div{padding:10px 12px;gap:4px}
   .lstats b{font-size:20px}
 }
+/* leads rows: more air, aligned right columns */
+.lrow{padding:18px 4px;gap:16px}
+.lrow .grow{gap:5px}
+.lrow .grow small{font-size:13px;line-height:1.45}
+.lmeta{gap:7px;min-width:150px}
+.ltime{width:84px;min-width:0}
+@media (max-width:760px){.lrow{padding:15px 0;gap:12px}.ltime{width:auto}}
