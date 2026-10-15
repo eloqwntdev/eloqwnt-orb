@@ -1981,7 +1981,7 @@ function convRowHtml(c){
   const tag = c.leadId ? `<span class="chip lchip ok">Lead</span>` : c.brief ? `<span class="chip lchip">Brief</span>` : "";
   return `<a class="rowlink lrow" href="#/leads/c/${encodeURIComponent(c.id)}"><span class="avatar">${esc((c.name || "V")[0].toUpperCase())}</span>
     <span class="grow"><span class="lname">${esc(c.name || "Anonymous visitor")} ${tag}</span><small>${esc(c.first ? "“" + c.first + "”" : "")}</small></span>
-    <span class="lmeta desk-only"><span class="label">${esc(c.channel)} · ${esc(c.mode || "chat")}</span><span class="label">${plural(c.turns, "message")}</span></span>
+    <span class="lmeta desk-only"><span class="label">${esc(c.channel)} · ${esc(c.mode || "chat")}</span><span class="label">${plural(c.turns, "message")}${c.expired ? " · archived" : ""}</span></span>
     <span class="label ltime">${esc(ago(c.updatedAt || c.startedAt))}</span><span class="chev">${ic("chev")}</span></a>`;
 }
 function leadsList(){
@@ -1999,7 +1999,7 @@ function leadsList(){
     <div class="stack" style="gap:10px"><div class="seg text" role="group" aria-label="Period" style="align-self:flex-start">${PERIODS.map(([k, t]) => `<button type="button" data-lp="${k}" aria-pressed="${leads.period === k}">${t}</button>`).join("")}</div><div class="lstats">${leadsStats().map(([k, v]) => `<div class="vcard"><span class="note">${k}</span><b>${v}</b></div>`).join("")}</div></div>
     <div class="seg" role="group" aria-label="Show" style="align-self:flex-start"><button type="button" data-lt="leads" aria-pressed="${tab === "leads"}">Leads ${lp.length}</button><button type="button" data-lt="convs" aria-pressed="${tab === "convs"}">Conversations ${cp.length}</button></div>
     ${rows.length ? `<div class="card vcard stagger">${rows.map(tab === "leads" ? leadRowHtml : convRowHtml).join("")}</div>` : empty}
-    ${tab === "convs" ? `<p class="note">Conversations are kept for 90 days. Voice calls show up here once the visitor asks for a brief.</p>` : ""}
+    ${tab === "convs" ? `<p class="note">Transcripts are kept for 90 days; the summary of each conversation stays for good, so the numbers hold for any period. Voice calls show up here once the visitor asks for a brief.</p>` : ""}
   </div>`, bind: v => {
     $$("[data-lt]", v).forEach(b => b.onclick = () => { leads.tab = b.dataset.lt; refresh(); });
     $$("[data-lp]", v).forEach(b => b.onclick = () => { leads.period = b.dataset.lp; store.set("kb-lperiod", leads.period); refresh(); });
@@ -2107,7 +2107,7 @@ function convDetail(){
       <div class="pcard vcard"><header><b>Where they came from</b></header>${dl(sourceRows(c.source, c.channel, c.mode).map(([k, v]) => [k, esc(v)]))}</div>
     </div>
     ${briefHtml(d.brief)}
-    ${transcriptHtml(c)}
+    ${c.expired ? `<p class="note">The transcript was deleted after 90 days. The summary above stays for your stats.</p>` : transcriptHtml(c)}
   </div>`};
 }
 VIEW.leads = () => {

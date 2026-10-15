@@ -4,7 +4,7 @@
 // GET ?id=<lead> or ?conv=<conv> → one lead or conversation with its brief and transcript
 // DELETE ?id=<lead> → remove a test lead from the list (the GHL contact stays in GHL)
 import { isAuthed, json, redis, redisConfigured } from "../lib/server.js";
-import { getBrief, loadConv } from "../lib/conv.js";
+import { convSummary, getBrief, loadConv } from "../lib/conv.js";
 
 const ID = /^[a-z0-9]{8,20}$/;
 const parse = (raw) => { try { return raw ? JSON.parse(raw) : null; } catch { return null; } };
@@ -18,8 +18,6 @@ async function guard(request) {
 const ghlUrl = (contactId) => process.env.GHL_LOCATION_ID && contactId
   ? `https://app.gohighlevel.com/v2/location/${process.env.GHL_LOCATION_ID}/contacts/detail/${contactId}` : "";
 
-const userTurns = (c) => (c?.messages || []).filter((m) => m.role === "user" && (!m.kind || m.kind === "text"));
-const firstAsk = (c) => (userTurns(c)[0]?.text || "").slice(0, 160);
 
 function leadRow(l, brief) {
   return {
@@ -29,11 +27,9 @@ function leadRow(l, brief) {
   };
 }
 
-function convRow(c) {
-  return {
-    id: c.id, startedAt: c.startedAt, updatedAt: c.updatedAt, name: c.name || "", mode: c.mode, channel: c.channel || "direct",
-    turns: userTurns(c).length, first: firstAsk(c), brief: !!c.briefId, leadId: c.leadId || "",
-  };
+function convRow(sum, expired = false) {
+  const { source, briefId, ...row } = sum;
+  return { ...row, expired };
 }
 
 function transcript(c) {
@@ -67,21 +63,31 @@ export async function GET(request) {
   if (convId) {
     if (!ID.test(convId)) return json({ error: "That id isn’t valid." }, 400);
     const conv = await loadConv(convId);
-    if (!conv) return json({ error: "This conversation has expired." }, 404);
-    const brief = conv.briefId ? await getBrief(conv.briefId) : null;
+    const sum = conv ? convSummary(conv) : parse(await redis("HGET", "convsums", convId));
+    if (!sum) return json({ error: "This conversation doesn’t exist any more." }, 404);
+    const brief = sum.briefId ? await getBrief(sum.briefId) : null;
     return json({
-      conv: { ...convRow(conv), source: conv.source || {}, messages: transcript(conv), events: conv.events || [] },
+      conv: { ...convRow(sum, !conv), source: sum.source || {}, messages: conv ? transcript(conv) : [], events: conv?.events || [] },
       brief: brief ? { ...brief, convId: undefined, contactId: undefined } : null,
     });
   }
 
   if (u.searchParams.get("view") === "convs") {
-    const ids = await redis("ZREVRANGE", "convs", 0, 499);
-    const convs = (await many("conv:", ids || [])).filter(Boolean);
-    // expired conversations drop out of Redis but stay in the index; tidy the index as we go
-    const gone = (ids || []).filter((x, i) => !convs.some((c) => c.id === x));
-    if (gone.length) redis("ZREM", "convs", ...gone).catch(() => {});
-    return json({ convs: convs.filter((c) => userTurns(c).length).map(convRow) });
+    const ids = (await redis("ZREVRANGE", "convs", 0, 1999)) || [];
+    if (!ids.length) return json({ convs: [] });
+    const sums = ((await redis("HMGET", "convsums", ...ids)) || []).map(parse);
+    // conversations from before summaries existed: build the summary from the full record while it's still there
+    const missing = ids.filter((_, i) => !sums[i]);
+    if (missing.length) {
+      const full = await many("conv:", missing);
+      const add = [];
+      full.forEach((c) => { if (c) { const s = convSummary(c); sums[ids.indexOf(c.id)] = s; add.push(c.id, JSON.stringify(s)); } });
+      if (add.length) await redis("HSET", "convsums", ...add);
+    }
+    const live = new Set();
+    const exists = await Promise.all(ids.map((x, i) => sums[i] && new Date(sums[i].updatedAt) < Date.now() - 85 * 864e5 ? redis("EXISTS", "conv:" + x) : 1));
+    ids.forEach((x, i) => { if (exists[i]) live.add(x); });
+    return json({ convs: sums.filter((s) => s && s.turns).map((s) => convRow(s, !live.has(s.id))) });
   }
 
   const ids = await redis("ZREVRANGE", "leads", 0, 999);
