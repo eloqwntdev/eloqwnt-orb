@@ -272,3 +272,4 @@ a.ccase:hover .lnk svg{transform:translateX(3px)}
   [data-mode="chat"] .orb-ui svg{width:18px;height:23px}
   [data-mode="chat"] .orb-ui .lbl{font-size:12px;line-height:14px}
 }
+.composer textarea::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

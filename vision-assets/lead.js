@@ -98,7 +98,10 @@
     $("[data-tovoice]", form).addEventListener("click", () => { setMode("voice"); if (EV.live && !EV.live.active) EV.live.start(); });
     form._fit = fit;
   });
-  if (matchMedia("(max-width:640px)").matches) $("#cIn0").placeholder = "Type your question";
+  // A short placeholder on narrow screens, so it never wraps inside the one-line field.
+  const narrow = matchMedia("(max-width:760px)");
+  const setPh = () => { $("#cIn0").placeholder = narrow.matches ? "Type your question" : "Type your question, or switch to voice"; $("#cdock textarea").placeholder = narrow.matches ? "Reply" : "Reply, or switch to voice"; };
+  setPh(); narrow.addEventListener?.("change", setPh);
   const refreshComposers = () => $$("[data-composer]").forEach((f) => f._fit && f._fit());
   $$("#cstart .chip").forEach((c) => c.addEventListener("click", () => sendText(QUESTIONS[+c.dataset.q] || c.textContent)));
 
