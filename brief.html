@@ -103,19 +103,21 @@ footer a{color:var(--ink-3)}
 <path d="M65.9343 22.1145C65.8835 22.1145 65.8436 22.0746 65.8436 22.0238V11.069C65.8436 10.3167 65.666 9.55894 65.327 8.87551C65.0134 8.24103 64.5638 7.73344 63.9928 7.36544C63.4145 6.99382 62.722 6.80529 61.9352 6.80529C61.2083 6.80529 60.5484 6.98838 59.9774 7.35094C59.4245 7.70263 58.9658 8.21384 58.6196 8.87007C58.286 9.50093 58.1247 10.2116 58.1247 11.0436C58.1247 11.8757 58.2951 12.628 58.6305 13.2679C58.9858 13.9441 59.4607 14.4807 60.0046 14.8179C60.5484 15.1569 61.4077 15.3853 62.1999 15.3853H64.9409C64.9934 15.3853 65.0369 15.4288 65.0315 15.4814C64.93 16.4603 63.2894 17.4102 61.6452 17.4102C61.6452 17.4102 61.5708 17.4138 61.3986 17.4138C60.184 17.4084 59.265 17.1637 58.4057 16.618C57.5664 16.0814 56.8811 15.3001 56.3681 14.294C55.8786 13.3332 55.623 12.2383 55.6085 11.04C55.6085 9.87256 55.8551 8.79756 56.3427 7.84946C56.8394 6.87236 57.5283 6.09829 58.3912 5.54538C59.2613 4.98704 60.3037 4.70424 61.4893 4.70424C62.383 4.70424 63.2042 4.88008 63.9293 5.22633C64.6363 5.56532 65.2255 6.07654 65.6787 6.7509L65.8309 6.9775L65.9379 5.08674C65.9397 5.03961 65.9796 5.00154 66.0285 5.00154H68.1967C68.2474 5.00154 68.2873 5.04142 68.2873 5.09218V22.0238C68.2873 22.0746 68.2456 22.1145 68.1967 22.1145H65.9343Z" fill="currentColor"/>
 </g>
 </g>
-</svg><span>vision</span></a><a class="ghost hide-sm" href="https://calendly.com/eloqwnt/discovery-call" target="_blank" rel="noopener"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5h13v11h-13zM3.5 8.5h13M7 3v3.5M13 3v3.5"/></svg>Book a call</a></header>
+</svg><span>vision</span></a><a class="ghost hide-sm" id="topBook" href="https://calendly.com/eloqwnt/discovery-call" target="_blank" rel="noopener"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5h13v11h-13zM3.5 8.5h13M7 3v3.5M13 3v3.5"/></svg>Book a call</a></header>
 <div id="out"><div class="state" aria-busy="true"><p>Opening your brief…</p></div></div>
 <script>
 (() => {
   try { const t = localStorage.getItem("ev-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
   const out = document.getElementById("out");
   const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const CAL = "https://calendly.com/eloqwnt/discovery-call";
+  let CAL = "https://calendly.com/eloqwnt/discovery-call";
   const cal = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5h13v11h-13zM3.5 8.5h13M7 3v3.5M13 3v3.5"/></svg>';
   const arrow = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>';
   const id = (location.pathname.match(/\/brief\/([a-z0-9]+)/) || [])[1] || new URLSearchParams(location.search).get("id");
   const fail = (h, p) => { out.innerHTML = `<div class="state"><h1>${h}</h1><p>${p}</p><a class="btn" href="/">Talk to the orb ${arrow}</a></div>`; };
   if (!id) return fail("No brief here", "This link is missing its brief. Ask the orb for a new one.");
+  CAL = "/book/" + encodeURIComponent(id) + "?from=page"; // counted, then on to Calendly with their name and email filled in
+  document.getElementById("topBook").href = CAL;
   fetch("/api/brief?id=" + encodeURIComponent(id)).then(async (r) => {
     const b = await r.json().catch(() => ({}));
     if (!r.ok) return fail(r.status === 403 ? "Almost there" : "Brief not found", esc(b.error || "Ask the orb for a new one."));

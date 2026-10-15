@@ -24,6 +24,7 @@ function leadRow(l, brief) {
     id: l.id, createdAt: l.createdAt, name: l.name || "", email: l.email, company: l.company || "",
     mode: l.mode, channel: l.channel || "direct", headline: brief?.headline || "",
     mail: l.mail?.status || (l.ghl?.status === "sent" ? "ghl" : "off"), ghl: l.ghl?.status || "off",
+    call: l.booking?.status || (l.booking?.clicks?.length ? "clicked" : ""), callAt: l.booking?.start || "",
   };
 }
 
@@ -77,7 +78,7 @@ export async function GET(request) {
     if (!ids.length) return json({ convs: [] });
     const sums = ((await redis("HMGET", "convsums", ...ids)) || []).map(parse);
     // conversations from before summaries existed: build the summary from the full record while it's still there
-    const missing = ids.filter((_, i) => !sums[i] || sums[i].v !== 2);
+    const missing = ids.filter((_, i) => !sums[i] || sums[i].v !== 3);
     if (missing.length) {
       const full = await many("conv:", missing);
       const add = [];

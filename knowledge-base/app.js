@@ -1932,7 +1932,9 @@ const fullDate = d => d ? new Date(d).toLocaleString("en-US", {month: "short", d
 const plainOrb = t => String(t || "").replace(/<\/?m>/g, "").replace(/<[^>]+>/g, "");
 const who = l => l.name || (l.email ? l.email.split("@")[0] : "") || "Visitor";
 const initial = l => (who(l)[0] || "V").toUpperCase();
-const MAIL_ST = {sent: ["Sent", "ok"], ghl: ["Via GHL", "ok"], failed: ["Failed", "bad"], off: ["Off", "off"], pending: ["Pending", "off"]};
+const MAIL_ST = {sent: ["Sent", "ok"], ghl: ["Via GHL", "ok"], failed: ["Failed", "bad"], off: ["Off", "off"], pending: ["Pending", "off"], booked: ["Booked", "ok"], canceled: ["Canceled", "bad"], clicked: ["Clicked", "off"]};
+const CALL_ST = {booked: "booked", canceled: "canceled", clicked: "clicked"};
+const FROM_NAME = {email: "the email", page: "the brief page", chat: "the chat", voice: "a voice call", site: "the site"};
 const stDot = (k, label) => { const [t, c] = MAIL_ST[k] || MAIL_ST.off; return `<span class="lst ${c}" title="${esc(label)}: ${t}"><i></i>${esc(label)}</span>`; };
 
 async function loadLeads(){
@@ -1976,7 +1978,7 @@ function leadsStats(){
 function leadRowHtml(l){
   return `<a class="rowlink lrow" href="#/leads/${encodeURIComponent(l.id)}"><span class="avatar">${esc(initial(l))}</span>
     <span class="grow"><span class="lname">${esc(who(l))}${l.company ? `<span class="lco"> · ${esc(l.company)}</span>` : ""}</span><small>${esc(l.headline || l.email)}</small></span>
-    <span class="lmeta desk-only"><span class="label">${esc(l.channel)} · ${esc(l.mode || "chat")}</span><span class="lsts">${stDot(l.mail, "Email")}${stDot(l.ghl, "GHL")}</span></span>
+    <span class="lmeta desk-only"><span class="label">${esc(l.channel)} · ${esc(l.mode || "chat")}</span><span class="lsts">${stDot(l.mail, "Email")}${stDot(l.ghl, "GHL")}${l.call ? stDot(CALL_ST[l.call], "Call") : ""}</span></span>
     <span class="label ltime">${esc(ago(l.createdAt))}</span><span class="chev">${ic("chev")}</span></a>`;
 }
 function convRowHtml(c){
@@ -2046,6 +2048,14 @@ function sourceRows(src = {}, channel, mode){
 }
 const dl = rows => `<dl>${rows.map(([k, v, cls]) => `<dt>${esc(k)}</dt><dd ${cls ? `class="${cls}"` : ""}>${v}</dd>`).join("")}</dl>`;
 
+function callHtml(b){
+  if (!b || (!b.status && !(b.clicks || []).length)) return `<span class="lst off"><i></i>Not yet</span>`;
+  const froms = [...new Set((b.clicks || []).map(c => FROM_NAME[c.from] || c.from))];
+  const clicked = froms.length ? `<small>Clicked from ${esc(froms.join(", "))}</small>` : "";
+  if (b.status === "booked") return `${stDot("booked", "Booked")}<small>${esc(fullDate(b.start))}</small>${clicked}`;
+  if (b.status === "canceled") return `${stDot("canceled", "Canceled")}<small>Was ${esc(fullDate(b.start))}</small>`;
+  return `${stDot("clicked", "Clicked, not booked")}${clicked}`;
+}
 function leadDetail(){
   const id = route.arg, d = leads.detail;
   const back = backBtn("#/leads");
@@ -2057,6 +2067,7 @@ function leadDetail(){
   const statusRows = [
     ["Brief email", `${stDot(mailSt, MAIL_ST[mailSt] ? MAIL_ST[mailSt][0] : "Off")}${l.mail && l.mail.error ? `<small class="lerr">${esc(l.mail.error)}</small>` : ""}`],
     ["GoHighLevel", `${stDot(l.ghl ? l.ghl.status : "off", MAIL_ST[l.ghl && l.ghl.status] ? MAIL_ST[l.ghl.status][0] : "Off")}${l.ghl && l.ghl.error ? `<small class="lerr">${esc(l.ghl.error)}</small>` : ""}${l.ghl && l.ghl.opportunityId ? `<small>Opportunity in “Orb leads”</small>` : ""}`],
+    ["Discovery call", callHtml(l.booking)],
     ["Newsletter", l.newsletter ? "Opted in" : "No"],
     ["Asked", esc(fullDate(l.createdAt))],
   ];
@@ -2137,8 +2148,34 @@ function groupBy(convs, keyFn){
   }
   return [...m.values()].sort((a, b) => b.n - a.n || b.lead - a.lead);
 }
+let cal = {state: "idle"};
+async function loadCal(){
+  cal.state = "loading";
+  try { const r = await fetch("/api/calendly-setup", {cache: "no-store"}); cal = {state: "done", ...(await r.json().catch(() => ({})))}; }
+  catch { cal = {state: "done", error: "Couldn’t check Calendly."}; }
+  if (route.view === "insights") refresh();
+}
+function calCard(){
+  if (cal.state !== "done" || cal.connected) return "";
+  const body = !cal.token
+    ? `Add <b>CALENDLY_TOKEN</b> in Vercel (Calendly → Integrations → API and webhooks → Personal access token), redeploy, then come back here.`
+    : cal.error ? esc(cal.error) : `Calendly will tell the dashboard about every booking and cancellation, matched to the lead.`;
+  return `<div class="card vcard pad row" style="gap:12px;flex-wrap:wrap"><span style="flex:1;min-width:220px;font-size:13.5px;line-height:1.5"><b style="font-weight:450">See real bookings, not just clicks.</b> ${body}</span>${cal.token ? `<button class="btn cta" type="button" data-cal ${cal.busy ? "disabled" : ""}>${cal.busy ? "Connecting…" : "Connect Calendly"}</button>` : ""}</div>`;
+}
+function bindCal(v){
+  $$("[data-cal]", v).forEach(b => b.onclick = async () => {
+    cal.busy = true; refresh();
+    try {
+      const r = await fetch("/api/calendly-setup", {method: "POST"}); const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "Couldn’t connect.");
+      cal = {state: "done", token: true, connected: true, account: j.account}; toast("Calendly connected");
+    } catch (e){ cal.busy = false; cal.error = e.message; toast(e.message, false); }
+    refresh();
+  });
+}
 VIEW.insights = () => {
   if (!leads.loaded) loadLeads();
+  if (cal.state === "idle") loadCal();
   const top = {title: "Insights", sub: "How the orb’s conversations go", right: `<a class="btn vg" href="#/leads">${ic("leads")}Leads</a>`, mobileLeft: backBtn("#/leads")};
   if (!leads.loaded) return {top, body: `<div class="page wide"><p class="note">Loading…</p></div>`};
   if (leads.err) return {top, body: `<div class="page wide"><p class="note err">${esc(leads.err)}</p></div>`};
@@ -2155,7 +2192,8 @@ VIEW.insights = () => {
     ["Was offered a brief", convs.filter(c => c.offered || c.briefOpened).length, "The orb offered the brief, or the visitor opened it."],
     ["Got a brief", convs.filter(c => c.brief).length, "The brief preview was made."],
     ["Left their email", convs.filter(c => c.leadId).length, "Asked for the full brief by email."],
-    ["Clicked to book a call", convs.filter(c => c.booked).length, "Opened the Calendly link."],
+    ["Clicked to book a call", convs.filter(c => c.booked).length, "Opened the booking link, from the site, the email or the brief page."],
+    ["Booked a call", convs.filter(c => c.bookedCall).length, "Calendly confirmed a booking (cancelled ones don’t count)."],
   ];
   let worst = -1, worstRate = 0;
   for (let i = 1; i < steps.length - 1; i++){ const a = steps[i - 1][1], b = steps[i][1]; if (a >= 3 && (a - b) / a > worstRate){ worstRate = (a - b) / a; worst = i; } }
@@ -2190,9 +2228,10 @@ VIEW.insights = () => {
     <div class="card vcard pad ifun">${st.map(r => `<div class="irow" title="${r.n} of ${stopped.length} chats ended while the orb was at this stage"><span class="it">${esc(r.name)}</span><span class="ibar mut"><i style="width:${pct(r.n, stopped.length)}%"></i></span><span class="in"><b>${r.n}</b><span class="label">${pct(r.n, stopped.length)}%</span></span><span class="idrop"></span></div>`).join("")}</div>
     <p class="note">The stage the orb was in at its last reply. Lots of chats ending in Discovery means the questions run too long; ending in Close means the offer isn’t landing.</p></section>`;
 
-  return {top, bind, body: `<div class="page wide">
+  return {top, bind: v => { bind(v); bindCal(v); }, body: `<div class="page wide">
     <h1 class="h1 big vtx desk-only">How conversations go</h1>
     ${filters}
+    ${calCard()}
     ${funnel}
     ${along}
     ${ends}

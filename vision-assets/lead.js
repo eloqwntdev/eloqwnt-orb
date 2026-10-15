@@ -242,7 +242,19 @@
     if (mode === "voice") { voiceEvents.add(event); if (voiceConvId) post({ type: "event", convId: voiceConvId, event }); else trackVoice(); }
     else if (chat.convId) post({ type: "event", convId: chat.convId, event });
   }
-  document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest('a[href*="calendly.com"]')) track("book_click", sheet && !sheet.hidden ? briefMode : undefined); }, true);
+  // "Book a call" goes through /api/book so the click, and the booking Calendly reports later, land on this conversation
+  function bookUrl(mode) {
+    mode = mode || (app.dataset.mode === "chat" ? "chat" : "voice");
+    const id = mode === "voice" ? voiceConvId : chat.convId;
+    return id ? `/api/book?c=${encodeURIComponent(id)}&from=${mode}` : CAL;
+  }
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest && e.target.closest('a[href*="calendly.com"],a[href^="/api/book"]');
+    if (!a) return;
+    const mode = sheet && !sheet.hidden ? briefMode : undefined;
+    a.href = bookUrl(mode);
+    if (a.href.includes("calendly.com")) track("book_click", mode);
+  }, true);
 
   let brief = null, briefMode = "chat", lastFocus = null, stepTimer = null;
 
@@ -546,6 +558,7 @@
     openBrief,
     voiceEnded() { trackVoice(); voiceNudge(); },
     track,
+    async openBooking() { if (!voiceConvId) await trackVoice(); window.open(bookUrl("voice"), "_blank", "noopener"); },
     setMode,
   };
 })();

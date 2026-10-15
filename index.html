@@ -306,7 +306,7 @@ svg{display:block}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
 </style>
-<link rel="stylesheet" href="/vision-assets/lead.css?v=004716">
+<link rel="stylesheet" href="/vision-assets/lead.css?v=005817">
 </head>
 <body>
 <div id="root" class="" data-view="voice" data-state="idle">
@@ -974,8 +974,8 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
               return "The brief form is now on screen. Tell them it takes a few seconds and the full version goes to their email.";
             },
             open_booking: () => {
-              window.EVLead && window.EVLead.track("book_click", "voice");
-              window.open("https://calendly.com/eloqwnt/discovery-call", "_blank", "noopener");
+              if (window.EVLead) window.EVLead.openBooking();
+              else window.open("https://calendly.com/eloqwnt/discovery-call", "_blank", "noopener");
               return "The booking calendar is open in a new tab.";
             }
           },
@@ -1066,6 +1066,6 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
   }
 })();
 </script>
-<script src="/vision-assets/lead.js?v=004716" defer></script>
+<script src="/vision-assets/lead.js?v=005817" defer></script>
 </body>
 </html>
