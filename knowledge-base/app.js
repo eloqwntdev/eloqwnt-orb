@@ -1919,7 +1919,7 @@ function markExportedSoon(){ markExported(); if (route.view === "export") setTim
    conversation with the orb (with or without a lead).
    Data: /api/leads. Routes: #/leads, #/leads/<leadId>, #/leads/c/<convId>.
    ===================================================================== */
-let leads = {loaded: false, list: [], convs: [], tab: "leads", err: "", detail: null, busy: "", confirmDel: false};
+let leads = {loaded: false, list: [], convs: [], tab: "leads", period: store.get("kb-lperiod", "7"), err: "", detail: null, busy: "", confirmDel: false};
 const ago = d => {
   const s = (Date.now() - new Date(d).getTime()) / 1000;
   if (!isFinite(s)) return "";
@@ -1959,12 +1959,17 @@ async function loadLeadDetail(kind, id){
   if (route.view === "leads" && route.arg) refresh();
 }
 
+const PERIODS = [["1", "Today"], ["7", "7 days"], ["30", "30 days"], ["all", "All time"]];
+function since(){
+  if (leads.period === "all") return 0;
+  if (leads.period === "1"){ const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }
+  return Date.now() - (+leads.period) * 864e5;
+}
+const inPeriod = d => new Date(d).getTime() >= since();
 function leadsStats(){
-  const week = Date.now() - 7 * 864e5;
-  const l7 = leads.list.filter(l => new Date(l.createdAt) > week).length;
-  const c7 = leads.convs.filter(c => new Date(c.startedAt) > week).length;
-  const b7 = leads.convs.filter(c => new Date(c.startedAt) > week && c.brief).length;
-  return [["Conversations", c7], ["Briefs made", b7], ["Leads", l7], ["Conversion", c7 ? Math.round(l7 * 100 / c7) + "%" : "–"]];
+  const ls = leads.list.filter(l => inPeriod(l.createdAt)), cs = leads.convs.filter(c => inPeriod(c.startedAt));
+  const l = ls.length, c = cs.length, b = cs.filter(x => x.brief).length;
+  return [["Conversations", c], ["Briefs made", b], ["Leads", l], ["Conversion", c ? Math.min(100, Math.round(l * 100 / c)) + "%" : "–"]];
 }
 function leadRowHtml(l){
   return `<a class="rowlink lrow" href="#/leads/${encodeURIComponent(l.id)}"><span class="avatar">${esc(initial(l))}</span>
@@ -1983,17 +1988,22 @@ function leadsList(){
   const top = {title: "Leads", sub: leads.loaded && !leads.err ? `${plural(leads.list.length, "lead")} · ${plural(leads.convs.length, "conversation")}` : ""};
   if (!leads.loaded) return {top, body: `<div class="page wide"><p class="note">Loading…</p></div>`};
   if (leads.err) return {top, body: `<div class="page wide"><p class="note err">${esc(leads.err)}</p><button class="btn vg" type="button" data-reload style="align-self:flex-start">Try again</button></div>`, bind: v => { $("[data-reload]", v).onclick = () => { leads.loaded = false; refresh(); loadLeads(); }; }};
-  const tab = leads.tab, rows = tab === "leads" ? leads.list : leads.convs;
+  const tab = leads.tab;
+  const lp = leads.list.filter(l => inPeriod(l.createdAt)), cp = leads.convs.filter(c => inPeriod(c.startedAt));
+  const rows = tab === "leads" ? lp : cp;
   const empty = tab === "leads"
-    ? `<div class="card vcard pad stack"><p class="lead" style="font-size:15px">No leads yet. When a visitor asks the orb for their brief by email, they show up here with the brief, the conversation and where they came from.</p></div>`
-    : `<div class="card vcard pad"><p class="lead" style="font-size:15px">No conversations yet.</p></div>`;
+    ? leads.list.length ? `<div class="card vcard pad"><p class="lead" style="font-size:15px">No leads in this period.</p></div>` : `<div class="card vcard pad stack"><p class="lead" style="font-size:15px">No leads yet. When a visitor asks the orb for their brief by email, they show up here with the brief, the conversation and where they came from.</p></div>`
+    : `<div class="card vcard pad"><p class="lead" style="font-size:15px">No conversations ${leads.convs.length ? "in this period" : "yet"}.</p></div>`;
   return {top, body: `<div class="page wide">
     <h1 class="h1 big vtx desk-only">Who talked to the orb</h1>
-    <div class="stack" style="gap:8px"><span class="label">Last 7 days</span><div class="lstats">${leadsStats().map(([k, v]) => `<div class="vcard"><span class="note">${k}</span><b>${v}</b></div>`).join("")}</div></div>
-    <div class="seg" role="group" aria-label="Show" style="align-self:flex-start"><button type="button" data-lt="leads" aria-pressed="${tab === "leads"}">Leads ${leads.list.length}</button><button type="button" data-lt="convs" aria-pressed="${tab === "convs"}">Conversations ${leads.convs.length}</button></div>
+    <div class="stack" style="gap:10px"><div class="seg text" role="group" aria-label="Period" style="align-self:flex-start">${PERIODS.map(([k, t]) => `<button type="button" data-lp="${k}" aria-pressed="${leads.period === k}">${t}</button>`).join("")}</div><div class="lstats">${leadsStats().map(([k, v]) => `<div class="vcard"><span class="note">${k}</span><b>${v}</b></div>`).join("")}</div></div>
+    <div class="seg" role="group" aria-label="Show" style="align-self:flex-start"><button type="button" data-lt="leads" aria-pressed="${tab === "leads"}">Leads ${lp.length}</button><button type="button" data-lt="convs" aria-pressed="${tab === "convs"}">Conversations ${cp.length}</button></div>
     ${rows.length ? `<div class="card vcard stagger">${rows.map(tab === "leads" ? leadRowHtml : convRowHtml).join("")}</div>` : empty}
     ${tab === "convs" ? `<p class="note">Conversations are kept for 90 days. Voice calls show up here once the visitor asks for a brief.</p>` : ""}
-  </div>`, bind: v => { $$("[data-lt]", v).forEach(b => b.onclick = () => { leads.tab = b.dataset.lt; refresh(); }); }};
+  </div>`, bind: v => {
+    $$("[data-lt]", v).forEach(b => b.onclick = () => { leads.tab = b.dataset.lt; refresh(); });
+    $$("[data-lp]", v).forEach(b => b.onclick = () => { leads.period = b.dataset.lp; store.set("kb-lperiod", leads.period); refresh(); });
+  }};
 }
 
 function briefHtml(b){

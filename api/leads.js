@@ -76,7 +76,7 @@ export async function GET(request) {
   }
 
   if (u.searchParams.get("view") === "convs") {
-    const ids = await redis("ZREVRANGE", "convs", 0, 149);
+    const ids = await redis("ZREVRANGE", "convs", 0, 499);
     const convs = (await many("conv:", ids || [])).filter(Boolean);
     // expired conversations drop out of Redis but stay in the index; tidy the index as we go
     const gone = (ids || []).filter((x, i) => !convs.some((c) => c.id === x));
@@ -84,7 +84,7 @@ export async function GET(request) {
     return json({ convs: convs.filter((c) => userTurns(c).length).map(convRow) });
   }
 
-  const ids = await redis("ZREVRANGE", "leads", 0, 199);
+  const ids = await redis("ZREVRANGE", "leads", 0, 999);
   const leads = (await many("lead:", ids || [])).filter(Boolean);
   const briefs = await many("brief:", leads.map((l) => l.briefId));
   return json({ leads: leads.map((l, i) => leadRow(l, briefs[i])) });
