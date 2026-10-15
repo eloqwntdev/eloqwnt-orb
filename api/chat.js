@@ -12,12 +12,12 @@ const REPLY_TOOL = {
     type: "object",
     properties: {
       reply: { type: "string", description: "What the orb says to the visitor. Plain text; the closing question may be wrapped in <m></m>." },
-      case_id: { type: ["string", "null"], description: "Id of a knowledge-base case to show as a card, or null." },
+      case_id: { type: "string", description: "Id of a knowledge-base case to show as a card, or an empty string." },
       ask_name: { type: "boolean", description: "True only in the reply that asks the visitor's name." },
       offer_brief: { type: "boolean", description: "True in the reply that offers the brief." },
       book_call: { type: "boolean", description: "True when the visitor agreed to a call." },
-      play: { type: ["string", "null"], description: "Title of the sales play being followed, or null." },
-      stage: { type: "string", enum: ["opening", "discovery", "proof", "objection", "close", "answering"] },
+      play: { type: "string", description: "Title of the sales play being followed, or an empty string." },
+      stage: { type: "string", description: "One of: opening, discovery, proof, objection, close, answering." },
     },
     required: ["reply", "case_id", "ask_name", "offer_brief", "book_call", "play", "stage"],
   },
@@ -91,14 +91,20 @@ export async function POST(request) {
   try {
     ctx = await loadContext();
     const msgs = conv.messages.map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
-    out = await claude({ system: system(ctx, conv), messages: msgs, maxTokens: 1000, model: process.env.ORB_CHAT_MODEL, tool: REPLY_TOOL });
+    try {
+      out = await claude({ system: system(ctx, conv), messages: msgs, maxTokens: 1000, model: process.env.ORB_CHAT_MODEL, tool: REPLY_TOOL });
+    } catch (e) {
+      console.error("chat tool call failed, falling back to text", e.status, e.message);
+      const text = await claude({ system: system(ctx, conv) + "\n\n(Reply with just your message to the visitor, as plain text.)", messages: msgs, maxTokens: 800, model: process.env.ORB_CHAT_MODEL });
+      out = { reply: text };
+    }
   } catch (e) {
     console.error("chat", e);
     conv.messages.pop();
     return json({ error: "The orb didn’t answer. Try again.", code: e.status === 429 ? "rate_limited" : "upstream_error" }, 502);
   }
 
-  const reply = clip(out.reply, 1200) || "Sorry, could you say that another way?";
+  const reply = clip(String(out.reply || "").replace(/,?\s*"?(case_id|ask_name|offer_brief|book_call|play|stage)"?\s*:[\s\S]*$/, ""), 1200) || "Sorry, could you say that another way?";
   const card = out.case_id ? caseCard(ctx.byId.get(String(out.case_id)), ctx.byId) : null;
   const askName = !!out.ask_name && !conv.name && !conv.askedName;
   const offerBrief = !!out.offer_brief && !conv.offeredBrief;
