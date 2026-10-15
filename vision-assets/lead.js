@@ -468,6 +468,30 @@
     const lbl = $("#moreInner .divider .ai"); if (lbl && lbl.lastChild) lbl.lastChild.textContent = `${rest.length} more, ranked by relevance`;
   }
 
+  /* ---------- voice stage: long questions and answers shrink the orb instead of falling off the screen ---------- */
+  const stageEl = $(".stage"), headEl = $(".head"), footEl = $(".foot"), orbBox = $("#orb");
+  let fitQueued = false;
+  function fitStage() {
+    fitQueued = false;
+    headEl.style.minHeight = ""; footEl.style.height = ""; stageEl.style.removeProperty("--orb"); stageEl.classList.remove("orb-small");
+    if (app.dataset.view !== "voice" || app.dataset.mode === "chat") return;
+    const hOn = $(".head > div.on"), fOn = $(".foot > div.on");
+    const hh = Math.max(headEl.offsetHeight, hOn ? hOn.scrollHeight : 0);
+    const fh = Math.max(footEl.offsetHeight, fOn ? fOn.scrollHeight + 8 : 0);
+    if (hh > headEl.offsetHeight) headEl.style.minHeight = hh + "px";
+    if (fh > footEl.offsetHeight) footEl.style.height = fh + "px";
+    const top = parseFloat(getComputedStyle(stageEl).paddingTop) || 0;
+    const free = innerHeight - top - hh - 12 - fh - 24;
+    const def = orbBox.offsetWidth;
+    if (free < def) stageEl.style.setProperty("--orb", Math.max(120, Math.floor(free)) + "px");
+    stageEl.classList.toggle("orb-small", Math.min(def, free) < 200);
+  }
+  const queueFit = () => { if (!fitQueued) { fitQueued = true; requestAnimationFrame(fitStage); } };
+  new MutationObserver(queueFit).observe(app, { attributes: true, attributeFilter: ["data-state", "data-view", "data-mode"] });
+  ["#answer", "#qHead", "#transcript"].forEach((sel) => { const el = $(sel); el && new MutationObserver(queueFit).observe(el, { childList: true, subtree: true, characterData: true }); });
+  addEventListener("resize", queueFit);
+  queueFit();
+
   window.EVLead = {
     setName(n) { name = String(n).trim().slice(0, 60); store.set("ev-name", name); },
     openBrief,

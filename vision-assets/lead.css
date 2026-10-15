@@ -246,3 +246,9 @@ a.ccase:hover .lnk svg{transform:translateX(3px)}
 /* a closed sheet must never catch clicks */
 .bsheet[hidden],.bscrim[hidden]{display:none!important}
 .bsheet:not(.on),.bscrim:not(.on){pointer-events:none}
+/* results view toggle: centred, border-box like the chip next to it */
+.toggle{box-sizing:border-box;height:34px;align-items:center}
+.toggle .vthumb{top:50%;margin-top:-13px}
+.stage .orb{transition:width .5s var(--ease),height .5s var(--ease)}
+.stage.orb-small .orb-ui .lbl{display:none}
+.stage.orb-small .orb-ui svg{width:24px;height:31px}
