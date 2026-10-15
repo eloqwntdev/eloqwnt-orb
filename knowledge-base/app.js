@@ -1937,7 +1937,14 @@ const CALL_ST = {booked: "booked", canceled: "canceled", clicked: "clicked"};
 const FROM_NAME = {email: "the email", page: "the brief page", chat: "the chat", voice: "a voice call", site: "the site"};
 const stDot = (k, label) => { const [t, c] = MAIL_ST[k] || MAIL_ST.off; return `<span class="lst ${c}" title="${esc(label)}: ${t}"><i></i>${esc(label)}</span>`; };
 
+let lastCalSync = 0;
+async function syncCalendly(){
+  if (Date.now() - lastCalSync < 120000) return false;
+  lastCalSync = Date.now();
+  try { const r = await fetch("/api/calendly-setup?action=sync", {method: "POST"}); const j = await r.json().catch(() => ({})); return r.ok && j.recorded > 0; } catch { return false; }
+}
 async function loadLeads(){
+  syncCalendly().then(changed => { if (changed){ leads.sig = ""; if (leads.detail) leads.detail = null; loadLeads(); } });
   try {
     const [a, b] = await Promise.all([fetch("/api/leads", {cache: "no-store"}), fetch("/api/leads?view=convs", {cache: "no-store"})]);
     if (a.status === 401){ location.reload(); return; }
