@@ -95,7 +95,7 @@ export async function POST(request) {
       out = await claude({ system: system(ctx, conv), messages: msgs, maxTokens: 1000, model: process.env.ORB_CHAT_MODEL, tool: REPLY_TOOL });
     } catch (e) {
       console.error("chat tool call failed, falling back to text", e.status, e.message);
-      const text = await claude({ system: system(ctx, conv) + "\n\n(Reply with just your message to the visitor, as plain text.)", messages: msgs, maxTokens: 800, model: process.env.ORB_CHAT_MODEL });
+      const text = e.text || await claude({ system: system(ctx, conv) + "\n\n(Reply with just your message to the visitor, as plain text.)", messages: msgs, maxTokens: 800, model: process.env.ORB_CHAT_MODEL });
       out = { reply: text };
     }
   } catch (e) {
