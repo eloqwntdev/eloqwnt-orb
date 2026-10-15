@@ -233,3 +233,7 @@ a.ccase:hover .lnk svg{transform:translateX(3px)}
 .freebie{padding:16px 18px;border:1px solid var(--line);border-radius:16px;background:var(--chip)}
 .freebie h4{display:flex;align-items:center;gap:8px}
 .freebie h4::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--lime-dot);box-shadow:0 0 8px var(--lime-dot)}
+#vinput .mic-btn.muted{background:#eb4a52;color:#fff}
+#vinput .mic-btn.muted::after{content:"";position:absolute;width:22px;height:2px;border-radius:2px;background:currentColor;transform:rotate(-45deg)}
+#vinput .mic-btn{position:relative}
+#vinput:has(.mic-btn.muted) .mini-wave b{animation-play-state:paused;opacity:.35}
