@@ -97,14 +97,37 @@ export async function GET(request) {
   return json({ leads: leads.map((l, i) => leadRow(l, briefs[i])) });
 }
 
+// DELETE ?id=<lead> or ?conv=<conv>, or a JSON body {leads:[…], convs:[…]} for several at once.
+// Removes the lead, its conversation (transcript and the summary used for stats) and its brief, so tests leave no trace
+// in the numbers. Contacts already sent to GoHighLevel stay there.
 export async function DELETE(request) {
   const denied = await guard(request);
   if (denied) return denied;
-  const id = new URL(request.url).searchParams.get("id");
-  if (!ID.test(String(id || ""))) return json({ error: "That id isn’t valid." }, 400);
-  const lead = parse(await redis("GET", "lead:" + id));
-  await redis("DEL", "lead:" + id);
-  await redis("ZREM", "leads", id);
-  if (lead?.email && (await redis("HGET", "leads:byEmail", lead.email)) === id) await redis("HDEL", "leads:byEmail", lead.email);
-  return json({ ok: true });
+  const u = new URL(request.url);
+  const body = await request.json().catch(() => ({}));
+  const leadIds = [...new Set([u.searchParams.get("id"), ...(Array.isArray(body.leads) ? body.leads : [])].filter((x) => ID.test(String(x || ""))))].slice(0, 500);
+  const convIds = new Set([u.searchParams.get("conv"), ...(Array.isArray(body.convs) ? body.convs : [])].filter((x) => ID.test(String(x || ""))));
+  if (!leadIds.length && !convIds.size) return json({ error: "Nothing to remove." }, 400);
+  const briefIds = new Set();
+  for (const id of leadIds) {
+    const lead = parse(await redis("GET", "lead:" + id));
+    if (lead?.convId) convIds.add(lead.convId);
+    if (lead?.briefId) briefIds.add(lead.briefId);
+    await redis("DEL", "lead:" + id);
+    await redis("ZREM", "leads", id);
+    if (lead?.email && (await redis("HGET", "leads:byEmail", lead.email)) === id) await redis("HDEL", "leads:byEmail", lead.email);
+  }
+  for (const id of [...convIds].slice(0, 1000)) {
+    const conv = parse(await redis("GET", "conv:" + id));
+    const sum = parse(await redis("HGET", "convsums", id));
+    const briefId = conv?.briefId || sum?.briefId;
+    if (briefId) briefIds.add(briefId);
+    const leadId = conv?.leadId || sum?.leadId;
+    if (leadId && !leadIds.includes(leadId)) { await redis("DEL", "lead:" + leadId); await redis("ZREM", "leads", leadId); }
+    await redis("DEL", "conv:" + id);
+    await redis("ZREM", "convs", id);
+    await redis("HDEL", "convsums", id);
+  }
+  for (const id of briefIds) await redis("DEL", "brief:" + id);
+  return json({ ok: true, leads: leadIds.length, convs: convIds.size });
 }

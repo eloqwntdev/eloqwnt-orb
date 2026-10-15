@@ -464,3 +464,9 @@ pre.md{margin:0;padding:16px 18px;border-radius:16px;font-family:var(--f-mono);f
 @media (max-width:760px){.itable .dk{display:none}.itable th[scope="row"],.itable thead th:first-child{min-width:0}}
 .isrc{gap:6px;margin-top:2px}
 .isrc .label{margin-right:4px}
+/* leads: select and delete several */
+.lpick{cursor:pointer}
+.lpick input{width:18px;height:18px;margin:0 7px;accent-color:var(--pk2);flex:none}
+.lbulk{position:sticky;bottom:16px;z-index:5;display:flex;align-items:center;gap:8px;padding:8px 8px 8px 18px;border-radius:999px;background:color-mix(in srgb,var(--card) 88%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.lbulk .btn[disabled]{opacity:.45;pointer-events:none}
+@media (max-width:760px){.lbulk{bottom:calc(env(safe-area-inset-bottom) + 92px)}}

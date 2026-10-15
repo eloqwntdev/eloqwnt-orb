@@ -1921,7 +1921,7 @@ function markExportedSoon(){ markExported(); if (route.view === "export") setTim
    conversation with the orb (with or without a lead).
    Data: /api/leads. Routes: #/leads, #/leads/<leadId>, #/leads/c/<convId>.
    ===================================================================== */
-let leads = {loaded: false, list: [], convs: [], tab: "leads", period: store.get("kb-lperiod", "7"), err: "", detail: null, busy: "", confirmDel: false};
+let leads = {selecting: false, sel: new Set(), confirmBulk: false, loaded: false, list: [], convs: [], tab: "leads", period: store.get("kb-lperiod", "7"), err: "", detail: null, busy: "", confirmDel: false};
 const ago = d => {
   const s = (Date.now() - new Date(d).getTime()) / 1000;
   if (!isFinite(s)) return "";
@@ -1982,24 +1982,29 @@ function leadsStats(){
   const l = ls.length, c = cs.length, b = cs.filter(x => x.brief).length;
   return [["Conversations", c], ["Briefs made", b], ["Leads", l], ["Conversion", c ? Math.min(100, Math.round(l * 100 / c)) + "%" : "–"]];
 }
+const rowOpen = (kind, id, href, avatar) => leads.selecting
+  ? `<label class="rowlink lrow lpick"><input type="checkbox" data-pick="${kind}:${esc(id)}" ${leads.sel.has(kind + ":" + id) ? "checked" : ""} aria-label="Select">`
+  : `<a class="rowlink lrow" href="${href}"><span class="avatar">${avatar}</span>`;
+const rowClose = () => leads.selecting ? `</label>` : `<span class="chev">${ic("chev")}</span></a>`;
 function leadRowHtml(l){
-  return `<a class="rowlink lrow" href="#/leads/${encodeURIComponent(l.id)}"><span class="avatar">${esc(initial(l))}</span>
+  return `${rowOpen("l", l.id, "#/leads/" + encodeURIComponent(l.id), esc(initial(l)))}
     <span class="grow"><span class="lname">${esc(who(l))}${l.company ? `<span class="lco"> · ${esc(l.company)}</span>` : ""}</span><small>${esc(l.headline || l.email)}</small></span>
     <span class="lmeta desk-only"><span class="label">${esc(l.channel)} · ${esc(l.mode || "chat")}</span><span class="lsts">${stDot(l.mail, "Email")}${stDot(l.ghl, "GHL")}${l.call ? stDot(CALL_ST[l.call], "Call") : ""}</span></span>
-    <span class="label ltime">${esc(ago(l.createdAt))}</span><span class="chev">${ic("chev")}</span></a>`;
+    <span class="label ltime">${esc(ago(l.createdAt))}</span>${rowClose()}`;
 }
 function convRowHtml(c){
   const tag = c.leadId ? `<span class="chip lchip ok">Lead</span>` : c.brief ? `<span class="chip lchip">Brief</span>` : "";
-  return `<a class="rowlink lrow" href="#/leads/c/${encodeURIComponent(c.id)}"><span class="avatar">${esc((c.name || "V")[0].toUpperCase())}</span>
+  return `${rowOpen("c", c.id, "#/leads/c/" + encodeURIComponent(c.id), esc((c.name || "V")[0].toUpperCase()))}
     <span class="grow"><span class="lname">${esc(c.name || "Anonymous visitor")} ${tag}</span><small>${esc(c.first ? "“" + c.first + "”" : "")}</small></span>
     <span class="lmeta desk-only"><span class="label">${esc(c.channel)} · ${esc(c.mode || "chat")}</span><span class="label">${plural(c.turns, "message")}${c.expired ? " · archived" : ""}</span></span>
-    <span class="label ltime">${esc(ago(c.updatedAt || c.startedAt))}</span><span class="chev">${ic("chev")}</span></a>`;
+    <span class="label ltime">${esc(ago(c.updatedAt || c.startedAt))}</span>${rowClose()}`;
 }
 const periodSeg = () => `<div class="seg text" role="group" aria-label="Period" style="align-self:flex-start;max-width:100%;overflow:auto">${PERIODS.map(([k, t]) => `<button type="button" data-lp="${k}" aria-pressed="${leads.period === k}">${t}</button>`).join("")}</div>`;
 const bindPeriod = v => $$("[data-lp]", v).forEach(b => b.onclick = () => { leads.period = b.dataset.lp; store.set("kb-lperiod", leads.period); refresh(); });
 function leadsList(){
   const top = {title: "Leads", sub: leads.loaded && !leads.err ? `${plural(leads.list.length, "lead")} · ${plural(leads.convs.length, "conversation")}` : "",
-    right: `<a class="btn vg" href="#/insights">${ic("chart")}Insights</a>`, mobileRight: `<a class="icon-btn vg" href="#/insights" aria-label="Insights" style="border-radius:50%;width:36px;height:36px;color:var(--ink)">${ic("chart", 1.5)}</a>`};
+    right: `<button class="btn vg" type="button" data-selmode>${leads.selecting ? "Done" : "Select"}</button><a class="btn vg" href="#/insights">${ic("chart")}Insights</a>`,
+    mobileRight: `<button class="btn vg" type="button" data-selmode style="height:36px">${leads.selecting ? "Done" : "Select"}</button><a class="icon-btn vg" href="#/insights" aria-label="Insights" style="border-radius:50%;width:36px;height:36px;color:var(--ink)">${ic("chart", 1.5)}</a>`};
   if (!leads.loaded) return {top, body: `<div class="page wide"><p class="note">Loading…</p></div>`};
   if (leads.err) return {top, body: `<div class="page wide"><p class="note err">${esc(leads.err)}</p><button class="btn vg" type="button" data-reload style="align-self:flex-start">Try again</button></div>`, bind: v => { $("[data-reload]", v).onclick = () => { leads.loaded = false; refresh(); loadLeads(); }; }};
   const tab = leads.tab;
@@ -2012,11 +2017,30 @@ function leadsList(){
     <h1 class="h1 big vtx desk-only">Who talked to the orb</h1>
     <div class="stack" style="gap:10px">${periodSeg()}<div class="lstats">${leadsStats().map(([k, v]) => `<div class="vcard"><span class="note">${k}</span><b>${v}</b></div>`).join("")}</div></div>
     <div class="seg" role="group" aria-label="Show" style="align-self:flex-start"><button type="button" data-lt="leads" aria-pressed="${tab === "leads"}">Leads ${lp.length}</button><button type="button" data-lt="convs" aria-pressed="${tab === "convs"}">Conversations ${cp.length}</button></div>
-    ${rows.length ? `<div class="card vcard stagger">${rows.map(tab === "leads" ? leadRowHtml : convRowHtml).join("")}</div>` : empty}
+    ${rows.length ? `<div class="card vcard ${leads.selecting ? "" : "stagger"}">${rows.map(tab === "leads" ? leadRowHtml : convRowHtml).join("")}</div>` : empty}
+    ${leads.selecting ? `<div class="lbulk vcard vg vgc"><span class="note">${leads.sel.size ? plural(leads.sel.size, "selected item", "selected items") : "Tick what to remove"}</span><span class="spacer"></span>
+      <button class="btn plain" type="button" data-selall>${rows.every(r => leads.sel.has((tab === "leads" ? "l:" : "c:") + r.id)) && rows.length ? "Clear" : "Select all"}</button>
+      <button class="btn ${leads.confirmBulk ? "cta" : "vg"}" type="button" data-bulkdel ${leads.sel.size ? "" : "disabled"}>${leads.confirmBulk ? "Delete for good?" : "Delete"}</button></div>` : ""}
     ${tab === "convs" ? `<p class="note">Transcripts are kept for 90 days; the summary of each conversation stays for good, so the numbers hold for any period. Voice calls show up here once the visitor asks for a brief.</p>` : ""}
   </div>`, bind: v => {
     $$("[data-lt]", v).forEach(b => b.onclick = () => { leads.tab = b.dataset.lt; refresh(); });
+    $$("[data-pick]", v).forEach(x => x.onchange = () => { x.checked ? leads.sel.add(x.dataset.pick) : leads.sel.delete(x.dataset.pick); leads.confirmBulk = false; refresh(); });
+    $$("[data-selall]", v).forEach(b => b.onclick = () => {
+      const keys = rows.map(r => (tab === "leads" ? "l:" : "c:") + r.id);
+      if (keys.every(k => leads.sel.has(k))) keys.forEach(k => leads.sel.delete(k)); else keys.forEach(k => leads.sel.add(k));
+      leads.confirmBulk = false; refresh();
+    });
+    $$("[data-bulkdel]", v).forEach(b => b.onclick = async () => {
+      if (!leads.confirmBulk){ leads.confirmBulk = true; refresh(); return; }
+      const ids = [...leads.sel], body = {leads: ids.filter(k => k[0] === "l").map(k => k.slice(2)), convs: ids.filter(k => k[0] === "c").map(k => k.slice(2))};
+      b.disabled = true; b.textContent = "Deleting…";
+      const r = await fetch("/api/leads", {method: "DELETE", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)}).catch(() => null);
+      if (!r || !r.ok){ toast("Couldn’t delete them", false); leads.confirmBulk = false; refresh(); return; }
+      toast(`Deleted ${plural(ids.length, "item")}. GHL contacts stay in GHL.`);
+      leads.sel.clear(); leads.selecting = false; leads.confirmBulk = false; leads.sig = ""; await loadLeads(); refresh();
+    });
     bindPeriod(v);
+    $$("[data-selmode]").forEach(b => b.onclick = () => { leads.selecting = !leads.selecting; leads.sel.clear(); leads.confirmBulk = false; refresh(); });
   }};
 }
 
@@ -2099,7 +2123,7 @@ function leadDetail(){
     ${briefHtml(b)}
     ${transcriptHtml(conv)}
     ${!conv ? `<p class="note">The conversation has expired (kept 90 days) or was a voice call.</p>` : ""}
-    <div class="row" style="justify-content:flex-end"><button class="btn plain ${leads.confirmDel ? "danger" : ""}" type="button" data-del>${leads.confirmDel ? "Remove from the list?" : "Remove lead"}</button></div>
+    <div class="row" style="justify-content:flex-end"><button class="btn plain ${leads.confirmDel ? "danger" : ""}" type="button" data-del>${leads.confirmDel ? "Delete lead, brief and conversation?" : "Delete lead"}</button></div>
   </div>`, bind: v => {
     $$("[data-copy]", v).forEach(x => x.onclick = async () => { try { await navigator.clipboard.writeText(x.dataset.copy); toast("Email copied"); } catch { toast("Couldn’t copy", false); } });
     $$("[data-resend]", v).forEach(x => x.onclick = async () => {
@@ -2117,7 +2141,7 @@ function leadDetail(){
       leads.confirmDel = false;
       const r = await fetch("/api/leads?id=" + encodeURIComponent(l.id), {method: "DELETE"}).catch(() => null);
       if (!r || !r.ok){ toast("Couldn’t remove it", false); return; }
-      leads.list = leads.list.filter(x => x.id !== l.id); leads.sig = ""; toast("Removed. The contact stays in GHL."); go("leads"); loadLeads();
+      leads.list = leads.list.filter(x => x.id !== l.id); leads.sig = ""; toast("Deleted. The contact stays in GHL."); go("leads"); loadLeads();
     });
   }};
 }
@@ -2137,7 +2161,16 @@ function convDetail(){
     </div>
     ${briefHtml(d.brief)}
     ${c.expired ? `<p class="note">The transcript was deleted after 90 days. The summary above stays for your stats.</p>` : transcriptHtml(c)}
-  </div>`};
+    <div class="row" style="justify-content:flex-end"><button class="btn plain ${leads.confirmDel ? "danger" : ""}" type="button" data-cdel>${leads.confirmDel ? "Delete it for good?" : "Delete conversation"}</button></div>
+  </div>`, bind: v => {
+    $$("[data-cdel]", v).forEach(x => x.onclick = async () => {
+      if (!leads.confirmDel){ leads.confirmDel = true; refresh(); setTimeout(() => { if (leads.confirmDel){ leads.confirmDel = false; if (route.view === "leads") refresh(); } }, 4000); return; }
+      leads.confirmDel = false;
+      const r = await fetch("/api/leads?conv=" + encodeURIComponent(c.id), {method: "DELETE"}).catch(() => null);
+      if (!r || !r.ok){ toast("Couldn’t delete it", false); return; }
+      leads.sig = ""; toast("Deleted"); go("leads"); loadLeads();
+    });
+  }};
 }
 /* =====================================================================
    INSIGHTS — script analytics: how far conversations get, which plays
