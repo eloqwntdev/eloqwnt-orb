@@ -1,6 +1,6 @@
 // The brief: Claude turns a conversation with the orb into a short plan.
 // POST makes it and returns the preview part. GET returns the full brief once the visitor asked for it by email.
-import { allow, clientIp, isAuthed, json } from "../lib/server.js";
+import { allow, clientIp, json } from "../lib/server.js";
 import { loadLead, saveLead } from "../lib/booking.js";
 import { getBrief, loadConv, putBrief, saveConv } from "../lib/conv.js";
 import { caseCard, claude, cleanSource, loadContext, newId, sourceLabel } from "../lib/orb-context.js";
@@ -112,9 +112,9 @@ export async function GET(request) {
   const b = await getBrief(id);
   if (!b) return json({ error: "This brief doesn’t exist or has expired." }, 404);
   if (!b.unlocked) return json({ error: "This brief hasn’t been sent yet." }, 403);
-  // count the visitor opening their full brief (not you, signed in to the dashboard; once per half hour per device)
+  // count the visitor opening their full brief (not when opened from the dashboard; once per half hour per device)
   const from = ["email", "site", "page"].includes(new URL(request.url).searchParams.get("from")) ? new URL(request.url).searchParams.get("from") : "link";
-  if (!(await isAuthed(request)) && !(await allow(`orb:view:${b.id}:${clientIp(request)}`, 1, 1800).then((ok) => !ok))) await recordView(b, from).catch((e) => console.error("brief view", e.message));
+  if (new URL(request.url).searchParams.get("from") !== "dash" && !(await allow(`orb:view:${b.id}:${clientIp(request)}`, 1, 1800).then((ok) => !ok))) await recordView(b, from).catch((e) => console.error("brief view", e.message));
   const { convId, contactId, leadId, email, ...pub } = b;
   return json(pub);
 }

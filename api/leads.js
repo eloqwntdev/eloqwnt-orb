@@ -5,6 +5,7 @@
 // DELETE ?id=<lead> → remove a test lead from the list (the GHL contact stays in GHL)
 import { isAuthed, json, redis, redisConfigured } from "../lib/server.js";
 import { convSummary, getBrief, loadConv } from "../lib/conv.js";
+import { attachToLead } from "../lib/booking.js";
 
 const ID = /^[a-z0-9]{8,20}$/;
 const parse = (raw) => { try { return raw ? JSON.parse(raw) : null; } catch { return null; } };
@@ -54,6 +55,7 @@ export async function GET(request) {
     const lead = parse(await redis("GET", "lead:" + id));
     if (!lead) return json({ error: "This lead doesn’t exist any more." }, 404);
     const [brief, conv] = await Promise.all([getBrief(lead.briefId), loadConv(lead.convId)]);
+    if (await attachToLead(lead, conv).catch(() => false)) await redis("SET", "lead:" + lead.id, JSON.stringify(lead)); // repair leads made before the fix
     return json({
       lead: { ...lead, ghlUrl: ghlUrl(lead.ghl?.contactId) },
       brief: brief ? { ...brief, convId: undefined, contactId: undefined } : null,

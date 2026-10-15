@@ -6,6 +6,8 @@ import { cleanSource, newId, sourceLabel } from "../lib/orb-context.js";
 import { ghlConfigured, pushLead, resendBrief } from "../lib/ghl.js";
 import { mailConfigured, sendBriefEmail } from "../lib/mail.js";
 import { notify } from "../lib/notify.js";
+import { attachToLead } from "../lib/booking.js";
+import { markBooked } from "../lib/ghl.js";
 
 const clip = (v, n) => String(v ?? "").slice(0, n).trim();
 const EMAIL = /^[^\s@<>()[\]\\,;:"]{1,64}@[^\s@<>()[\]\\,;:"]+\.[a-z]{2,}$/i;
@@ -45,6 +47,7 @@ export async function POST(request) {
     briefId: brief.id, convId: brief.convId, mode, channel, source, ghl: { status: ghlConfigured() ? "pending" : "off" },
   };
 
+  await attachToLead(lead, conv).catch((e) => console.error("attach bookings", e.message)); // booked in the chat before leaving the email
   Object.assign(brief, { unlocked: true, email, name, company: company || brief.company, leadId: lead.id, sentAt: new Date().toISOString() });
 
   // The email goes out from our own domain (Resend). GHL keeps the contact, tags, note and opportunity;
@@ -64,6 +67,7 @@ export async function POST(request) {
     else { console.error("ghl", crm.reason?.message); lead.ghl = { status: "failed", error: clip(crm.reason?.message, 300) }; }
   }
 
+  if (lead.booking?.status === "booked" && lead.ghl?.contactId) await markBooked({ contactId: lead.ghl.contactId, opportunityId: lead.ghl.opportunityId, start: lead.booking.start }).catch((e) => console.error("ghl booking", e.message));
   await putBrief(brief);
   if (redisConfigured()) {
     await redis("SET", "lead:" + lead.id, JSON.stringify(lead));
@@ -76,6 +80,6 @@ export async function POST(request) {
     conv.events = [...(conv.events || []), { type: "lead", at: Date.now() }];
     await saveConv(conv).catch(() => {});
   }
-  await notify("lead", { name, email, company, headline: brief.headline, channel, mode, leadUrl: `${origin}/knowledge-base#/leads/${lead.id}`, briefUrl });
+  await notify("lead", { name, email, company, headline: brief.headline, channel, mode, booked: lead.booking?.status === "booked" ? lead.booking.start : "", leadUrl: `${origin}/knowledge-base#/leads/${lead.id}`, briefUrl });
   return json({ ok: true, briefUrl, emailed, name: name.split(/\s+/)[0] || "" });
 }

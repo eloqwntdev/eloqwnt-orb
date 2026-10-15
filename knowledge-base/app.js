@@ -2051,7 +2051,7 @@ function briefHtml(b){
   if (!b) return "";
   const sec = (title, inner) => inner ? `<div class="lsec"><span class="label">${title}</span>${inner}</div>` : "";
   const ul = a => (a || []).length ? `<ul class="lul">${a.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
-  return `<section class="stack" style="gap:10px"><div class="row" style="justify-content:space-between"><span class="label">Brief</span>${b.unlocked ? `<a class="linkbtn" href="/brief/${encodeURIComponent(b.id)}" target="_blank" rel="noopener">Open the page ${ic("open")}</a>` : `<span class="label">Preview only · no email yet</span>`}</div>
+  return `<section class="stack" style="gap:10px"><div class="row" style="justify-content:space-between"><span class="label">Brief</span>${b.unlocked ? `<a class="linkbtn" href="/brief/${encodeURIComponent(b.id)}?from=dash" target="_blank" rel="noopener">Open the page ${ic("open")}</a>` : `<span class="label">Preview only · no email yet</span>`}</div>
     <div class="card vcard pad stack" style="gap:16px">
       <p class="h2" style="font-size:17px">${esc(b.headline)}</p>
       ${sec("What they told us", ul(b.told))}
@@ -2111,7 +2111,7 @@ function leadDetail(){
     ["Newsletter", l.newsletter ? "Opted in" : "No"],
     ["Asked", esc(fullDate(l.createdAt))],
   ];
-  const acts = `${b && b.unlocked ? `<a class="btn vg" href="/brief/${encodeURIComponent(b.id)}" target="_blank" rel="noopener">Open brief</a>` : ""}
+  const acts = `${b && b.unlocked ? `<a class="btn vg" href="/brief/${encodeURIComponent(b.id)}?from=dash" target="_blank" rel="noopener">Open brief</a>` : ""}
     <button class="btn vg" type="button" data-resend ${leads.busy ? "disabled" : ""}>${leads.busy === "resend" ? "Sending…" : "Resend email"}</button>
     ${l.ghlUrl ? `<a class="btn vg" href="${esc(l.ghlUrl)}" target="_blank" rel="noopener">Open in GHL</a>` : ""}
     <a class="btn cta" href="mailto:${esc(l.email)}?subject=${encodeURIComponent("Your brief from Eloqwnt")}">Email ${esc(who(l).split(" ")[0])}</a>`;
