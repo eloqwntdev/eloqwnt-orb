@@ -137,6 +137,7 @@ export async function POST(request) {
       if (run.status !== "running") return json({ run: progress(run) });
       // one step at a time per run, even with two tabs open
       const got = await redis("SET", "sim:lock:" + run.id, "1", "NX", "EX", 90);
+      const events = [];
       if (got !== "OK") return json({ run: progress(run), busy: true });
       try {
         if (!run.peopleReady) {
@@ -148,6 +149,8 @@ export async function POST(request) {
           await saveConvs(run.id, convs);
           run.active = convs.map((c) => c.key);
           run.peopleReady = true;
+          // a light per-conversation state for the live view in the dashboard
+          run.dots = Object.fromEntries(convs.map((c) => [c.key, { n: c.person.name, p: run.profiles.findIndex((p) => p.id === c.profileId), s: "", h: "", t: 0 }]));
         } else {
           const { ctx } = await scriptsFor([]);
           const batch = run.active.slice(0, PARALLEL);
@@ -162,6 +165,12 @@ export async function POST(request) {
             }
           }));
           await saveConvs(run.id, convs);
+          run.dots = run.dots || {};
+          for (const c of convs) {
+            const lastOrb = [...c.messages].reverse().find((m) => m.role === "orb"), lastVis = [...c.messages].reverse().find((m) => m.role === "visitor");
+            run.dots[c.key] = { n: c.person.name, p: run.profiles.findIndex((p) => p.id === c.profileId), s: lastOrb?.stage || "", h: c.state === "done" ? c.end?.how || "" : "", t: c.turns || 0 };
+            events.push({ k: c.key, n: c.person.name, s: lastOrb?.stage || "", h: c.state === "done" ? c.end?.how || "" : "", v: String(lastVis?.text || "").slice(0, 90), o: String(lastOrb?.text || "").replace(/<\/?m>/g, "").slice(0, 90), r: c.state === "done" ? String(c.end?.reason || "").slice(0, 90) : "" });
+          }
           const finished = new Set(convs.filter((c) => c.state === "done").map((c) => c.key));
           // finished ones leave the queue; the rest go to the back so every conversation moves along
           run.active = [...run.active.slice(batch.length), ...batch.filter((k) => !finished.has(k))];
@@ -175,7 +184,7 @@ export async function POST(request) {
         }
         for (const k of Object.keys(usage)) run.usage[k] = (run.usage[k] || 0) + usage[k];
         await saveRun(run);
-        return json({ run: progress(run) });
+        return json({ run: progress(run), events });
       } finally { await redis("DEL", "sim:lock:" + run.id); }
     }
 

@@ -528,3 +528,28 @@ pre.md{margin:0;padding:16px 18px;border-radius:16px;font-family:var(--f-mono);f
   .scell{min-width:72px;padding:8px 6px 6px}
   .scell b{font-size:20px}
 }
+/* ---------- simulator: live lab view ---------- */
+.lab{border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.labhead{display:flex;align-items:center;gap:8px;padding:12px 16px;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;color:var(--mut);border-bottom:1px solid var(--hl)}
+.labhead #labstats{color:var(--ink-2)}
+.labdot{width:7px;height:7px;border-radius:50%;background:var(--pk2);box-shadow:0 0 0 0 var(--pk2);animation:labblink 1.4s ease-in-out infinite}
+@keyframes labblink{0%,100%{opacity:1}50%{opacity:.25}}
+#labcv{display:block;width:100%;height:380px}
+.labfoot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);border-top:1px solid var(--hl)}
+.labread{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 8px;padding:14px 16px;border-right:1px solid var(--hl)}
+.labread span{display:flex;flex-direction:column;gap:2px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--mut)}
+.labread b{font-family:var(--f-ui);font-size:20px;font-weight:450;color:var(--ink);letter-spacing:0;font-variant-numeric:tabular-nums}
+.labread .r b{color:var(--pk2)}
+.labread .m b{color:var(--mut)}
+.lablog{list-style:none;margin:0;padding:12px 16px;display:flex;flex-direction:column;gap:5px;font-family:var(--f-mono);font-size:11px;line-height:1.45;color:var(--ink-3);height:150px;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 60%,transparent);mask-image:linear-gradient(180deg,#000 60%,transparent)}
+.lablog li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:kb-rise var(--t-base) var(--ease-out) both}
+.lablog li span{color:var(--mut);margin-right:8px}
+.lablog li.booked{color:var(--pk2)}
+.lablog li.left,.lablog li.error{color:var(--mut)}
+@media (max-width:760px){
+  #labcv{height:330px}
+  .labfoot{grid-template-columns:1fr}
+  .labread{border-right:0;border-bottom:1px solid var(--hl)}
+  .lablog{height:120px}
+}
+@media (prefers-reduced-motion:reduce){.labdot{animation:none}}

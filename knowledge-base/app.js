@@ -2384,7 +2384,8 @@ async function stepRun(id){
       const r = j.run; sim.runs = [r, ...sim.runs.filter(x => x.id !== id)];
       if (sim.run && sim.run.run.id === id) sim.run.run = r;
       if (r.status !== "running"){ sim.stepping = null; if (sim.run && sim.run.run.id === id) await openRun(id, true); toast(r.stopped ? "Run stopped" : "Simulation finished"); break; }
-      if (route.view === "simulator" && !dialogOpen()) paintRunProgress(r);
+      labFeed(r, j.events);
+      if (route.view === "simulator" && !dialogOpen()){ paintRunProgress(r); labPaintText(r); }
       if (j.busy) await new Promise(res => setTimeout(res, 3000));
     } catch (e){ if (++fails >= 4){ sim.stepping = null; toast(e.message, false); break; } await new Promise(res => setTimeout(res, 3000)); }
   }
@@ -2509,19 +2510,139 @@ function simRuns(top){
   </div>`, bind: bindSimTabs};
 }
 
+/* ---------- the live "lab" view of a running simulation ----------
+   Every dot is one synthetic person. Dots drift through the orb's stages (Open → Ask → Proof → Objection → Close)
+   as their conversation moves on, and settle into Booked, Email or Left when it ends. Driven by the real run state. */
+const LAB_COLS = [["", "Queue"], ["opening", "Open"], ["discovery", "Ask"], ["proof", "Proof"], ["objection", "Objection"], ["close", "Close"], ["answering", "Answer"]];
+const LAB_OUT = [["booked", "Booked"], ["email", "Email"], ["left", "Left"]];
+let lab = {raf: 0, runId: "", dots: new Map(), events: [], active: new Set(), pulse: 0, t0: 0, gen: []};
+function labFeed(run, events){
+  if (lab.runId !== run.id){ lab = {...lab, runId: run.id, dots: new Map(), events: [], active: new Set(), t0: Date.now()}; }
+  const total = run.total || 0;
+  if (!run.peopleReady){
+    while (lab.dots.size < total) lab.dots.set("g" + lab.dots.size, {x: Math.random(), y: Math.random(), tx: 0, ty: 0, born: performance.now() + lab.dots.size * 40, s: "", h: "", p: lab.dots.size % Math.max(1, run.profiles.length)});
+  } else if (run.dots){
+    [...lab.dots.keys()].filter(k => k[0] === "g").forEach((k, i) => { const d = lab.dots.get(k); lab.dots.delete(k); const real = Object.keys(run.dots)[i]; if (real) lab.dots.set(real, d); });
+    for (const [k, v] of Object.entries(run.dots)){ const d = lab.dots.get(k) || {x: Math.random() * .1, y: Math.random(), born: performance.now()}; Object.assign(d, v); lab.dots.set(k, d); }
+  }
+  if (events && events.length){
+    lab.active = new Set(events.filter(e => !e.h).map(e => e.k));
+    const now = new Date(), ts = now.toTimeString().slice(0, 8);
+    for (const e of events){
+      const who = `${e.n}`.padEnd(8).slice(0, 8);
+      lab.events.unshift(e.h ? {t: ts, c: e.h, m: `${who} ${e.h === "booked" ? "BOOKED A CALL" : e.h === "email" ? "LEFT EMAIL" : e.h === "left" ? "LEFT" : "ERROR"}${e.r ? " · " + e.r : ""}`}
+        : {t: ts, c: "", m: `${who} → ${(STAGE_LABEL[e.s] || "Open").toUpperCase()} · “${e.v}”`});
+    }
+    lab.events = lab.events.slice(0, 40);
+  }
+}
+function labHtml(run){
+  return `<div class="lab vcard">
+    <div class="labhead"><span class="labdot"></span><span>SIMULATION · LIVE</span><span class="spacer"></span><span id="labstats"></span></div>
+    <canvas id="labcv" aria-label="Live view of the simulated conversations" role="img"></canvas>
+    <div class="labfoot"><div id="labread" class="labread"></div><ol id="lablog" class="lablog" aria-live="polite"></ol></div>
+  </div>`;
+}
+function labStart(run){
+  cancelAnimationFrame(lab.raf);
+  const cv = $("#labcv"); if (!cv) return;
+  const css = getComputedStyle(document.documentElement);
+  const col = n => css.getPropertyValue(n).trim() || "#888";
+  const C = {red: col("--pk2"), ink: col("--ink"), mut: col("--mut"), hl: col("--hl"), line: col("--track"), card: col("--card")};
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  const hash = s => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
+  const draw = now => {
+    if (!document.body.contains(cv)) return;
+    const w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== w * dpr){ cv.width = w * dpr; cv.height = h * dpr; }
+    const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+    const phone = w < 560;
+    const cols = phone ? LAB_COLS.filter(c => c[0] !== "objection" && c[0] !== "answering") : LAB_COLS;
+    const outW = phone ? 70 : 120, left = 16, right = w - outW - 12, top = 72, bot = h - 16;
+    const cw = (right - left) / cols.length;
+    // grid + column labels
+    g.font = "500 10px 'DM Mono', ui-monospace, monospace"; g.textBaseline = "top";
+    cols.forEach(([k, label], i) => {
+      const x = left + i * cw;
+      g.strokeStyle = C.hl; g.lineWidth = 1; g.setLineDash([2, 4]); g.beginPath(); g.moveTo(x + cw, top - 4); g.lineTo(x + cw, bot); g.stroke(); g.setLineDash([]);
+      g.fillStyle = C.mut; g.fillText(label.toUpperCase(), x + 6, 48);
+    });
+    const outs = LAB_OUT.map(([k, label], i) => ({k, label, x: right + 12, y: 44 + i * ((bot - 44) / 3), hgt: (bot - 44) / 3 - 8}));
+    outs.forEach(o => { g.strokeStyle = o.k === "booked" ? C.red : C.hl; g.lineWidth = 1; g.strokeRect(o.x, o.y, outW - 8, o.hgt); g.fillStyle = o.k === "booked" ? C.red : C.mut; g.fillText(o.label.toUpperCase(), o.x + 6, o.y + 6); });
+    // the orb they talk to
+    const ox = left + (right - left) / 2, oy = 20;
+    g.fillStyle = C.mut; g.textAlign = "left"; g.fillText("THE ORB", ox + 18, oy - 5);
+    lab.pulse = (lab.pulse + .03) % (Math.PI * 2);
+    // targets
+    const groups = {};
+    for (const [k, d] of lab.dots){
+      const key = d.h ? "out:" + (d.h === "error" ? "left" : d.h) : "col:" + (cols.findIndex(c => c[0] === (d.s || "")) >= 0 ? d.s || "" : (d.s ? "answering" : ""));
+      (groups[key] = groups[key] || []).push([k, d]);
+    }
+    for (const [gk, list] of Object.entries(groups)){
+      list.sort((a, b) => a[0] < b[0] ? -1 : 1);
+      let bx, by, bw, bh;
+      if (gk.startsWith("out:")){ const o = outs.find(o => o.k === gk.slice(4)) || outs[2]; bx = o.x + 6; by = o.y + 22; bw = outW - 20; bh = o.hgt - 28; }
+      else { let i = cols.findIndex(c => c[0] === gk.slice(4)); if (i < 0) i = cols.length - 1; bx = left + i * cw + 8; by = top + 8; bw = cw - 16; bh = bot - top - 16; }
+      const step = lab.dots.size <= 80 ? 12 : 9;
+      const per = Math.max(1, Math.floor(bw / step));
+      list.forEach(([k, d], i) => { const jit = (hash(k) % 100) / 100; d.tx = bx + (i % per) * step + jit * 2; d.ty = by + Math.floor(i / per) * step + ((hash(k + "y") % 100) / 100) * 2; if (d.ty > by + bh) d.ty = by + bh - (i % 5) * 3; });
+    }
+    // dots
+    for (const [k, d] of lab.dots){
+      if (now < (d.born || 0)) continue;
+      if (d.px === undefined){ d.px = d.tx || left; d.py = d.ty || top; }
+      d.px += ((d.tx ?? d.px) - d.px) * .06; d.py += ((d.ty ?? d.py) - d.py) * .06;
+      const talking = lab.active.has(k);
+      if (talking){
+        g.strokeStyle = C.red; g.globalAlpha = .18 + .12 * Math.sin(lab.pulse * 3 + hash(k)); g.lineWidth = 1;
+        g.beginPath(); g.moveTo(d.px, d.py); g.quadraticCurveTo((d.px + ox) / 2, Math.min(d.py, oy) - 10, ox, oy); g.stroke(); g.globalAlpha = 1;
+      }
+      const base = lab.dots.size <= 80 ? 3.8 : 3;
+      const r = talking ? base + .4 + Math.sin(lab.pulse * 4 + hash(k)) * .8 : base;
+      g.fillStyle = d.h === "booked" ? C.red : d.h === "email" ? C.ink : d.h ? C.mut : talking ? C.red : C.ink;
+      g.globalAlpha = d.h === "left" || d.h === "error" ? .45 : !d.s && !d.h && !talking ? .5 : 1;
+      g.beginPath(); g.arc(d.px, d.py, r, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
+      if (talking){ g.strokeStyle = C.red; g.globalAlpha = .35; g.beginPath(); g.arc(d.px, d.py, r + 3 + Math.sin(lab.pulse * 4) * 1.5, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1; }
+    }
+    // orb
+    const rg = 7 + Math.sin(lab.pulse * 2) * 1.2;
+    g.fillStyle = C.red; g.beginPath(); g.arc(ox, oy, rg, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = C.red; g.globalAlpha = .3; g.beginPath(); g.arc(ox, oy, rg + 6 + Math.sin(lab.pulse) * 3, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1;
+    lab.raf = requestAnimationFrame(draw);
+  };
+  lab.raf = requestAnimationFrame(draw);
+  labPaintText(run);
+}
+function labPaintText(run){
+  const st = $("#labstats"), rd = $("#labread"), lg = $("#lablog"); if (!st) return;
+  const dots = [...lab.dots.values()], n = k => dots.filter(d => d.h === k).length;
+  const secs = Math.max(1, (Date.now() - new Date(run.createdAt).getTime()) / 1000);
+  const rate = run.done / (secs / 60);
+  const eta = rate > 0 ? Math.round((run.total - run.done) / rate) : null;
+  const u = run.usage || {}, tok = (u.input_tokens || 0) + (u.output_tokens || 0) + (u.cache_read_input_tokens || 0);
+  const mmss = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  st.textContent = `T+${mmss(secs)} · ${run.done}/${run.total} · ${Math.round(tok / 1000)}k TOKENS`;
+  rd.innerHTML = [["Booked", n("booked"), "r"], ["Email", n("email"), ""], ["Left", n("left"), "m"], ["Talking now", lab.active.size, "r"], ["Per minute", rate ? rate.toFixed(1) : "–", ""], ["ETA", eta === null ? "–" : eta + " min", ""]]
+    .map(([k, v, c]) => `<span class="${c}"><b>${v}</b>${k}</span>`).join("");
+  lg.innerHTML = (lab.events.length ? lab.events : run.peopleReady ? [{t: "", c: "", m: "Opening conversations…"}] : run.profiles.map((p, i) => ({t: "", c: "", m: `Sampling ${run.per} people from “${p.title}”…`})))
+    .slice(0, 7).map(e => `<li class="${e.c}"><span>${esc(e.t)}</span>${esc(e.m)}</li>`).join("");
+}
+
 function simResult(top){
   const id = route.arg2;
   top = {...top, mobileLeft: backBtn("#/simulator/runs")};
   if (!sim.run || sim.run.run.id !== id){ openRun(id, true); return {top, body: `<div class="page wide"><p class="note">Loading…</p></div>`}; }
   if (sim.run.err) return {top, body: `<div class="page wide"><p class="note err">${esc(sim.run.err)}</p><a class="btn vg" href="#/simulator/runs" style="align-self:flex-start">All results</a></div>`};
   const {run, real, convs} = sim.run;
-  const head = `<div class="stack" style="gap:4px"><h1 class="h1">${esc(runTitle(run))}</h1><span class="lead" style="font-size:14px">${run.total} conversations · ${plural(run.scripts.length, "script")} · ${plural(run.profiles.length, "profile")} · ${run.per} people each${run.usage ? ` · ${tokens(run.usage)} tokens` : ""}</span></div>`;
-  if (run.status === "running") return {top, body: `<div class="page wide">${head}
-    <div class="card vcard pad stack" style="gap:12px"><span id="simprog" style="font-size:15px">${run.peopleReady ? `${run.done} of ${run.total} conversations` : "Creating the people…"}</span>
-      <div class="track" id="simbar" style="height:8px"><i style="width:${run.total ? run.done * 100 / run.total : 0}%"></i></div>
+  const head = `<div class="stack" style="gap:4px"><h1 class="h1">${esc(runTitle(run))}</h1><span class="lead" style="font-size:14px">${run.total} conversations · ${plural(run.scripts.length, "script")} · ${plural(run.profiles.length, "profile")} · ${run.per} people each${run.usage && run.status !== "running" ? ` · ${tokens(run.usage)} tokens` : ""}</span></div>`;
+  if (run.status === "running") return {top, body: `<div class="page wide labpage">${head}
+    ${labHtml(run)}
+    <div class="stack" style="gap:10px"><span id="simprog" style="font-size:14px">${run.peopleReady ? `${run.done} of ${run.total} conversations` : "Creating the people…"}</span>
+      <div class="track" id="simbar" style="height:6px"><i style="width:${run.total ? run.done * 100 / run.total : 0}%"></i></div>
       <p class="note">Keep this tab open. If you close it the run pauses, and it carries on the next time you open the simulator.</p>
       <div class="row"><button class="btn vg" type="button" data-stop>Stop and score what’s done</button></div></div></div>`,
-    bind: v => { if (sim.stepping !== run.id) stepRun(run.id); $("[data-stop]", v).onclick = async () => { sim.stepping = null; try { const j = await simApi("POST", "", {action: "run.stop", id: run.id}); sim.run.run = j.run; await openRun(run.id); } catch (e){ toast(e.message, false); } }; }};
+    bind: v => { labFeed(run); labStart(run); if (sim.stepping !== run.id) stepRun(run.id); $("[data-stop]", v).onclick = async () => { sim.stepping = null; try { const j = await simApi("POST", "", {action: "run.stop", id: run.id}); sim.run.run = j.run; await openRun(run.id); } catch (e){ toast(e.message, false); } }; }};
   const cells = run.cells || [];
   const cell = (s, p) => cells.find(c => c.scriptId === s && c.profileId === p);
   const best = {}; run.profiles.forEach(p => { let b = null; run.scripts.forEach(s => { const c = cell(s.id, p.id); if (c && c.n && (!b || c.bookedPer100 > b.bookedPer100)) b = c; }); if (b && b.bookedPer100 > 0) best[p.id] = b.scriptId; });
