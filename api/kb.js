@@ -2,7 +2,6 @@
 import { isAuthed, json, redis, redisConfigured } from "../lib/server.js";
 import seed from "../lib/seed.js";
 import { hasCaseFacts, withCaseFacts } from "../lib/case-facts.js";
-import { PROCESS_KEYS, SERVICE_KEYS, TERMS_ID, TERMS_KEYS } from "../lib/pages.js";
 
 const HASH = "kb:nodes";
 const TYPES = ["company", "service", "case", "process", "sector", "policy", "contact"];
@@ -59,26 +58,6 @@ export async function GET(request) {
     });
     if (changed.length) await redis("HSET", HASH, ...changed.flatMap((n) => [n.id, JSON.stringify(n)]));
     await redis("SET", "kb:casefacts:v1", "1");
-  }
-  // One-time upgrade for the "How we work" and "Packages" pages: add the facts they show as gaps to fill.
-  if (!(await redis("GET", "kb:pages:v1"))) {
-    const changed = [];
-    const addKeys = (n, keys) => {
-      const have = new Set((n.facts || []).map((f) => f.k.toLowerCase()));
-      const miss = keys.filter((k) => !have.has(k.toLowerCase()));
-      if (!miss.length) return n;
-      const up = { ...n, facts: [...(n.facts || []), ...miss.map((k) => ({ k, v: "" }))] };
-      changed.push(up);
-      return up;
-    };
-    nodes = nodes.map((n) => n.type === "process" ? addKeys(n, PROCESS_KEYS) : n.type === "service" ? addKeys(n, SERVICE_KEYS) : n);
-    if (!nodes.some((n) => n.id === TERMS_ID)) {
-      const company = nodes.find((n) => n.type === "company");
-      const terms = { id: TERMS_ID, type: "policy", title: "Working terms", summary: "Shown on the How we work page and used by the orb when visitors ask about payments, ownership and support.", facts: TERMS_KEYS.map((k) => ({ k, v: "" })), links: company ? [company.id] : [], updatedAt: new Date().toISOString() };
-      nodes.push(terms); changed.push(terms);
-    }
-    if (changed.length) await redis("HSET", HASH, ...changed.flatMap((n) => [n.id, JSON.stringify(n)]));
-    await redis("SET", "kb:pages:v1", "1");
   }
   return json({ nodes });
 }

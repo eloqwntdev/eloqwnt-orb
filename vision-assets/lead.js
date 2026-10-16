@@ -123,7 +123,6 @@
       if (m.role === "user") return m.kind === "skip" ? "" : `<div class="cmsg me">${esc(m.text)}</div>`;
       let h = `<div class="cmsg orb${m.err ? " err" : ""}"><img class="av" src="/kb-assets/orb-logo.png" alt=""><p>${rich(m.text)}</p></div>`;
       if (m.case) h += caseHTML(m.case);
-      if (m.page && window.EVPages) h += window.EVPages.card(m.page);
       if (m.offerBrief) h += `<div class="cact cmsg"><button class="btnp" type="button" data-brief>Get my brief ${svg(I.arrow)}</button><span class="note">A plan, starting prices and matching work</span></div>`;
       if (m.bookCall) h += `<div class="cact cmsg"><a class="btnp" href="${CAL}" target="_blank" rel="noopener">${svg(I.cal)}Open the calendar</a></div>`;
       if (m.err && i === last) h += `<div class="cact cmsg"><button class="btng" type="button" data-retry>Try again</button></div>`;
@@ -191,7 +190,7 @@
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           convId: chat.convId, text: req.text, kind: req.kind || "text", source: source(), name,
-          viewing: (window.EVPages && window.EVPages.viewing()) || "", history: chat.msgs.slice(0, -1).filter((m) => !m.err).map((m) => ({ role: m.role, text: m.text })), askedName: chat.askedName, offeredBrief: chat.offeredBrief,
+          history: chat.msgs.slice(0, -1).filter((m) => !m.err).map((m) => ({ role: m.role, text: m.text })), askedName: chat.askedName, offeredBrief: chat.offeredBrief,
         }),
       });
       const d = await r.json().catch(() => ({}));
@@ -200,7 +199,7 @@
       if (d.askName) { chat.askedName = true; if (!name) chat.nameBox = true; }
       if (d.offerBrief) chat.offeredBrief = true;
       if (d.name && !name) { name = d.name; store.set("ev-name", name); }
-      chat.msgs.push({ role: "orb", text: d.reply, case: d.case || null, page: d.page || "", offerBrief: !!d.offerBrief, bookCall: !!d.bookCall });
+      chat.msgs.push({ role: "orb", text: d.reply, case: d.case || null, offerBrief: !!d.offerBrief, bookCall: !!d.bookCall });
     } catch (e) {
       chat.msgs.push({ role: "orb", text: e.message || "The orb didn’t answer.", err: true });
     }

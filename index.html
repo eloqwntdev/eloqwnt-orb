@@ -306,8 +306,7 @@ svg{display:block}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
 </style>
-<link rel="stylesheet" href="/vision-assets/lead.css?v=022859">
-<link rel="stylesheet" href="/vision-assets/pages.css?v=1">
+<link rel="stylesheet" href="/vision-assets/lead.css?v=022858">
 </head>
 <body>
 <div id="root" class="" data-view="voice" data-state="idle">
@@ -943,7 +942,6 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
 
   const live = EV.live = {
     active: false,
-    context(t) { try { conv && conv.sendContextualUpdate && conv.sendContextualUpdate(String(t)); } catch (e) { /* older client */ } },
     async start() {
       if (conv || connecting) return;
       connecting = true;
@@ -974,13 +972,6 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
               window.EVLead && window.EVLead.track("brief_offered", "voice");
               setTimeout(() => window.EVLead && window.EVLead.openBrief("voice"), 400);
               return "The brief form is now on screen. Tell them it takes a few seconds and the full version goes to their email.";
-            },
-            open_page: (p) => {
-              const k = String((p && (p.page || p.name)) || "").toLowerCase();
-              const page = /pack|price|pricing|service/.test(k) ? "packages" : /process|work|step|timeline|term/.test(k) ? "process" : "";
-              if (!page || !window.EVPages) return "That page doesn't exist. Pages: process (how we work), packages.";
-              setTimeout(() => window.EVPages.show(page), 300);
-              return page === "process" ? "The How we work page is on screen: steps, timeline, sign-offs and working terms." : "The Packages page is on screen: what each package includes, prices and timelines.";
             },
             open_booking: () => {
               if (window.EVLead) window.EVLead.openBooking();
@@ -1077,7 +1068,6 @@ import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.
   }
 })();
 </script>
-<script src="/vision-assets/pages.js?v=1" defer></script>
-<script src="/vision-assets/lead.js?v=022859" defer></script>
+<script src="/vision-assets/lead.js?v=022858" defer></script>
 </body>
 </html>

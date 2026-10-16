@@ -24,14 +24,6 @@
     {
       "source": "/book/:id",
       "destination": "/api/book?b=:id"
-    },
-    {
-      "source": "/how-we-work",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/packages",
-      "destination": "/index.html"
     }
   ]
 }
