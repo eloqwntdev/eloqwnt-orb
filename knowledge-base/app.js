@@ -2417,9 +2417,9 @@ function simProfiles(top){
     <p class="lead" style="font-size:14.5px">A profile is a kind of client. In each run it becomes many different people (age, style, patience, what would convince them) who chat with the real orb and decide, like a busy visitor would, whether to leave, give their email or book a call.</p>
     <div class="sgrid">${cards}
       <article class="pcard vcard sprof snew"><header><b>New profile</b></header>
-        <label class="note" for="pnew">Describe the client in your own words. Claude fills in the rest.</label>
+        <label class="note" for="pnew">Describe the client in your own words. Claude fills in the rest. Several at once: leave an empty line between them.</label>
         <textarea id="pnew" class="input" rows="4" placeholder="Fintech CFO who just closed a Series A. In a hurry, burned by an agency before, wants numbers from similar companies.">${esc(sim.draft)}</textarea>
-        <div class="row" style="gap:8px"><button class="btn cta" type="button" data-pcreate ${sim.busy ? "disabled" : ""}>${sim.busy === "create" ? "Creating…" : "Create profile"}</button><button class="btn vg" type="button" data-preal ${sim.busy ? "disabled" : ""}>${sim.busy === "real" ? "Reading conversations…" : "Build from real visitors"}</button></div>
+        <div class="row" style="gap:8px"><button class="btn cta" type="button" data-pcreate ${sim.busy ? "disabled" : ""}>${sim.busy === "create" ? (sim.busyNote || "Creating…") : "Create profile"}</button><button class="btn vg" type="button" data-preal ${sim.busy ? "disabled" : ""}>${sim.busy === "real" ? "Reading conversations…" : "Build from real visitors"}</button></div>
       </article></div>
     ${sim.profiles.length ? `<div class="row"><a class="btn cta lg" href="#/simulator/run">Set up a run</a></div>` : ""}
   </div>`, bind: v => {
@@ -2427,10 +2427,17 @@ function simProfiles(top){
     const ta = $("#pnew", v); ta.oninput = () => { sim.draft = ta.value; };
     $("[data-pcreate]", v).onclick = async () => {
       if (!sim.draft.trim()){ ta.focus(); return; }
-      sim.busy = "create"; refresh();
-      try { const j = await simApi("POST", "", {action: "profile.create", text: sim.draft}); sim.profiles.push(j.profile); sim.pick && sim.pick.profiles.push(j.profile.id); sim.draft = ""; toast("Profile created"); }
-      catch (e){ toast(e.message, false); }
-      sim.busy = ""; refresh();
+      // several descriptions separated by an empty line become several profiles
+      const parts = sim.draft.split(/\n\s*\n/).map(t => t.trim()).filter(Boolean).slice(0, 12);
+      sim.busy = "create"; let made = 0, left = [];
+      for (const [i, text] of parts.entries()){
+        sim.busyNote = parts.length > 1 ? `Creating ${i + 1} of ${parts.length}…` : ""; refresh();
+        try { const j = await simApi("POST", "", {action: "profile.create", text}); sim.profiles.push(j.profile); sim.pick && sim.pick.profiles.push(j.profile.id); made++; }
+        catch (e){ left.push(text); toast(e.message, false); }
+      }
+      sim.draft = left.join("\n\n"); sim.busy = ""; sim.busyNote = "";
+      if (made) toast(made === 1 ? "Profile created" : `${made} profiles created`);
+      refresh();
     };
     $("[data-preal]", v).onclick = async () => {
       sim.busy = "real"; refresh();
