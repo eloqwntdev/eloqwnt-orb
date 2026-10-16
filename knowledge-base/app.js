@@ -2717,7 +2717,7 @@ function simResult(top){
   const overview = `<section class="stack" style="gap:10px"><span class="label">Overview</span>
     <div class="lab vcard"><div class="labhead"><span class="labdot" style="animation:none"></span><span>RESULT · ${done.length} CONVERSATIONS</span><span class="spacer"></span><span class="desk-only">${mins ? mins + " MIN · " : ""}${tokens(run.usage || {})} TOKENS</span></div>
       <canvas id="labcv" aria-label="Where each simulated conversation ended" role="img"></canvas>
-      <div class="labfoot"><div class="labread">${[["Book /100", per("booked"), "r"], ["Email /100", per("email"), ""], ["Left /100", per("left"), "m"], ["Avg messages", avgMsgs, ""], ["Most lost at", topExit ? (STAGE_LABEL[topExit[0]] || topExit[0]) : "–", "r"], ["People", done.length, ""]].map(([k, v, c]) => `<span class="${c}"><b>${v}</b>${k}</span>`).join("")}</div>
+      <div class="labfoot"><div class="labread">${[["Book /100", per("booked"), "r"], ["Email /100", per("email"), ""], ["Left /100", per("left"), "m"], ["Avg messages", avgMsgs, ""], ["Most lost at", topExit ? (STAGE_LABEL[topExit[0]] || topExit[0]) : "–", "r w"], ["People", done.length, ""]].map(([k, v, c]) => `<span class="${c}"><b>${v}</b>${k}</span>`).join("")}</div>
       <ol class="lablog sres">${scriptLines}</ol></div></div></section>`;
   // ---- per profile ----
   const profRows = run.profiles.map(p => {
@@ -2759,7 +2759,8 @@ function simResult(top){
     $$("[data-cell]", v).forEach(b => b.onclick = () => { const [s, p] = b.dataset.cell.split("|"); sim.cell = sim.cell && sim.cell.s === s && sim.cell.p === p ? null : {s, p}; refresh(); });
     // overview canvas: final positions
     lab.runId = ""; lab.active = new Set(); lab.events = [];
-    const dots = convs.length ? Object.fromEntries(convs.map(c => [c.key, {n: c.name, p: Math.max(0, run.profiles.findIndex(p => p.id === c.profileId)), s: c.stage, h: c.how || "left", t: c.turns}])) : (run.dots || {});
+    // only finished conversations, so the boxes match the numbers below (a stopped run has unfinished ones)
+    const dots = convs.length ? Object.fromEntries(done.map(c => [c.key, {n: c.name, p: Math.max(0, run.profiles.findIndex(p => p.id === c.profileId)), s: c.stage, h: c.how, t: c.turns}])) : (run.dots || {});
     labFeed({...run, peopleReady: true, dots}, []); labStart(run, true);
     $$("[data-recs]", v).forEach(b => b.onclick = async () => {
       sim.busy = "recs"; refresh();

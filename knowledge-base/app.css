@@ -622,3 +622,5 @@ pre.md{margin:0;padding:16px 18px;border-radius:16px;font-family:var(--f-mono);f
 .itable.sprofs td:last-child{display:table-cell;padding-right:0}
 .itable.sprofs th,.itable.sprofs td{vertical-align:middle}
 @media (max-width:760px){.itable.sprofs td.dk,.itable.sprofs th.dk{display:none}.sprofs th[scope="row"]{white-space:normal}}
+.labread b{text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.labread .w b{font-size:16px;line-height:24px}
