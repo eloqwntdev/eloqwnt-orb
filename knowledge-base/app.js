@@ -2574,13 +2574,20 @@ function labHtml(run){
 function labStart(run){
   cancelAnimationFrame(lab.raf);
   const cv = $("#labcv"); if (!cv) return;
-  const css = getComputedStyle(document.documentElement);
-  const col = n => css.getPropertyValue(n).trim() || "#888";
-  const C = {red: col("--pk2"), ink: col("--ink"), mut: col("--mut"), hl: col("--hl"), line: col("--track"), card: col("--card")};
+  // explicit colours per theme, so grid lines and boxes stay visible on the white card too
+  const palette = () => {
+    const bg = getComputedStyle(cv.closest(".lab") || document.body).backgroundColor.match(/\d+(\.\d+)?/g) || [255, 255, 255];
+    const dark = (0.299 * bg[0] + 0.587 * bg[1] + 0.114 * bg[2]) < 128;
+    return dark
+      ? {red: "#f0283a", ink: "#e6e7ea", mut: "#8b8f97", hl: "rgba(255,255,255,.16)", box: "rgba(255,255,255,.22)", dim: "rgba(230,231,234,.45)"}
+      : {red: "#d5001c", ink: "#16171a", mut: "#6b7079", hl: "rgba(8,8,10,.16)", box: "rgba(8,8,10,.22)", dim: "rgba(22,23,26,.35)"};
+  };
+  let C = palette(), frames = 0;
   const dpr = Math.min(2, devicePixelRatio || 1);
   const hash = s => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
   const draw = now => {
     if (!document.body.contains(cv)) return;
+    if (++frames % 60 === 0) C = palette(); // follows a theme switch mid-run
     const w = cv.clientWidth, h = cv.clientHeight;
     if (cv.width !== w * dpr){ cv.width = w * dpr; cv.height = h * dpr; }
     const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
@@ -2596,7 +2603,7 @@ function labStart(run){
       g.fillStyle = C.mut; g.fillText(label.toUpperCase(), x + 6, 48);
     });
     const outs = LAB_OUT.map(([k, label], i) => ({k, label, x: right + 12, y: 44 + i * ((bot - 44) / 3), hgt: (bot - 44) / 3 - 8}));
-    outs.forEach(o => { g.strokeStyle = o.k === "booked" ? C.red : C.hl; g.lineWidth = 1; g.strokeRect(o.x, o.y, outW - 8, o.hgt); g.fillStyle = o.k === "booked" ? C.red : C.mut; g.fillText(o.label.toUpperCase(), o.x + 6, o.y + 6); });
+    outs.forEach(o => { g.strokeStyle = o.k === "booked" ? C.red : C.box; g.lineWidth = 1; g.strokeRect(o.x, o.y, outW - 8, o.hgt); g.fillStyle = o.k === "booked" ? C.red : C.mut; g.fillText(o.label.toUpperCase(), o.x + 6, o.y + 6); });
     // the orb they talk to
     const ox = left + (right - left) / 2, oy = 20;
     g.fillStyle = C.mut; g.textAlign = "left"; g.fillText("THE ORB", ox + 18, oy - 5);
@@ -2628,8 +2635,8 @@ function labStart(run){
       }
       const base = lab.dots.size <= 80 ? 3.8 : 3;
       const r = talking ? base + .4 + Math.sin(lab.pulse * 4 + hash(k)) * .8 : base;
-      g.fillStyle = d.h === "booked" ? C.red : d.h === "email" ? C.ink : d.h ? C.mut : talking ? C.red : C.ink;
-      g.globalAlpha = d.h === "left" || d.h === "error" ? .45 : !d.s && !d.h && !talking ? .5 : 1;
+      g.fillStyle = d.h === "booked" ? C.red : d.h === "email" ? C.ink : d.h ? C.mut : talking ? C.red : !d.s ? C.dim : C.ink;
+      g.globalAlpha = d.h === "left" || d.h === "error" ? .55 : 1;
       g.beginPath(); g.arc(d.px, d.py, r, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
       if (talking){ g.strokeStyle = C.red; g.globalAlpha = .35; g.beginPath(); g.arc(d.px, d.py, r + 3 + Math.sin(lab.pulse * 4) * 1.5, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1; }
     }
