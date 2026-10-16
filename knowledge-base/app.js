@@ -2602,7 +2602,7 @@ function labStart(run){
     g.font = "500 10px 'DM Mono', ui-monospace, monospace"; g.textBaseline = "top";
     cols.forEach(([k, label], i) => {
       const x = left + i * cw;
-      g.strokeStyle = C.hl; g.lineWidth = 1; g.setLineDash([2, 4]); g.beginPath(); g.moveTo(x + cw, top - 4); g.lineTo(x + cw, bot); g.stroke(); g.setLineDash([]);
+      if (i < cols.length - 1){ g.strokeStyle = C.hl; g.lineWidth = 1; g.setLineDash([2, 4]); g.beginPath(); g.moveTo(x + cw, top - 4); g.lineTo(x + cw, bot); g.stroke(); g.setLineDash([]); }
       g.fillStyle = C.mut; g.fillText(label.toUpperCase(), x + 6, 48);
     });
     const outs = LAB_OUT.map(([k, label], i) => ({k, label, x: right + 12, y: 44 + i * ((bot - 44) / 3), hgt: (bot - 44) / 3 - 8}));
@@ -2622,9 +2622,12 @@ function labStart(run){
       let bx, by, bw, bh;
       if (gk.startsWith("out:")){ const o = outs.find(o => o.k === gk.slice(4)) || outs[2]; bx = o.x + 6; by = o.y + 22; bw = outW - 20; bh = o.hgt - 28; }
       else { let i = cols.findIndex(c => c[0] === gk.slice(4)); if (i < 0) i = cols.length - 1; bx = left + i * cw + 8; by = top + 8; bw = cw - 16; bh = bot - top - 16; }
-      const step = lab.dots.size <= 80 ? 12 : 9;
+      // dot spacing: roomy for small runs, tighter when a box fills up so every dot stays inside it
+      let step = lab.dots.size <= 80 ? 12 : 9;
+      const fits = st => Math.ceil(list.length / Math.max(1, Math.floor(bw / st))) * st <= bh;
+      while (step > 5 && !fits(step)) step -= 1;
       const per = Math.max(1, Math.floor(bw / step));
-      list.forEach(([k, d], i) => { const jit = (hash(k) % 100) / 100; d.tx = bx + (i % per) * step + jit * 2; d.ty = by + Math.floor(i / per) * step + ((hash(k + "y") % 100) / 100) * 2; if (d.ty > by + bh) d.ty = by + bh - (i % 5) * 3; });
+      list.forEach(([k, d], i) => { const jit = step >= 9 ? (hash(k) % 100) / 100 : 0; d.fit = step * .38; d.tx = bx + (i % per) * step + jit * 2; d.ty = by + Math.floor(i / per) * step + (step >= 9 ? ((hash(k + "y") % 100) / 100) * 2 : 0); if (d.ty > by + bh) d.ty = by + bh - (i % 5) * 3; });
     }
     // dots
     for (const [k, d] of lab.dots){
@@ -2636,8 +2639,9 @@ function labStart(run){
         g.strokeStyle = C.red; g.globalAlpha = .18 + .12 * Math.sin(lab.pulse * 3 + hash(k)); g.lineWidth = 1;
         g.beginPath(); g.moveTo(d.px, d.py); g.quadraticCurveTo((d.px + ox) / 2, Math.min(d.py, oy) - 10, ox, oy); g.stroke(); g.globalAlpha = 1;
       }
-      const base = lab.dots.size <= 80 ? 3.8 : 3;
-      const r = talking ? base + .4 + Math.sin(lab.pulse * 4 + hash(k)) * .8 : base;
+      const base = (lab.dots.size <= 80 ? 3.8 : 3) * (phone ? .85 : 1);
+      const size = Math.min(base, d.fit || base);
+      const r = talking ? size + .4 + Math.sin(lab.pulse * 4 + hash(k)) * .8 : size;
       g.fillStyle = d.h === "booked" ? C.red : d.h === "email" ? C.ink : d.h ? C.mut : talking ? C.red : !d.s ? C.dim : C.ink;
       g.globalAlpha = d.h === "left" || d.h === "error" ? (C.dimAlpha < 1 ? .45 : .55) : !d.s && !d.h && !talking ? C.dimAlpha : 1;
       g.beginPath(); g.arc(d.px, d.py, r, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
@@ -2660,7 +2664,7 @@ function labPaintText(run){
   const eta = rate > 0 ? Math.round((run.total - run.done) / rate) : null;
   const u = run.usage || {}, tok = (u.input_tokens || 0) + (u.output_tokens || 0) + (u.cache_read_input_tokens || 0);
   const mmss = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-  st.textContent = `T+${mmss(secs)} · ${run.done}/${run.total} · ${Math.round(tok / 1000)}k TOKENS`;
+  st.textContent = isPhone() ? `T+${mmss(secs)} · ${run.done}/${run.total}` : `T+${mmss(secs)} · ${run.done}/${run.total} · ${Math.round(tok / 1000)}k TOKENS`;
   rd.innerHTML = [["Booked", n("booked"), "r"], ["Email", n("email"), ""], ["Left", n("left"), "m"], ["Talking now", lab.active.size, "r"], ["Per minute", rate ? rate.toFixed(1) : "–", ""], ["ETA", eta === null ? "–" : eta + " min", ""]]
     .map(([k, v, c]) => `<span class="${c}"><b>${v}</b>${k}</span>`).join("");
   lg.innerHTML = (lab.events.length ? lab.events : run.peopleReady ? [{t: "", c: "", m: "Opening conversations…"}] : run.profiles.map((p, i) => ({t: "", c: "", m: `Sampling ${run.per} people from “${p.title}”…`})))
@@ -2685,7 +2689,7 @@ function simResult(top){
   const cell = (s, p) => cells.find(c => c.scriptId === s && c.profileId === p);
   const best = {}; run.profiles.forEach(p => { let b = null; run.scripts.forEach(s => { const c = cell(s.id, p.id); if (c && c.n && (!b || c.bookedPer100 > b.bookedPer100)) b = c; }); if (b && b.bookedPer100 > 0) best[p.id] = b.scriptId; });
   const matrix = `<div class="card vcard itable-wrap"><table class="itable smatrix"><thead><tr><th scope="col">Profile</th>${run.scripts.map(s => `<th scope="col">${esc(s.title)}</th>`).join("")}</tr></thead><tbody>
-    ${run.profiles.map(p => `<tr><th scope="row">${esc(p.title)}<small>${p.mode === "voice" ? "Voice" : "Chat"}</small></th>${run.scripts.map(s => { const c = cell(s.id, p.id); if (!c) return `<td>–</td>`; const on = sim.cell && sim.cell.s === s.id && sim.cell.p === p.id; return `<td><button type="button" class="scell ${best[p.id] === s.id ? "best" : ""} ${on ? "on" : ""}" data-cell="${esc(s.id)}|${esc(p.id)}" title="Show these conversations"><b>${c.bookedPer100}</b><span>of 100 book</span><small>${c.emailPer100} give email</small></button></td>`; }).join("")}</tr>`).join("")}
+    ${run.profiles.map(p => `<tr><th scope="row">${esc(p.title)}<small>${p.mode === "voice" ? "Voice" : "Chat"}</small></th>${run.scripts.map(s => { const c = cell(s.id, p.id); if (!c) return `<td>–</td>`; const on = sim.cell && sim.cell.s === s.id && sim.cell.p === p.id; return `<td><button type="button" class="scell ${best[p.id] === s.id ? "best" : ""} ${on ? "on" : ""}" data-cell="${esc(s.id)}|${esc(p.id)}" title="Show these conversations"><b>${c.bookedPer100}<i>/100</i></b><span>${c.emailPer100} email</span></button></td>`; }).join("")}</tr>`).join("")}
   </tbody></table></div>`;
   const checks = run.scripts.filter(s => real[s.id] && real[s.id].n >= 20).map(s => { const sm = cells.filter(c => c.scriptId === s.id); const n = sm.reduce((a, c) => a + c.n, 0), b = sm.reduce((a, c) => a + c.booked, 0); return `<span class="chip lchip">${esc(s.title)} · sim ${n ? Math.round(b * 100 / n) : 0}, real ${Math.round(real[s.id].booked * 100 / real[s.id].n)}</span>`; });
   const sel = sim.cell ? convs.filter(c => c.scriptId === sim.cell.s && c.profileId === sim.cell.p) : [];

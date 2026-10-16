@@ -568,3 +568,18 @@ pre.md{margin:0;padding:16px 18px;border-radius:16px;font-family:var(--f-mono);f
 .island .ix svg{width:12px;height:12px}
 @media (max-width:760px){.island{top:auto;bottom:calc(env(safe-area-inset-bottom) + 88px);height:40px;font-size:12.5px;transform:translate(-50%,180%)}.island.on{transform:translate(-50%,0)}}
 @media (prefers-reduced-motion:reduce){.island{transition:opacity var(--t-base)}}
+.labhead span{white-space:nowrap}
+@media (max-width:760px){.labhead{padding:11px 14px;font-size:10.5px}}
+/* compact result cells */
+.scell{flex-direction:row;align-items:baseline;justify-content:center;gap:8px;min-width:0;padding:7px 12px;border-radius:10px}
+.scell b{font-size:20px}
+.scell b i{font-style:normal;font-size:11px;font-weight:400;color:var(--mut);margin-left:2px}
+.scell span{font-size:11.5px;color:var(--ink-3)}
+.smatrix th[scope="row"]{padding-top:8px;padding-bottom:8px}
+@media (max-width:760px){
+  .scell{flex-direction:column;align-items:center;gap:1px;padding:6px 10px;min-width:64px}
+  .scell b{font-size:18px}
+  .scell span{font-size:10.5px}
+}
+/* round icon buttons: keep the icon centred (mobile-only switches them to flex) */
+.icon-btn.mobile-only{justify-content:center;align-items:center}
