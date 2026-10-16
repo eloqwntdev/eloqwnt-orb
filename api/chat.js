@@ -18,6 +18,7 @@ export async function POST(request) {
   const body = await request.json().catch(() => ({}));
   const text = clip(body.text, 1500);
   if (!text) return json({ error: "Type a message first.", code: "invalid_request" }, 400);
+  const viewing = ["process", "packages"].includes(body.viewing) ? body.viewing : "";
   const kind = body.kind === "name" ? "name" : body.kind === "skip_name" ? "skip_name" : "text";
 
   let conv = await loadConv(body.convId);
@@ -50,10 +51,10 @@ export async function POST(request) {
     ctx = await loadContext();
     const msgs = conv.messages.map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
     try {
-      out = await claude({ system: system(ctx, conv), messages: msgs, maxTokens: 1000, model: process.env.ORB_CHAT_MODEL, tool: REPLY_TOOL });
+      out = await claude({ system: system(ctx, { ...conv, viewing }), messages: msgs, maxTokens: 1000, model: process.env.ORB_CHAT_MODEL, tool: REPLY_TOOL });
     } catch (e) {
       console.error("chat tool call failed, falling back to text", e.status, e.message);
-      const text = e.text || await claude({ system: system(ctx, conv) + "\n\n(Reply with just your message to the visitor, as plain text.)", messages: msgs, maxTokens: 800, model: process.env.ORB_CHAT_MODEL });
+      const text = e.text || await claude({ system: system(ctx, { ...conv, viewing }) + "\n\n(Reply with just your message to the visitor, as plain text.)", messages: msgs, maxTokens: 800, model: process.env.ORB_CHAT_MODEL });
       out = { reply: text };
     }
   } catch (e) {
@@ -64,6 +65,7 @@ export async function POST(request) {
 
   const reply = clip(String(out.reply || "").replace(/,?\s*"?(case_id|ask_name|offer_brief|book_call|play|stage)"?\s*:[\s\S]*$/, ""), 1200) || "Sorry, could you say that another way?";
   const card = out.case_id ? caseCard(ctx.byId.get(String(out.case_id)), ctx.byId) : null;
+  const page = ["process", "packages"].includes(out.show_page) ? out.show_page : "";
   const askName = !!out.ask_name && !conv.name && !conv.askedName;
   const offerBrief = !!out.offer_brief;
   if (askName) conv.askedName = true;
@@ -76,5 +78,5 @@ export async function POST(request) {
   });
   await saveConv(conv).catch((e) => console.error("conv save", e));
 
-  return json({ convId: conv.id, reply, case: card, askName, offerBrief, bookCall: !!out.book_call, name: conv.name || "" });
+  return json({ convId: conv.id, reply, case: card, page, askName, offerBrief, bookCall: !!out.book_call, name: conv.name || "" });
 }

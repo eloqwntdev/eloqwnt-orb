@@ -7,7 +7,7 @@ import { cleanSource, newId, sourceLabel } from "../lib/orb-context.js";
 import { linkCall } from "../lib/voice.js";
 
 const clip = (v, n) => String(v ?? "").slice(0, n).trim();
-const EVENTS = ["book_click", "brief_open", "case_shown", "brief_offered"];
+const EVENTS = ["book_click", "brief_open", "case_shown", "brief_offered", "page_process", "page_packages"];
 
 function addEvents(conv, list) {
   const have = new Set((conv.events || []).map((e) => e.type));
