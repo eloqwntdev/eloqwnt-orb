@@ -2571,7 +2571,8 @@ function labHtml(run){
     <div class="labfoot"><div id="labread" class="labread"></div><ol id="lablog" class="lablog" aria-live="polite"></ol></div>
   </div>`;
 }
-function labStart(run){
+function labStart(run, final){
+  lab.final = !!final;
   cancelAnimationFrame(lab.raf);
   const cv = $("#labcv"); if (!cv) return;
   // dark: the theme's own colours (as designed); light: stronger lines so the grid shows on the white card
@@ -2606,7 +2607,14 @@ function labStart(run){
       g.fillStyle = C.mut; g.fillText(label.toUpperCase(), x + 6, 48);
     });
     const outs = LAB_OUT.map(([k, label], i) => ({k, label, x: right + 12, y: 44 + i * ((bot - 44) / 3), hgt: (bot - 44) / 3 - 8}));
-    outs.forEach(o => { g.strokeStyle = o.k === "booked" ? C.red : C.box; g.lineWidth = 1; g.strokeRect(o.x, o.y, outW - 8, o.hgt); g.fillStyle = o.k === "booked" ? C.red : C.mut; g.fillText(o.label.toUpperCase(), o.x + 6, o.y + 6); });
+    outs.forEach(o => { g.strokeStyle = o.k === "booked" ? C.red : C.box; g.lineWidth = 1; g.strokeRect(o.x, o.y, outW - 8, o.hgt); g.fillStyle = o.k === "booked" ? C.red : C.mut; g.fillText(o.label.toUpperCase(), o.x + 6, o.y + 6);
+      if (lab.final){ const n = [...lab.dots.values()].filter(d => (d.h === "error" ? "left" : d.h) === o.k).length, tot = lab.dots.size || 1;
+        g.font = `450 ${phone ? 22 : 30}px Aspekta, system-ui, sans-serif`; g.fillStyle = o.k === "booked" ? C.red : o.k === "left" ? C.mut : C.ink; g.fillText(String(Math.round(n * 100 / tot)), o.x + 6, o.y + 24);
+        g.font = "500 10px 'DM Mono', ui-monospace, monospace"; g.fillStyle = C.mut; g.fillText(phone ? `n=${n}` : `OF 100 · ${n}`, o.x + 6, o.y + (phone ? 50 : 60)); } });
+    if (lab.final){ // share of people whose conversation ended at each stage
+      const tot = lab.dots.size || 1;
+      cols.forEach(([k], i) => { if (!k) return; const n = [...lab.dots.values()].filter(d => (d.s || "") === k || (k === "answering" && d.s && !cols.some(c => c[0] === d.s))).length; if (!n) return;
+        const x = left + i * cw; g.fillStyle = C.mut; g.fillText(`${Math.round(n * 100 / tot)}%${phone ? "" : " END HERE"}`, x + 6, bot - 12); }); }
     // the orb they talk to
     const ox = left + (right - left) / 2, oy = 20;
     g.fillStyle = C.mut; g.textAlign = "left"; g.fillText("THE ORB", ox + 18, oy - 5);
@@ -2614,7 +2622,8 @@ function labStart(run){
     // targets
     const groups = {};
     for (const [k, d] of lab.dots){
-      const key = d.h ? "out:" + (d.h === "error" ? "left" : d.h) : "col:" + (cols.findIndex(c => c[0] === (d.s || "")) >= 0 ? d.s || "" : (d.s ? "answering" : ""));
+      const colKey = "col:" + (cols.findIndex(c => c[0] === (d.s || "")) >= 0 ? d.s || "" : (d.s ? "answering" : ""));
+      const key = lab.final ? colKey : d.h ? "out:" + (d.h === "error" ? "left" : d.h) : colKey;
       (groups[key] = groups[key] || []).push([k, d]);
     }
     for (const [gk, list] of Object.entries(groups)){
@@ -2651,10 +2660,12 @@ function labStart(run){
     const rg = 7 + Math.sin(lab.pulse * 2) * 1.2;
     g.fillStyle = C.red; g.beginPath(); g.arc(ox, oy, rg, 0, Math.PI * 2); g.fill();
     g.strokeStyle = C.red; g.globalAlpha = .3; g.beginPath(); g.arc(ox, oy, rg + 6 + Math.sin(lab.pulse) * 3, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1;
-    lab.raf = requestAnimationFrame(draw);
+    if (!(lab.final && lab.settled && lab.settled < now - 2500)) lab.raf = requestAnimationFrame(draw);
+    if (lab.final && !lab.settled) lab.settled = now;
   };
+  lab.settled = 0;
   lab.raf = requestAnimationFrame(draw);
-  labPaintText(run);
+  if (!final) labPaintText(run);
 }
 function labPaintText(run){
   const st = $("#labstats"), rd = $("#labread"), lg = $("#lablog"); if (!st) return;
@@ -2694,9 +2705,50 @@ function simResult(top){
   const checks = run.scripts.filter(s => real[s.id] && real[s.id].n >= 20).map(s => { const sm = cells.filter(c => c.scriptId === s.id); const n = sm.reduce((a, c) => a + c.n, 0), b = sm.reduce((a, c) => a + c.booked, 0); return `<span class="chip lchip">${esc(s.title)} · sim ${n ? Math.round(b * 100 / n) : 0}, real ${Math.round(real[s.id].booked * 100 / real[s.id].n)}</span>`; });
   const sel = sim.cell ? convs.filter(c => c.scriptId === sim.cell.s && c.profileId === sim.cell.p) : [];
   const HOW = {booked: ["Booked a call", "ok"], email: ["Gave email", "ok"], left: ["Left", "bad"], error: ["Error", "off"]};
+  // ---- overview: everyone, placed at the stage where their conversation ended ----
+  const done = convs.filter(c => c.how && c.how !== "error"), N = done.length || 1;
+  const per = k => Math.round(done.filter(c => c.how === k).length * 100 / N);
+  const avgMsgs = done.length ? (done.reduce((a, c) => a + (c.turns || 0), 0) / done.length).toFixed(1) : "–";
+  const exitCounts = {}; done.filter(c => c.how === "left").forEach(c => { exitCounts[c.stage] = (exitCounts[c.stage] || 0) + 1; });
+  const topExit = Object.entries(exitCounts).sort((a, b) => b[1] - a[1])[0];
+  const mins = run.finishedAt ? Math.max(1, Math.round((new Date(run.finishedAt) - new Date(run.createdAt)) / 60000)) : null;
+  const bar = (v, w = 10) => "█".repeat(Math.round(v * w / 100)) + "░".repeat(w - Math.round(v * w / 100));
+  const scriptLines = run.scripts.map(sc => { const m = done.filter(c => c.scriptId === sc.id), b = m.length ? Math.round(m.filter(c => c.how === "booked").length * 100 / m.length) : 0, e = m.length ? Math.round(m.filter(c => c.how === "email").length * 100 / m.length) : 0; return `<li><span>${esc(sc.title.toUpperCase())}</span><b>${bar(b)}</b> ${b}/100 book · ${e} email</li>`; }).join("");
+  const overview = `<section class="stack" style="gap:10px"><span class="label">Overview</span>
+    <div class="lab vcard"><div class="labhead"><span class="labdot" style="animation:none"></span><span>RESULT · ${done.length} CONVERSATIONS</span><span class="spacer"></span><span class="desk-only">${mins ? mins + " MIN · " : ""}${tokens(run.usage || {})} TOKENS</span></div>
+      <canvas id="labcv" aria-label="Where each simulated conversation ended" role="img"></canvas>
+      <div class="labfoot"><div class="labread">${[["Book /100", per("booked"), "r"], ["Email /100", per("email"), ""], ["Left /100", per("left"), "m"], ["Avg messages", avgMsgs, ""], ["Most lost at", topExit ? (STAGE_LABEL[topExit[0]] || topExit[0]) : "–", "r"], ["People", done.length, ""]].map(([k, v, c]) => `<span class="${c}"><b>${v}</b>${k}</span>`).join("")}</div>
+      <ol class="lablog sres">${scriptLines}</ol></div></div></section>`;
+  // ---- per profile ----
+  const profRows = run.profiles.map(p => {
+    const m = done.filter(c => c.profileId === p.id), n = m.length || 1, pc = k => Math.round(m.filter(c => c.how === k).length * 100 / n);
+    const ex = {}; m.filter(c => c.how === "left").forEach(c => { ex[c.stage] = (ex[c.stage] || 0) + 1; }); const top = Object.entries(ex).sort((a, b) => b[1] - a[1])[0];
+    const why = (m.find(c => c.how === "left" && c.reason) || {}).reason || "";
+    return `<tr><th scope="row">${esc(p.title)}<small>${p.mode === "voice" ? "Voice" : "Chat"} · ${m.length} people</small></th><td class="r"><b>${pc("booked")}</b></td><td>${pc("email")}</td><td class="m">${pc("left")}</td><td class="dk">${m.length ? (m.reduce((a, c) => a + (c.turns || 0), 0) / m.length).toFixed(1) : "–"}</td><td class="dk">${top ? esc(STAGE_LABEL[top[0]] || top[0]) : "–"}</td><td class="dk swhy">${esc(why)}</td></tr>`;
+  }).join("");
+  const profiles = `<section class="stack" style="gap:10px"><span class="label">By profile · per 100 people</span>
+    <div class="card vcard itable-wrap"><table class="itable sprofs"><thead><tr><th scope="col">Profile</th><th scope="col">Book</th><th scope="col">Email</th><th scope="col">Left</th><th scope="col" class="dk">Msgs</th><th scope="col" class="dk">Lost at</th><th scope="col" class="dk swhy">Why they left (example)</th></tr></thead><tbody>${profRows}</tbody></table></div></section>`;
+  // ---- recommendations ----
+  const AREA = {opener: "Opener", questions: "Questions", proof: "Proof", objections: "Objections", close: "Close", offer: "Offer", knowledge_base: "Knowledge base"};
+  const recs = run.recs;
+  const recBlock = `<section class="stack" style="gap:10px"><div class="row" style="justify-content:space-between"><span class="label">Recommendations · what to change in each playbook</span>${recs ? `<button class="linkbtn" type="button" data-recs>${sim.busy === "recs" ? "Thinking…" : "Regenerate"}</button>` : ""}</div>
+    ${!recs ? `<div class="card vcard pad row" style="gap:12px;flex-wrap:wrap"><span class="ltext" style="flex:1;min-width:220px">Claude reads every conversation in this run and tells you where each playbook loses people, who it works for and exactly what to change.</span><button class="btn cta" type="button" data-recs ${sim.busy ? "disabled" : ""}>${sim.busy === "recs" ? "Reading the conversations…" : "Get recommendations"}</button></div>`
+      : recs.playbooks.map(pb => { const sc = run.scripts.find(x => x.id === pb.scriptId) || {title: pb.scriptId};
+        return `<article class="card vcard pad srec">
+          <header><span class="label">Playbook</span><b>${esc(sc.title)}</b><span class="spacer"></span><a class="linkbtn" href="${pb.scriptId === "live" ? "#/playbook" : "#/playbook/" + encodeURIComponent(pb.scriptId)}">Edit ${pb.scriptId === "live" ? "plays" : "this play"}</a></header>
+          <p class="ltext">${esc(pb.verdict)}</p>
+          ${pb.bottleneck && pb.bottleneck.stage ? `<div class="sbottle"><span class="label">Bottleneck</span><b>${esc(STAGE_LABEL[pb.bottleneck.stage] || pb.bottleneck.stage)}</b><span class="sbar"><i style="width:${pb.bottleneck.share}%"></i></span><span class="label">${pb.bottleneck.share}% of exits</span><p>${esc(pb.bottleneck.why)}</p></div>` : ""}
+          <div class="sfit"><div><span class="label">Works best for</span>${pb.best.map(x => `<p><b class="ok">${esc(x.profile)}</b> ${esc(x.why)}</p>`).join("") || `<p class="note">No clear winner yet.</p>`}</div>
+            <div><span class="label">Struggles with</span>${pb.worst.map(x => `<p><b class="bad">${esc(x.profile)}</b> ${esc(x.why)}</p>`).join("") || `<p class="note">Nothing stands out.</p>`}</div></div>
+          <div class="schanges"><span class="label">Change next</span><ol>${pb.changes.map(c => `<li><span class="chip lchip">${esc(AREA[c.area] || c.area)}</span><div><p>${esc(c.change)}</p><small>${esc(c.why)}</small>${c.nodeId && nodes.has(c.nodeId) ? `<a class="linkbtn" href="#/node/${encodeURIComponent(c.nodeId)}">Open ${esc(nodes.get(c.nodeId).title)}</a>` : ""}</div></li>`).join("")}</ol></div>
+        </article>`; }).join("") + (recs.next ? `<p class="note"><b style="font-weight:450">Next test:</b> ${esc(recs.next)}</p>` : "")}
+  </section>`;
   return {top, body: `<div class="page wide">${head}
+    ${overview}
     <section class="stack" style="gap:10px"><div class="row" style="justify-content:space-between"><span class="label">How many of 100 would book a call · simulated</span><span class="label desk-only">Outlined = best script for that kind of person</span></div>${matrix}
       <p class="note">Click a number to read those conversations.</p></section>
+    ${profiles}
+    ${recBlock}
     ${sim.cell ? `<section class="stack" style="gap:10px"><span class="label">${esc((run.scripts.find(s => s.id === sim.cell.s) || {}).title)} × ${esc((run.profiles.find(p => p.id === sim.cell.p) || {}).title)}</span>
       <div class="card vcard">${sel.map(c => `<a class="rowlink lrow" href="#/simulator/c/${encodeURIComponent(run.id)}/${encodeURIComponent(c.key)}"><span class="avatar">${esc((c.name || "?")[0])}</span><span class="grow"><span class="lname">${esc(c.name)}</span><small>${esc(c.how === "left" ? `Left at ${STAGE_LABEL[c.stage] || c.stage}: ${c.reason}` : c.reason || c.role)}</small></span><span class="lst ${(HOW[c.how] || HOW.error)[1]}"><i></i>${(HOW[c.how] || HOW.error)[0]}</span><span class="chev">${ic("chev")}</span></a>`).join("")}</div></section>` : ""}
     <section class="stack" style="gap:10px"><span class="label">How much to trust this</span>
@@ -2705,6 +2757,15 @@ function simResult(top){
     <div class="row" style="gap:8px"><a class="btn vg" href="#/simulator/run">New run</a><a class="btn vg" href="#/playbook">Edit plays</a><span class="spacer"></span><button class="btn plain" type="button" data-rdel>${sim.confirmDel ? "Delete this run?" : "Delete run"}</button></div>
   </div>`, bind: v => {
     $$("[data-cell]", v).forEach(b => b.onclick = () => { const [s, p] = b.dataset.cell.split("|"); sim.cell = sim.cell && sim.cell.s === s && sim.cell.p === p ? null : {s, p}; refresh(); });
+    // overview canvas: final positions
+    lab.runId = ""; lab.active = new Set(); lab.events = [];
+    const dots = convs.length ? Object.fromEntries(convs.map(c => [c.key, {n: c.name, p: Math.max(0, run.profiles.findIndex(p => p.id === c.profileId)), s: c.stage, h: c.how || "left", t: c.turns}])) : (run.dots || {});
+    labFeed({...run, peopleReady: true, dots}, []); labStart(run, true);
+    $$("[data-recs]", v).forEach(b => b.onclick = async () => {
+      sim.busy = "recs"; refresh();
+      try { const j = await simApi("POST", "", {action: "run.recommend", id: run.id}); sim.run.run.recs = j.recs; } catch (e){ toast(e.message, false); }
+      sim.busy = ""; refresh();
+    });
     $("[data-rdel]", v).onclick = async () => {
       if (!sim.confirmDel){ sim.confirmDel = true; refresh(); setTimeout(() => { sim.confirmDel = false; }, 4000); return; }
       sim.confirmDel = false;

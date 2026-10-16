@@ -4,7 +4,7 @@ import { waitUntil } from "@vercel/functions";
 import { isAuthed, json, redis, redisConfigured } from "../lib/server.js";
 import { newId } from "../lib/orb-context.js";
 import {
-  PARALLEL, advance, cleanProfile, explain, insightsFor, listProfiles, loadConvs, loadRun, makePeople, profileFromText,
+  PARALLEL, advance, cleanProfile, explain, insightsFor, recommendFor, listProfiles, loadConvs, loadRun, makePeople, profileFromText,
   profilesFromReal, saveConvs, saveProfile, saveRun, scriptsFor, summarise,
 } from "../lib/sim.js";
 
@@ -208,6 +208,7 @@ export async function POST(request) {
             const all = await loadConvs(run.id);
             run.cells = summarise(run, all.filter((c) => c.end?.how !== "error"));
             run.insights = await insightsFor(run, run.cells, usage).catch(() => []);
+            run.recs = await recommendFor(run, run.cells, all, (await scriptsFor([])).ctx, usage).catch((e) => { console.error("recs", e.message); return null; });
             run.status = "done"; run.finishedAt = new Date().toISOString();
           }
         }
@@ -229,8 +230,19 @@ export async function POST(request) {
       run.status = "done"; run.stopped = true; run.active = []; run.finishedAt = new Date().toISOString();
       run.cells = summarise(run, all);
       run.insights = all.length ? await insightsFor(run, run.cells, usage).catch(() => []) : [];
+      run.recs = all.length ? await recommendFor(run, run.cells, all, (await scriptsFor([])).ctx, usage).catch(() => null) : null;
       await saveRun(run);
       return json({ run: progress(run) });
+    }
+
+    if (a === "run.recommend") {
+      const run = await loadRun(body.id);
+      if (!run || run.status !== "done") return json({ error: "The run isn’t finished yet." }, 400);
+      const all = (await loadConvs(run.id)).filter((c) => c.state === "done" && c.end?.how !== "error");
+      run.recs = await recommendFor(run, run.cells || summarise(run, all), all, (await scriptsFor([])).ctx, usage);
+      for (const k of Object.keys(usage)) run.usage[k] = (run.usage[k] || 0) + usage[k];
+      await saveRun(run);
+      return json({ recs: run.recs });
     }
 
     if (a === "conv.explain") {
