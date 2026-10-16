@@ -11,6 +11,9 @@
     },
     "api/lead.js": {
       "maxDuration": 30
+    },
+    "api/sim.js": {
+      "maxDuration": 120
     }
   },
   "rewrites": [

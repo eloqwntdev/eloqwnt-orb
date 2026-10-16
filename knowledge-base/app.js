@@ -34,6 +34,7 @@ const IC = {
   file: "M4.5 2.5h5l3 3v8h-8zM9.5 2.5v3h3", note: "M3.5 4h9M3.5 8h9M3.5 12h5", alert: "M8 2.5 14 13H2zM8 6.5v3M8 11.5v.01",
   open: "M9.5 3.5h3v3M12.5 3.5 8 8M11 9.5v3H3.5V5H7", more: "M3.5 8h.01M8 8h.01M12.5 8h.01", trash: "M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.5 8h5l.5-8", lock: "M4 7.5h8v6H4zM5.5 7.5V5.5a2.5 2.5 0 0 1 5 0v2",
   chart: "M3 13V8.5M6.5 13V5M10 13V9.5M13.5 13V3",
+  sim: "M6.5 2.5h3M7 2.5v4L3.5 12a1 1 0 0 0 .9 1.5h7.2a1 1 0 0 0 .9-1.5L9 6.5v-4M5 10h6",
   leads: "M2.5 9.5h3l1 1.5h3l1-1.5h3M2.5 9.5 4 4h8l1.5 5.5V13h-11z"
 };
 const ic = (k, sw = 1.4) => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${IC[k]}"/></svg>`;
@@ -122,10 +123,10 @@ function unexported(){ const e = store.get("kb-exported", null); return loaded &
 function markExported(){ store.set("kb-exported", {sig: exportSig(), at: Date.now()}); renderSide(); renderTabbar(); }
 
 /* ---------- routing ---------- */
-const VIEWS = ["map", "gaps", "interview", "import", "node", "playbook", "export", "leads", "insights"];
+const VIEWS = ["map", "gaps", "interview", "import", "node", "playbook", "export", "leads", "insights", "simulator"];
 function parseHash(){
-  const [v, a, b] = location.hash.replace(/^#\/?/, "").split("/").map(x => decodeURIComponent(x || ""));
-  return {view: VIEWS.includes(v) ? v : "map", arg: a || null, arg2: b || null};
+  const [v, a, b, c] = location.hash.replace(/^#\/?/, "").split("/").map(x => decodeURIComponent(x || ""));
+  return {view: VIEWS.includes(v) ? v : "map", arg: a || null, arg2: b || null, arg3: c || null};
 }
 function go(path){
   const h = "#/" + path;
@@ -154,11 +155,11 @@ function onRoute(){
 const NAV = [
   {k: "new", label: "New node", ic: "plus", act: () => openNewNode()},
   {k: "search", label: "Search", ic: "search", act: () => openSearch()},
-  {k: "map", label: "Map", ic: "map"}, {k: "leads", label: "Leads", ic: "leads"}, {k: "insights", label: "Insights", ic: "chart"}, {k: "import", label: "Import", ic: "import"}, {k: "interview", label: "Interview", ic: "chat"},
+  {k: "map", label: "Map", ic: "map"}, {k: "leads", label: "Leads", ic: "leads"}, {k: "insights", label: "Insights", ic: "chart"}, {k: "simulator", label: "Simulator", ic: "sim"}, {k: "import", label: "Import", ic: "import"}, {k: "interview", label: "Interview", ic: "chat"},
   {k: "gaps", label: "Gaps", ic: "gaps"}, {k: "playbook", label: "Playbook", ic: "book"}, {k: "export", label: "Export", ic: "export"}
 ];
 function activeNav(){ return route.view === "node" ? "map" : route.view; }
-const tabOf = v => v === "insights" ? "leads" : v;
+const tabOf = v => v === "insights" || v === "simulator" ? "leads" : v;
 function renderSide(){
   const side = $("#side"); if (!side) return;
   const act = activeNav(), dot = unexported();
@@ -1358,7 +1359,7 @@ function openSearch(){
         deep.hits.filter(h => !listed.has(h.convId) && !(h.leadId && listed.has(h.leadId))).slice(0, 6).forEach(h => results.push({w: 5, g: "Inside conversations and briefs", t: `${h.name || "Anonymous visitor"} · ${h.where}`, m: h.text, icon: `<span class="ib">${ic("note")}</span>`, go: () => go(h.leadId ? "leads/" + encodeURIComponent(h.leadId) : "leads/c/" + encodeURIComponent(h.convId))}));
       }
       // screens
-      [["Map", "map", "map"], ["Leads", "leads", "leads"], ["Insights", "insights", "chart"], ["Gaps", "gaps", "gaps"], ["Playbook", "playbook", "book"], ["Import", "import", "import"], ["Interview", "interview", "chat"], ["Export", "export", "export"]]
+      [["Map", "map", "map"], ["Leads", "leads", "leads"], ["Insights", "insights", "chart"], ["Simulator", "simulator", "sim"], ["Gaps", "gaps", "gaps"], ["Playbook", "playbook", "book"], ["Import", "import", "import"], ["Interview", "interview", "chat"], ["Export", "export", "export"]]
         .filter(([t]) => t.toLowerCase().startsWith(s)).forEach(([t, r, i]) => results.push({w: 25, g: "Go to", t, m: "", icon: `<span class="ib">${ic(i)}</span>`, go: () => go(r)}));
     }
     const top = ns[0] && ns[0].n;
@@ -2272,7 +2273,8 @@ function bindCal(v){
 VIEW.insights = () => {
   if (!leads.loaded) loadLeads();
   if (cal.state === "idle") loadCal();
-  const top = {title: "Insights", sub: "How the orb’s conversations go", right: `<a class="btn vg" href="#/leads">${ic("leads")}Leads</a>`, mobileLeft: backBtn("#/leads")};
+  const top = {title: "Insights", sub: "How the orb’s conversations go", right: `<a class="btn vg" href="#/simulator">${ic("sim")}Simulator</a><a class="btn vg" href="#/leads">${ic("leads")}Leads</a>`, mobileLeft: backBtn("#/leads"),
+    mobileRight: `<a class="icon-btn vg" href="#/simulator" aria-label="Simulator" style="border-radius:50%;width:36px;height:36px;color:var(--ink)">${ic("sim", 1.5)}</a>`};
   if (!leads.loaded) return {top, body: `<div class="page wide"><p class="note">Loading…</p></div>`};
   if (leads.err) return {top, body: `<div class="page wide"><p class="note err">${esc(leads.err)}</p></div>`};
   const convs = leads.convs.filter(c => inPeriod(c.startedAt) && (insMode === "all" || c.mode === insMode));
@@ -2341,6 +2343,253 @@ VIEW.insights = () => {
     ${modes}
     ${N < 20 ? `<p class="note warn">Only ${plural(N, "conversation")} in this view. Percentages will settle once there are a few dozen.</p>` : ""}
   </div>`};
+};
+
+/* =====================================================================
+   SIMULATOR — synthetic visitors talk to the real orb, one script (play)
+   at a time, so scripts can be compared before real visitors see them.
+   Routes: #/simulator (profiles), #/simulator/run (new run), #/simulator/runs,
+   #/simulator/r/<run>, #/simulator/c/<run>/<conversation key>. Data: /api/sim.
+   ===================================================================== */
+let sim = {loaded: false, err: "", profiles: [], scripts: [], runs: [], pick: null, run: null, convView: null, busy: "", stepping: null, cell: null, draft: ""};
+const STAGE_LABEL = {opening: "Open", discovery: "Ask", proof: "Proof", objection: "Objection", close: "Close", answering: "Answer"};
+const ATT = {skeptical: "Skeptical", curious: "Curious", ready: "Ready to start"};
+async function simApi(method, q, body){
+  const r = await fetch("/api/sim" + (q ? "?" + q : ""), {method, headers: body ? {"Content-Type": "application/json"} : {}, body: body ? JSON.stringify(body) : undefined, cache: "no-store"});
+  if (r.status === 401){ location.reload(); throw new Error("Signed out"); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "Something went wrong.");
+  return j;
+}
+async function loadSim(){
+  try {
+    const j = await simApi("GET", "view=home");
+    Object.assign(sim, {loaded: true, err: "", profiles: j.profiles, scripts: j.scripts, runs: j.runs});
+    if (!sim.pick) sim.pick = {scripts: j.scripts.filter(s => s.id !== "live").slice(0, 3).map(s => s.id), profiles: j.profiles.slice(0, 3).map(p => p.id), per: 10};
+    if (!sim.pick.scripts.length && j.scripts.length) sim.pick.scripts = ["live"];
+    const running = j.runs.find(r => r.status === "running");
+    if (running) stepRun(running.id);
+  } catch (e){ sim.loaded = true; sim.err = e.message; }
+  if (route.view === "simulator") refresh();
+}
+/* Keep stepping a running run while the dashboard is open. */
+async function stepRun(id){
+  if (sim.stepping === id) return;
+  sim.stepping = id;
+  let fails = 0;
+  while (sim.stepping === id){
+    try {
+      const j = await simApi("POST", "", {action: "run.step", id});
+      fails = 0;
+      const r = j.run; sim.runs = [r, ...sim.runs.filter(x => x.id !== id)];
+      if (sim.run && sim.run.run.id === id) sim.run.run = r;
+      if (r.status !== "running"){ sim.stepping = null; if (sim.run && sim.run.run.id === id) await openRun(id, true); toast(r.stopped ? "Run stopped" : "Simulation finished"); break; }
+      if (route.view === "simulator" && !dialogOpen()) paintRunProgress(r);
+      if (j.busy) await new Promise(res => setTimeout(res, 3000));
+    } catch (e){ if (++fails >= 4){ sim.stepping = null; toast(e.message, false); break; } await new Promise(res => setTimeout(res, 3000)); }
+  }
+}
+function paintRunProgress(r){
+  const bar = $("#simbar"); if (!bar){ if (route.arg === "r" && route.arg2 === r.id) refresh(); return; }
+  $("i", bar).style.width = (r.total ? r.done * 100 / r.total : 0) + "%";
+  const t = $("#simprog"); if (t) t.textContent = r.peopleReady ? `${r.done} of ${r.total} conversations` : "Creating the people…";
+}
+async function openRun(id, quiet){
+  try { sim.run = await simApi("GET", "view=run&id=" + encodeURIComponent(id)); } catch (e){ sim.run = {err: e.message, run: {id}}; }
+  if (!quiet || (route.view === "simulator" && route.arg === "r")) refresh();
+}
+const simTabs = act => `<div class="seg" role="group" aria-label="Simulator" style="align-self:flex-start;max-width:100%;overflow:auto">${[["", "Profiles"], ["run", "New run"], ["runs", "Results"]].map(([k, t]) => `<button type="button" data-simtab="${k}" aria-pressed="${act === k}">${t}</button>`).join("")}</div>`;
+const bindSimTabs = v => $$("[data-simtab]", v).forEach(b => b.onclick = () => go("simulator" + (b.dataset.simtab ? "/" + b.dataset.simtab : "")));
+const real100 = r => r && r.n ? `${Math.round(r.booked * 100 / r.n)} of 100 booked · ${r.n} real` : "no real conversations yet";
+const runTitle = r => `Run · ${new Date(r.createdAt).toLocaleString("en-US", {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"})}`;
+const tokens = u => { const t = (u.input_tokens || 0) + (u.output_tokens || 0) + (u.cache_read_input_tokens || 0) + (u.cache_creation_input_tokens || 0); return t > 1e6 ? (t / 1e6).toFixed(1) + "M" : Math.round(t / 1e3) + "k"; };
+
+function simProfiles(top){
+  const cards = sim.profiles.map(p => `<article class="pcard vcard sprof">
+      <header><b>${esc(p.title)}</b><span class="spacer"></span><button class="icon-btn" type="button" data-pedit="${esc(p.id)}" aria-label="Edit ${esc(p.title)}">${ic("note")}</button><button class="icon-btn" type="button" data-pdel="${esc(p.id)}" aria-label="Delete ${esc(p.title)}">${ic("trash")}</button></header>
+      <span class="label">${p.origin && p.origin.kind === "leads" ? `From ${plural(p.origin.count || 0, "real conversation")}` : "Written by you"}</span>
+      <p class="ltext">${esc(p.who)}</p>
+      <dl><dt>Cares about</dt><dd>${esc(p.cares)}</dd><dt>Worried that</dt><dd>${esc(p.worried)}</dd><dt>Attitude</dt><dd>${esc(ATT[p.attitude] || p.attitude)}</dd><dt>Talks by</dt><dd>${p.mode === "voice" ? "Voice" : "Chat"}</dd></dl>
+    </article>`).join("");
+  return {top, body: `<div class="page wide">
+    <h1 class="h1 big vtx desk-only">Test scripts on synthetic people</h1>
+    ${simTabs("")}
+    <p class="lead" style="font-size:14.5px">A profile is a kind of client. In each run it becomes many different people (age, style, patience, what would convince them) who chat with the real orb and decide, like a busy visitor would, whether to leave, give their email or book a call.</p>
+    <div class="sgrid">${cards}
+      <article class="pcard vcard sprof snew"><header><b>New profile</b></header>
+        <label class="note" for="pnew">Describe the client in your own words. Claude fills in the rest.</label>
+        <textarea id="pnew" class="input" rows="4" placeholder="Fintech CFO who just closed a Series A. In a hurry, burned by an agency before, wants numbers from similar companies.">${esc(sim.draft)}</textarea>
+        <div class="row" style="gap:8px"><button class="btn cta" type="button" data-pcreate ${sim.busy ? "disabled" : ""}>${sim.busy === "create" ? "Creating…" : "Create profile"}</button><button class="btn vg" type="button" data-preal ${sim.busy ? "disabled" : ""}>${sim.busy === "real" ? "Reading conversations…" : "Build from real visitors"}</button></div>
+      </article></div>
+    ${sim.profiles.length ? `<div class="row"><a class="btn cta lg" href="#/simulator/run">Set up a run</a></div>` : ""}
+  </div>`, bind: v => {
+    bindSimTabs(v);
+    const ta = $("#pnew", v); ta.oninput = () => { sim.draft = ta.value; };
+    $("[data-pcreate]", v).onclick = async () => {
+      if (!sim.draft.trim()){ ta.focus(); return; }
+      sim.busy = "create"; refresh();
+      try { const j = await simApi("POST", "", {action: "profile.create", text: sim.draft}); sim.profiles.push(j.profile); sim.pick && sim.pick.profiles.push(j.profile.id); sim.draft = ""; toast("Profile created"); }
+      catch (e){ toast(e.message, false); }
+      sim.busy = ""; refresh();
+    };
+    $("[data-preal]", v).onclick = async () => {
+      sim.busy = "real"; refresh();
+      try { const j = await simApi("POST", "", {action: "profile.fromReal"}); sim.profiles.push(...j.profiles); toast(`${plural(j.profiles.length, "profile")} from ${j.used} real conversations`); }
+      catch (e){ toast(e.message, false); }
+      sim.busy = ""; refresh();
+    };
+    $$("[data-pdel]", v).forEach(b => b.onclick = async () => {
+      const p = sim.profiles.find(x => x.id === b.dataset.pdel);
+      if (b.dataset.sure !== "1"){ b.dataset.sure = "1"; b.style.color = "var(--red)"; b.setAttribute("aria-label", "Click again to delete"); toast("Click again to delete " + p.title, false); return; }
+      try { await simApi("POST", "", {action: "profile.delete", id: p.id}); sim.profiles = sim.profiles.filter(x => x.id !== p.id); if (sim.pick) sim.pick.profiles = sim.pick.profiles.filter(x => x !== p.id); refresh(); } catch (e){ toast(e.message, false); }
+    });
+    $$("[data-pedit]", v).forEach(b => b.onclick = () => editProfile(sim.profiles.find(x => x.id === b.dataset.pedit)));
+  }};
+}
+function editProfile(p){
+  const field = (k, label, rows = 1) => `<label class="stack" style="gap:4px"><span class="label">${label}</span>${rows > 1 ? `<textarea class="input" data-f="${k}" rows="${rows}">${esc(p[k])}</textarea>` : `<input class="input" data-f="${k}" value="${esc(p[k])}">`}</label>`;
+  openDialog(`<h2 class="h2">Edit profile</h2>
+    ${field("title", "Name")}${field("who", "Who", 2)}${field("cares", "Cares about")}${field("worried", "Worried that")}
+    <div class="row" style="gap:8px"><select class="input" data-f="attitude">${Object.entries(ATT).map(([k, t]) => `<option value="${k}" ${p.attitude === k ? "selected" : ""}>${t}</option>`).join("")}</select>
+    <select class="input" data-f="mode"><option value="chat" ${p.mode !== "voice" ? "selected" : ""}>Chat</option><option value="voice" ${p.mode === "voice" ? "selected" : ""}>Voice</option></select></div>
+    <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn plain" type="button" data-close>Cancel</button><button class="btn cta" type="button" data-psave>Save</button></div>`, dlg => {
+    $("[data-psave]", dlg).onclick = async () => {
+      const next = {...p}; $$("[data-f]", dlg).forEach(el => { next[el.dataset.f] = el.value; });
+      try { const j = await simApi("POST", "", {action: "profile.save", profile: next}); sim.profiles = sim.profiles.map(x => x.id === p.id ? j.profile : x); closeDialog(); refresh(); toast("Saved"); } catch (e){ toast(e.message, false); }
+    };
+  }, {label: "Edit profile"});
+}
+
+function simNewRun(top){
+  const k = sim.pick, nS = k.scripts.length, nP = k.profiles.length, total = nS * nP * k.per;
+  const minutes = Math.max(1, Math.round(total * 6 * 11 / 6 / 60));
+  const opt = (kind, id, title, sub, on) => `<label class="rowlink spick"><input type="checkbox" data-pk="${kind}" value="${esc(id)}" ${on ? "checked" : ""}><span class="grow">${esc(title)}<small>${sub}</small></span></label>`;
+  return {top, body: `<div class="page wide">
+    <h1 class="h1 big vtx desk-only">Set up a run</h1>
+    ${simTabs("run")}
+    <section class="stack" style="gap:8px"><div class="row" style="justify-content:space-between"><span class="label">01 · Which scripts</span><span class="label">${nS} selected</span></div>
+      <div class="card vcard">${sim.scripts.map(s => opt("scripts", s.id, s.title, s.id === "live" ? `Everything the orb follows today · ${real100(s.real)}` : `One play on its own · ${real100(s.real)}`, k.scripts.includes(s.id))).join("") || `<p class="note" style="padding:14px 0">No plays yet. Write some in the Playbook first.</p>`}</div></section>
+    <section class="stack" style="gap:8px"><div class="row" style="justify-content:space-between"><span class="label">02 · Which people</span><span class="label">${plural(nP, "profile")}</span></div>
+      <div class="card vcard">${sim.profiles.map(p => opt("profiles", p.id, p.title, `${p.mode === "voice" ? "Voice" : "Chat"} · ${ATT[p.attitude] || ""}`, k.profiles.includes(p.id))).join("") || `<p class="note" style="padding:14px 0">No profiles yet. <a href="#/simulator">Create one</a>.</p>`}</div></section>
+    <section class="stack" style="gap:8px"><span class="label">03 · How many people per profile</span>
+      <div class="seg" role="group" aria-label="People per profile" style="align-self:flex-start">${[5, 10, 25].map(n => `<button type="button" data-per="${n}" aria-pressed="${k.per === n}">${n}</button>`).join("")}</div>
+      <p class="note">More people, steadier prediction, longer and more expensive run.</p></section>
+    <div class="pcard vcard"><header><b>This run</b></header><dl>
+      <dt>Conversations</dt><dd>${nS} ${nS === 1 ? "script" : "scripts"} × ${nP} ${nP === 1 ? "profile" : "profiles"} × ${k.per} = <b>${total}</b>${total > 300 ? ` <span class="note err">(max 300)</span>` : ""}</dd>
+      <dt>Takes about</dt><dd>${minutes} min, with this tab open</dd>
+      <dt>Claude usage</dt><dd>about ${total * 12} calls (both sides of each conversation)</dd>
+      <dt>Uses</dt><dd>your live knowledge base</dd></dl>
+      <div class="row"><button class="btn cta lg" type="button" data-start ${!total || total > 300 || sim.busy ? "disabled" : ""}>${sim.busy === "start" ? "Starting…" : "Start simulation"}</button></div></div>
+    <p class="note">Synthetic people are more patient than real ones. Treat results as a prediction to compare scripts, then confirm with real visitors.</p>
+  </div>`, bind: v => {
+    bindSimTabs(v);
+    $$("[data-pk]", v).forEach(x => x.onchange = () => { const list = k[x.dataset.pk]; x.checked ? list.push(x.value) : list.splice(list.indexOf(x.value), 1); refresh(); });
+    $$("[data-per]", v).forEach(b => b.onclick = () => { k.per = +b.dataset.per; refresh(); });
+    $$("[data-start]", v).forEach(b => b.onclick = async () => {
+      sim.busy = "start"; refresh();
+      try { const j = await simApi("POST", "", {action: "run.create", scripts: k.scripts, profiles: k.profiles, per: k.per}); sim.runs.unshift(j.run); sim.busy = ""; sim.run = {run: j.run, real: {}, convs: []}; go("simulator/r/" + j.run.id); stepRun(j.run.id); }
+      catch (e){ sim.busy = ""; toast(e.message, false); refresh(); }
+    });
+  }};
+}
+
+function simRuns(top){
+  return {top, body: `<div class="page wide">
+    <h1 class="h1 big vtx desk-only">Results</h1>
+    ${simTabs("runs")}
+    ${sim.runs.length ? `<div class="card vcard">${sim.runs.map(r => `<a class="rowlink" href="#/simulator/r/${encodeURIComponent(r.id)}">${ic("chart")}<span class="grow">${esc(runTitle(r))}<small>${r.total} conversations · ${plural(r.scripts.length, "script")} · ${plural(r.profiles.length, "profile")}</small></span><span class="label">${r.status === "running" ? `${r.done}/${r.total}` : r.stopped ? "Stopped" : "Done"}</span><span class="chev">${ic("chev")}</span></a>`).join("")}</div>`
+      : `<div class="card vcard pad"><p class="lead" style="font-size:15px">No runs yet. <a href="#/simulator/run">Set one up</a>.</p></div>`}
+  </div>`, bind: bindSimTabs};
+}
+
+function simResult(top){
+  const id = route.arg2;
+  top = {...top, mobileLeft: backBtn("#/simulator/runs")};
+  if (!sim.run || sim.run.run.id !== id){ openRun(id, true); return {top, body: `<div class="page wide"><p class="note">Loading…</p></div>`}; }
+  if (sim.run.err) return {top, body: `<div class="page wide"><p class="note err">${esc(sim.run.err)}</p><a class="btn vg" href="#/simulator/runs" style="align-self:flex-start">All results</a></div>`};
+  const {run, real, convs} = sim.run;
+  const head = `<div class="stack" style="gap:4px"><h1 class="h1">${esc(runTitle(run))}</h1><span class="lead" style="font-size:14px">${run.total} conversations · ${plural(run.scripts.length, "script")} · ${plural(run.profiles.length, "profile")} · ${run.per} people each${run.usage ? ` · ${tokens(run.usage)} tokens` : ""}</span></div>`;
+  if (run.status === "running") return {top, body: `<div class="page wide">${head}
+    <div class="card vcard pad stack" style="gap:12px"><span id="simprog" style="font-size:15px">${run.peopleReady ? `${run.done} of ${run.total} conversations` : "Creating the people…"}</span>
+      <div class="track" id="simbar" style="height:8px"><i style="width:${run.total ? run.done * 100 / run.total : 0}%"></i></div>
+      <p class="note">Keep this tab open. If you close it the run pauses, and it carries on the next time you open the simulator.</p>
+      <div class="row"><button class="btn vg" type="button" data-stop>Stop and score what’s done</button></div></div></div>`,
+    bind: v => { if (sim.stepping !== run.id) stepRun(run.id); $("[data-stop]", v).onclick = async () => { sim.stepping = null; try { const j = await simApi("POST", "", {action: "run.stop", id: run.id}); sim.run.run = j.run; await openRun(run.id); } catch (e){ toast(e.message, false); } }; }};
+  const cells = run.cells || [];
+  const cell = (s, p) => cells.find(c => c.scriptId === s && c.profileId === p);
+  const best = {}; run.profiles.forEach(p => { let b = null; run.scripts.forEach(s => { const c = cell(s.id, p.id); if (c && c.n && (!b || c.bookedPer100 > b.bookedPer100)) b = c; }); if (b && b.bookedPer100 > 0) best[p.id] = b.scriptId; });
+  const matrix = `<div class="card vcard itable-wrap"><table class="itable smatrix"><thead><tr><th scope="col">Profile</th>${run.scripts.map(s => `<th scope="col">${esc(s.title)}</th>`).join("")}</tr></thead><tbody>
+    ${run.profiles.map(p => `<tr><th scope="row">${esc(p.title)}<small>${p.mode === "voice" ? "Voice" : "Chat"}</small></th>${run.scripts.map(s => { const c = cell(s.id, p.id); if (!c) return `<td>–</td>`; const on = sim.cell && sim.cell.s === s.id && sim.cell.p === p.id; return `<td><button type="button" class="scell ${best[p.id] === s.id ? "best" : ""} ${on ? "on" : ""}" data-cell="${esc(s.id)}|${esc(p.id)}" title="Show these conversations"><b>${c.bookedPer100}</b><span>of 100 book</span><small>${c.emailPer100} give email</small></button></td>`; }).join("")}</tr>`).join("")}
+  </tbody></table></div>`;
+  const checks = run.scripts.filter(s => real[s.id] && real[s.id].n >= 20).map(s => { const sm = cells.filter(c => c.scriptId === s.id); const n = sm.reduce((a, c) => a + c.n, 0), b = sm.reduce((a, c) => a + c.booked, 0); return `<span class="chip lchip">${esc(s.title)} · sim ${n ? Math.round(b * 100 / n) : 0}, real ${Math.round(real[s.id].booked * 100 / real[s.id].n)}</span>`; });
+  const sel = sim.cell ? convs.filter(c => c.scriptId === sim.cell.s && c.profileId === sim.cell.p) : [];
+  const HOW = {booked: ["Booked a call", "ok"], email: ["Gave email", "ok"], left: ["Left", "bad"], error: ["Error", "off"]};
+  return {top, body: `<div class="page wide">${head}
+    <section class="stack" style="gap:10px"><div class="row" style="justify-content:space-between"><span class="label">How many of 100 would book a call · simulated</span><span class="label desk-only">Outlined = best script for that kind of person</span></div>${matrix}
+      <p class="note">Click a number to read those conversations.</p></section>
+    ${sim.cell ? `<section class="stack" style="gap:10px"><span class="label">${esc((run.scripts.find(s => s.id === sim.cell.s) || {}).title)} × ${esc((run.profiles.find(p => p.id === sim.cell.p) || {}).title)}</span>
+      <div class="card vcard">${sel.map(c => `<a class="rowlink lrow" href="#/simulator/c/${encodeURIComponent(run.id)}/${encodeURIComponent(c.key)}"><span class="avatar">${esc((c.name || "?")[0])}</span><span class="grow"><span class="lname">${esc(c.name)}</span><small>${esc(c.how === "left" ? `Left at ${STAGE_LABEL[c.stage] || c.stage}: ${c.reason}` : c.reason || c.role)}</small></span><span class="lst ${(HOW[c.how] || HOW.error)[1]}"><i></i>${(HOW[c.how] || HOW.error)[0]}</span><span class="chev">${ic("chev")}</span></a>`).join("")}</div></section>` : ""}
+    <section class="stack" style="gap:10px"><span class="label">How much to trust this</span>
+      <div class="card vcard pad stack" style="gap:8px"><p class="ltext">${checks.length ? "Scripts with enough real conversations, simulated vs real calls per 100:" : "Not enough real conversations yet to check the simulation against real visitors (needs 20 per script). Use it to compare scripts with each other."}</p>${checks.length ? `<div class="row" style="gap:6px">${checks.join("")}</div>` : ""}</div></section>
+    ${(run.insights || []).length ? `<section class="stack" style="gap:10px"><span class="label">What we learned</span><div class="card vcard pad"><ul class="lul">${run.insights.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div></section>` : ""}
+    <div class="row" style="gap:8px"><a class="btn vg" href="#/simulator/run">New run</a><a class="btn vg" href="#/playbook">Edit plays</a><span class="spacer"></span><button class="btn plain" type="button" data-rdel>${sim.confirmDel ? "Delete this run?" : "Delete run"}</button></div>
+  </div>`, bind: v => {
+    $$("[data-cell]", v).forEach(b => b.onclick = () => { const [s, p] = b.dataset.cell.split("|"); sim.cell = sim.cell && sim.cell.s === s && sim.cell.p === p ? null : {s, p}; refresh(); });
+    $("[data-rdel]", v).onclick = async () => {
+      if (!sim.confirmDel){ sim.confirmDel = true; refresh(); setTimeout(() => { sim.confirmDel = false; }, 4000); return; }
+      sim.confirmDel = false;
+      try { await simApi("POST", "", {action: "run.delete", id: run.id}); sim.runs = sim.runs.filter(r => r.id !== run.id); sim.run = null; go("simulator/runs"); } catch (e){ toast(e.message, false); }
+    };
+  }};
+}
+
+function simConv(top){
+  const [id, key] = [route.arg2, route.arg3];
+  const k = id + "/" + key;
+  if (!sim.convView || sim.convView.k !== k){ sim.convView = {k, loading: true}; simApi("GET", `view=conv&id=${encodeURIComponent(id)}&key=${encodeURIComponent(key)}`).then(j => { sim.convView = {k, ...j}; }).catch(e => { sim.convView = {k, err: e.message}; }).then(() => { if (route.view === "simulator" && route.arg === "c") refresh(); }); }
+  const d = sim.convView;
+  const back = `#/simulator/r/${encodeURIComponent(id)}`;
+  top = {...top, sub: "Simulated conversation", title: d && d.conv ? d.conv.person.name : "Conversation", crumb: isPhone() ? "" : `<a href="#/simulator/runs">Simulator</a><span>/</span><a href="${back}">Results</a><span>/</span>`, mobileLeft: backBtn(back)};
+  if (!d || d.loading) return {top, body: `<div class="page wide"><p class="note">Loading…</p></div>`};
+  if (d.err) return {top, body: `<div class="page wide"><p class="note err">${esc(d.err)}</p></div>`};
+  const c = d.conv, p = c.person;
+  const OUT = {booked: "Booked a call", email: "Gave their email, didn’t book", left: `Left at ${STAGE_LABEL[c.end && c.end.stage] || "the start"}`, error: "Didn’t finish (error)"};
+  const msgs = c.messages.map(m => m.role === "visitor" ? `<div class="bubble-me vcard">${esc(m.text)}</div>`
+    : m.role === "note" ? `<p class="note" style="align-self:center">${esc(m.text.replace(/^\(|\)$/g, ""))}</p>`
+    : `<div class="orbmsg"><img src="/kb-assets/orb-logo.png" alt=""><div><span class="label">${esc(STAGE_LABEL[m.stage] || m.stage || "")}${m.case ? " · case: " + esc(m.case) : ""}${m.offerBrief ? " · offered the brief" : ""}${m.bookCall ? " · opened the calendar" : ""}</span><span>${esc(plainOrb(m.text))}</span></div></div>`).join("");
+  const help = c.help || d.help;
+  return {top, body: `<div class="page wide">
+    <div class="row" style="justify-content:space-between"><span class="label">${esc((d.script || {}).title || "")} · ${esc((d.profile || {}).title || "")} · ${(d.profile || {}).mode === "voice" ? "voice" : "chat"}</span>
+      <span class="row" style="gap:6px">${d.prev ? `<a class="btn vg" href="#/simulator/c/${encodeURIComponent(id)}/${encodeURIComponent(d.prev)}">Previous person</a>` : ""}${d.next ? `<a class="btn vg" href="#/simulator/c/${encodeURIComponent(id)}/${encodeURIComponent(d.next)}">Next person</a>` : ""}</span></div>
+    <div class="lgrid sconv">
+      <section class="stack" style="gap:10px"><span class="label">Conversation · simulated</span><div class="card vcard pad"><div class="chat ltrans">${msgs}</div></div>
+        <div class="card vcard pad stack" style="gap:6px"><b style="font-weight:450">${esc(OUT[c.end && c.end.how] || "Still running")}</b>${c.end && c.end.reason ? `<p class="ltext">“${esc(c.end.reason)}”</p>` : ""}${d.sameStop > 1 ? `<p class="note">${d.sameStop} of ${d.cellSize} people in this profile left at the same point.</p>` : ""}</div></section>
+      <aside class="stack" style="gap:12px">
+        <div class="pcard vcard"><header><span class="avatar">${esc(p.name[0])}</span><b>${esc(p.name)}${p.age ? ", " + p.age : ""}</b></header><dl>
+          <dt>Who</dt><dd>${esc(p.role)}</dd><dt>Wanted</dt><dd>${esc(p.goal)}</dd><dt>Worried that</dt><dd>${esc(p.worry)}</dd><dt>Would book if</dt><dd>${esc(p.wouldBookIf)}</dd><dt>Style</dt><dd>${esc(p.style)}</dd><dt>Patience</dt><dd>${p.patience} of 5</dd></dl></div>
+        ${c.end && c.end.how !== "booked" ? `<div class="pcard vcard"><header><b>What would have kept ${esc(p.name.split(" ")[0])}</b></header>
+          ${help ? `<p class="ltext">${esc(help.kept_by)}</p><p class="ltext"><b style="font-weight:450">Fix:</b> ${esc(help.fix)}</p>${help.node_id && nodes.has(help.node_id) ? `<a class="btn cta" href="#/node/${encodeURIComponent(help.node_id)}" style="align-self:flex-start">Open ${esc(nodes.get(help.node_id).title)}</a>` : ""}`
+            : `<button class="btn vg" type="button" data-explain ${sim.busy === "explain" ? "disabled" : ""} style="align-self:flex-start">${sim.busy === "explain" ? "Thinking…" : "Ask Claude"}</button>`}</div>` : ""}
+      </aside></div>
+  </div>`, bind: v => {
+    $$("[data-explain]", v).forEach(b => b.onclick = async () => {
+      sim.busy = "explain"; refresh();
+      try { const j = await simApi("POST", "", {action: "conv.explain", id, key}); c.help = j.help; } catch (e){ toast(e.message, false); }
+      sim.busy = ""; refresh();
+    });
+  }};
+}
+
+VIEW.simulator = () => {
+  const top = {title: "Simulator", sub: isPhone() ? "Test scripts on synthetic people" : "Test scripts on synthetic people before real visitors see them",
+    right: `<a class="btn vg" href="#/simulator/runs">Results</a><a class="btn cta" href="#/simulator/run">New run</a>`};
+  if (!sim.loaded){ if (!sim.loading){ sim.loading = true; loadSim().then(() => { sim.loading = false; }); } return {top, body: `<div class="page wide"><p class="note">Loading…</p></div>`}; }
+  if (sim.err) return {top, body: `<div class="page wide"><p class="note err">${esc(sim.err)}</p><button class="btn vg" type="button" data-retry style="align-self:flex-start">Try again</button></div>`, bind: v => { $("[data-retry]", v).onclick = () => { sim.loaded = false; refresh(); }; }};
+  if (route.arg === "run") return simNewRun(top);
+  if (route.arg === "runs") return simRuns(top);
+  if (route.arg === "r" && route.arg2) return simResult(top);
+  if (route.arg === "c" && route.arg2) return simConv(top);
+  return simProfiles(top);
 };
 
 VIEW.leads = () => {
