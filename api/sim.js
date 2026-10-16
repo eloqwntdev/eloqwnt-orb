@@ -4,7 +4,7 @@ import { waitUntil } from "@vercel/functions";
 import { isAuthed, json, redis, redisConfigured } from "../lib/server.js";
 import { newId } from "../lib/orb-context.js";
 import {
-  PARALLEL, advance, cleanProfile, explain, insightsFor, recommendFor, listProfiles, loadConvs, loadRun, makePeople, profileFromText,
+  PARALLEL, advance, cleanProfile, explain, insightsFor, recommendFor, updateFor, listProfiles, loadConvs, loadRun, makePeople, profileFromText,
   profilesFromReal, saveConvs, saveProfile, saveRun, scriptsFor, summarise,
 } from "../lib/sim.js";
 
@@ -243,6 +243,29 @@ export async function POST(request) {
       for (const k of Object.keys(usage)) run.usage[k] = (run.usage[k] || 0) + usage[k];
       await saveRun(run);
       return json({ recs: run.recs });
+    }
+
+    if (a === "run.update") {
+      // turn one playbook's recommendations into updated plays (shown before → after; copy or apply)
+      const run = await loadRun(body.id);
+      const rec = run?.recs?.playbooks?.find((p) => p.scriptId === body.scriptId);
+      if (!rec) return json({ error: "Get recommendations first." }, 400);
+      try {
+        const upd = await updateFor(run, rec, (await scriptsFor([])).ctx, usage);
+        run.updates = { ...(run.updates || {}), [rec.scriptId]: upd };
+      } catch (e) { return json({ error: e.message || "Couldn’t write the update." }, 502); }
+      for (const k of Object.keys(usage)) run.usage[k] = (run.usage[k] || 0) + usage[k];
+      await saveRun(run);
+      return json({ update: run.updates[rec.scriptId] });
+    }
+    if (a === "run.applied") {
+      // remember which updated plays were applied (or undone), so the page shows it after a reload
+      const run = await loadRun(body.id);
+      const u = run?.updates?.[body.scriptId]?.plays?.find((p) => p.id === body.playId);
+      if (!u) return json({ error: "Not found." }, 404);
+      u.appliedAt = body.undo ? "" : new Date().toISOString();
+      await saveRun(run);
+      return json({ ok: true });
     }
 
     if (a === "conv.explain") {

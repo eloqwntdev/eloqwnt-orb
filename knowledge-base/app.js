@@ -2731,6 +2731,22 @@ function simResult(top){
   // ---- recommendations ----
   const AREA = {opener: "Opener", questions: "Questions", proof: "Proof", objections: "Objections", close: "Close", offer: "Offer", knowledge_base: "Knowledge base"};
   const recs = run.recs;
+  const FIELD = {recognise: "Use when", audience: "Who", goal: "Aim", opener: "Opener", questions: "Questions", proofs: "Proof", objections: "Objections", close: "Close"};
+  const showField = (f, v) => Array.isArray(v) ? (v.length ? `<ul>${v.map(x => `<li>${f === "objections" ? `<i>“${esc(x.q)}”</i> → ${esc(x.a)}` : f === "proofs" ? `${esc((nodes.get(x.nodeId) || {}).title || "Proof")}: ${esc(x.line)}` : esc(x)}</li>`).join("")}</ul>` : `<p class="note">Empty</p>`) : `<p>${esc(v) || "<span class='note'>Empty</span>"}</p>`;
+  const updBlock = sid => {
+    const u = (run.updates || {})[sid], busy = sim.busy === "upd:" + sid;
+    if (!u) return `<div class="supd"><span class="label">Paste-ready update</span><div class="row" style="gap:12px;flex-wrap:wrap"><span class="ltext" style="flex:1;min-width:220px">Claude writes these changes into the plays themselves, in the exact format the orb reads. Only the parts above change; everything else stays word for word.</span><button class="btn vg" type="button" data-upd="${esc(sid)}" ${sim.busy ? "disabled" : ""}>${busy ? "Writing the update…" : "Write it into the plays"}</button></div></div>`;
+    return `<div class="supd"><div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap"><span class="label">Paste-ready update · ${plural(u.plays.length, "play")}</span>
+        <span class="row" style="gap:14px">${u.plays.length ? `<button class="linkbtn" type="button" data-copyall="${esc(sid)}">Copy all</button>` : ""}<button class="linkbtn" type="button" data-upd="${esc(sid)}" ${sim.busy ? "disabled" : ""}>${busy ? "Rewriting…" : "Rewrite"}</button></span></div>
+      ${u.plays.length ? "" : `<p class="note">Nothing to change in the plays; see the knowledge base list below.</p>`}
+      ${u.plays.map(pl => `<div class="supdplay">
+        <header><b>${esc(pl.title)}</b><span class="spacer"></span>${pl.appliedAt ? `<span class="chip lchip ok">Applied</span><button class="linkbtn" type="button" data-undo="${esc(sid)}|${esc(pl.id)}">Undo</button>` : `<button class="linkbtn" type="button" data-copypl="${esc(sid)}|${esc(pl.id)}">Copy</button><button class="btn cta sm" type="button" data-apply="${esc(sid)}|${esc(pl.id)}">Apply to play</button>`}</header>
+        ${pl.note ? `<p class="note">${esc(pl.note)}</p>` : ""}
+        ${pl.changed.map(f => `<div class="sdiff"><span class="label">${FIELD[f] || f}</span><div class="was">${showField(f, pl.before[f])}</div><div class="now">${showField(f, pl.after[f])}</div></div>`).join("")}
+      </div>`).join("")}
+      ${u.kb.length ? `<div><span class="label">Fill in the knowledge base by hand</span><ul class="skb">${u.kb.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+    </div>`;
+  };
   const recBlock = `<section class="stack" style="gap:10px"><div class="row" style="justify-content:space-between"><span class="label">Recommendations · what to change in each playbook</span>${recs ? `<button class="linkbtn" type="button" data-recs>${sim.busy === "recs" ? "Thinking…" : "Regenerate"}</button>` : ""}</div>
     ${!recs ? `<div class="card vcard pad row" style="gap:12px;flex-wrap:wrap"><span class="ltext" style="flex:1;min-width:220px">Claude reads every conversation in this run and tells you where each playbook loses people, who it works for and exactly what to change.</span><button class="btn cta" type="button" data-recs ${sim.busy ? "disabled" : ""}>${sim.busy === "recs" ? "Reading the conversations…" : "Get recommendations"}</button></div>`
       : recs.playbooks.map(pb => { const sc = run.scripts.find(x => x.id === pb.scriptId) || {title: pb.scriptId};
@@ -2741,6 +2757,7 @@ function simResult(top){
           <div class="sfit"><div><span class="label">Works best for</span>${pb.best.map(x => `<p><b class="ok">${esc(x.profile)}</b> ${esc(x.why)}</p>`).join("") || `<p class="note">No clear winner yet.</p>`}</div>
             <div><span class="label">Struggles with</span>${pb.worst.map(x => `<p><b class="bad">${esc(x.profile)}</b> ${esc(x.why)}</p>`).join("") || `<p class="note">Nothing stands out.</p>`}</div></div>
           <div class="schanges"><span class="label">Change next</span><ol>${pb.changes.map(c => `<li><span class="chip lchip">${esc(AREA[c.area] || c.area)}</span><div><p>${esc(c.change)}</p><small>${esc(c.why)}</small>${c.nodeId && nodes.has(c.nodeId) ? `<a class="linkbtn" href="#/node/${encodeURIComponent(c.nodeId)}">Open ${esc(nodes.get(c.nodeId).title)}</a>` : ""}</div></li>`).join("")}</ol></div>
+          ${updBlock(pb.scriptId)}
         </article>`; }).join("") + (recs.next ? `<p class="note"><b style="font-weight:450">Next test:</b> ${esc(recs.next)}</p>` : "")}
   </section>`;
   return {top, body: `<div class="page wide">${head}
@@ -2762,6 +2779,28 @@ function simResult(top){
     // only finished conversations, so the boxes match the numbers below (a stopped run has unfinished ones)
     const dots = convs.length ? Object.fromEntries(done.map(c => [c.key, {n: c.name, p: Math.max(0, run.profiles.findIndex(p => p.id === c.profileId)), s: c.stage, h: c.how, t: c.turns}])) : (run.dots || {});
     labFeed({...run, peopleReady: true, dots}, []); labStart(run, true);
+    const copy = async t => { try { await navigator.clipboard.writeText(t); toast("Copied. Paste it into the play or your system prompt"); } catch { toast("Couldn’t copy", false); } };
+    const findPl = k => { const [sid, pid] = k.split("|"); return {sid, pl: ((run.updates || {})[sid] || {plays: []}).plays.find(x => x.id === pid)}; };
+    $$("[data-upd]", v).forEach(b => b.onclick = async () => {
+      sim.busy = "upd:" + b.dataset.upd; refresh();
+      try { const j = await simApi("POST", "", {action: "run.update", id: run.id, scriptId: b.dataset.upd}); sim.run.run.updates = {...(sim.run.run.updates || {}), [b.dataset.upd]: j.update}; } catch (e){ toast(e.message, false); }
+      sim.busy = ""; refresh();
+    });
+    $$("[data-copypl]", v).forEach(b => b.onclick = () => copy(findPl(b.dataset.copypl).pl.text));
+    $$("[data-copyall]", v).forEach(b => b.onclick = () => { const u = run.updates[b.dataset.copyall]; copy(u.plays.map(x => x.text).join("\n\n") + (u.kb.length ? "\n\n# Still to fill in the knowledge base\n" + u.kb.map(x => "- " + x).join("\n") : "")); });
+    const setPlay = async (k, undo) => {
+      const {sid, pl} = findPl(k); if (!pl) return;
+      try {
+        const body = undo ? {...pl.after, ...pl.before} : pl.after;
+        await pbWrite("play", pl.id, body);
+        await simApi("POST", "", {action: "run.applied", id: run.id, scriptId: sid, playId: pl.id, undo: !!undo});
+        pl.appliedAt = undo ? "" : new Date().toISOString(); loadPlaybook();
+        toast(undo ? "Play restored" : "Play updated. The orb uses it from now on");
+      } catch (e){ toast(e.message || "Couldn’t save the play", false); }
+      refresh();
+    };
+    $$("[data-apply]", v).forEach(b => b.onclick = () => setPlay(b.dataset.apply, false));
+    $$("[data-undo]", v).forEach(b => b.onclick = () => setPlay(b.dataset.undo, true));
     $$("[data-recs]", v).forEach(b => b.onclick = async () => {
       sim.busy = "recs"; refresh();
       try { const j = await simApi("POST", "", {action: "run.recommend", id: run.id}); sim.run.run.recs = j.recs; } catch (e){ toast(e.message, false); }
