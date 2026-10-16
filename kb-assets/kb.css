@@ -10,7 +10,7 @@
   --cta:#111111; --cta-ink:#ffffff; --cta-hover:#2a2b2f;
   --amber:#eeb743; --amber-ink:#a8740a; --amber-soft:rgba(238,183,67,.18); --amber-faint:rgba(238,183,67,.08);
   --green:#6abe81; --green-ink:#4f8a3a; --green-soft:rgba(106,190,129,.16);
-  --red:#eb4a52; --red-soft:rgba(235,74,82,.08);
+  --red:#c2410c; --red-soft:rgba(194,65,12,.08); --on-red:#ffffff; /* danger and errors: warm vermilion, kept apart from the red accent */
   --pk1:#e8505c; --pk2:#d5001c; --pk:linear-gradient(90deg,#d5001c,#d5001c); --pk-soft:rgba(213,0,28,.08); /* accent red (was pink) */
   --scrim:rgba(244,244,245,.55); --shadow:0 1px 2px rgba(8,8,10,.04); --pop-shadow:0 12px 40px rgba(8,8,10,.12);
   --orb:url('/kb-assets/orb-loop-light.webp');
@@ -26,7 +26,7 @@
   --cta:#ffffff; --cta-ink:#111111; --cta-hover:#e5e6e7;
   --amber:#ffcf5c; --amber-ink:#ffcf5c; --amber-soft:rgba(255,207,92,.16); --amber-faint:rgba(255,207,92,.08);
   --green:#84e29e; --green-ink:#84e29e; --green-soft:rgba(132,226,158,.12);
-  --red:#ff6b72; --red-soft:rgba(255,107,114,.10);
+  --red:#ff8a50; --red-soft:rgba(255,138,80,.12); --on-red:#1d1e22;
   --pk1:#ff6b74; --pk2:#f0283a; --pk:linear-gradient(90deg,#f0283a,#f0283a); --pk-soft:rgba(240,40,58,.14);
   --scrim:rgba(20,21,24,.55); --shadow:none; --pop-shadow:0 12px 40px rgba(0,0,0,.45);
   --orb:url('/kb-assets/orb-loop-dark.webp');
@@ -38,7 +38,7 @@
   --cta:#ffffff; --cta-ink:#111111; --cta-hover:#e5e6e7;
   --amber:#ffcf5c; --amber-ink:#ffcf5c; --amber-soft:rgba(255,207,92,.16); --amber-faint:rgba(255,207,92,.08);
   --green:#84e29e; --green-ink:#84e29e; --green-soft:rgba(132,226,158,.12);
-  --red:#ff6b72; --red-soft:rgba(255,107,114,.10);
+  --red:#ff8a50; --red-soft:rgba(255,138,80,.12); --on-red:#1d1e22;
   --pk1:#ff6b74; --pk2:#f0283a; --pk:linear-gradient(90deg,#f0283a,#f0283a); --pk-soft:rgba(240,40,58,.14);
   --scrim:rgba(20,21,24,.55); --shadow:none; --pop-shadow:0 12px 40px rgba(0,0,0,.45);
   --orb:url('/kb-assets/orb-loop-dark.webp');
@@ -135,3 +135,5 @@ input[type=checkbox]:active{transform:scale(.9)}
   *,*::before,*::after{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}
   .ping::after{display:none}
 }
+.btn.dfill{background:var(--red);color:var(--on-red);font-family:var(--f-mono);font-size:12.5px;font-weight:500;letter-spacing:.02em;text-transform:uppercase;border:0;box-shadow:none}
+.btn.dfill::before,.btn.dfill::after{display:none}

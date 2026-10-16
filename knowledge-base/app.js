@@ -1246,7 +1246,7 @@ function confirmDeleteNode(d){
   openDialog(`<h2 class="h2">Delete ${esc(d.title)}?</h2>
     <p class="lead" style="font-size:15px">The orb will stop mentioning this ${esc((TYPE_ONE[d.type] || "node").toLowerCase())}. ${usedBy.length ? `${plural(usedBy.length, "play")} use${usedBy.length === 1 ? "s" : ""} it as proof; they’ll keep working with their other nodes.` : "This can’t be undone."}</p>
     ${usedBy.length ? `<div class="stack" style="gap:0">${usedBy.map(p => `<div class="row" style="padding:10px 0;border-bottom:1px solid var(--hl);font-size:13.5px;flex-wrap:nowrap">${ic("book")}${esc(p.title)}</div>`).join("")}</div>` : ""}
-    <div class="row" style="justify-content:flex-end"><button class="btn vg lg" type="button" data-close>Cancel</button><button class="btn lg" type="button" data-yes style="background:var(--red);color:#fff;font-family:var(--f-mono);font-size:12.5px;text-transform:uppercase;letter-spacing:.02em">Delete ${esc((TYPE_ONE[d.type] || "node").toLowerCase())}</button></div>`,
+    <div class="row" style="justify-content:flex-end"><button class="btn vg lg" type="button" data-close>Cancel</button><button class="btn lg" type="button" data-yes style="background:var(--red);color:var(--on-red);font-family:var(--f-mono);font-size:12.5px;text-transform:uppercase;letter-spacing:.02em">Delete ${esc((TYPE_ONE[d.type] || "node").toLowerCase())}</button></div>`,
   dlg => { $("[data-yes]", dlg).onclick = async () => {
     const b = $("[data-yes]", dlg); b.disabled = true; b.textContent = "Deleting…";
     try {
@@ -1807,7 +1807,7 @@ function pbPlay(){
       $$("[data-addp]", view).forEach(b => b.onclick = redo(() => { const first = [...nodes.values()].find(n => n.type === "case"); d.proofs.push({nodeId: first ? first.id : "", line: ""}); }));
       $$("[data-addo]", view).forEach(b => b.onclick = redo(() => d.objections.push({q: "", a: ""})));
       $$("[data-testplay]").forEach(b => b.onclick = () => { pb.testPlay = d.id; pb.chat = []; go("playbook/test"); });
-      $$("[data-pldel]", view).forEach(b => b.onclick = () => openDialog(`<h2 class="h2">Delete ${esc(d.title)}?</h2><p class="lead" style="font-size:15px">The orb will stop using this play. Your sales know-how stays.</p><div class="row" style="justify-content:flex-end"><button class="btn vg lg" type="button" data-close>Cancel</button><button class="btn lg" type="button" data-yes style="background:var(--red);color:#fff;font-family:var(--f-mono);font-size:12.5px;text-transform:uppercase">Delete play</button></div>`,
+      $$("[data-pldel]", view).forEach(b => b.onclick = () => openDialog(`<h2 class="h2">Delete ${esc(d.title)}?</h2><p class="lead" style="font-size:15px">The orb will stop using this play. Your sales know-how stays.</p><div class="row" style="justify-content:flex-end"><button class="btn vg lg" type="button" data-close>Cancel</button><button class="btn lg" type="button" data-yes style="background:var(--red);color:var(--on-red);font-family:var(--f-mono);font-size:12.5px;text-transform:uppercase">Delete play</button></div>`,
         dlg => { $("[data-yes]", dlg).onclick = async () => { try { await pbDelete("play", d.id); closeDialog(); toast("Play deleted"); pb.draft = null; await loadPlaybook(); go("playbook"); } catch { toast("Couldn’t delete. Try again.", false); } }; }, {label: "Delete play"}));
       bindComposer($("#plFix", view), async v => {
         sync(); pb.fixOne = v;
@@ -2064,7 +2064,7 @@ function leadsList(){
     })() : ""}${rows.map(tab === "leads" ? leadRowHtml : convRowHtml).join("")}</div>` : empty}
     ${leads.selecting ? `<div class="lbulk vcard vg vgc"><span class="note">${leads.sel.size ? plural(leads.sel.size, "selected item", "selected items") : "Tick what to remove"}</span><span class="spacer"></span>
       <button class="btn plain" type="button" data-selall>${rows.every(r => leads.sel.has((tab === "leads" ? "l:" : "c:") + r.id)) && rows.length ? "Clear" : "Select all"}</button>
-      <button class="btn ${leads.confirmBulk ? "cta" : "vg"}" type="button" data-bulkdel ${leads.sel.size ? "" : "disabled"}>${leads.confirmBulk ? "Delete for good?" : "Delete"}</button></div>` : ""}
+      <button class="btn ${leads.confirmBulk ? "dfill" : "vg"}" type="button" data-bulkdel ${leads.sel.size ? "" : "disabled"}>${leads.confirmBulk ? "Delete for good?" : "Delete"}</button></div>` : ""}
   </div>`, bind: v => {
     $$("[data-lt]", v).forEach(b => b.onclick = () => { leads.tab = b.dataset.lt; refresh(); });
     $$("[data-pick]", v).forEach(x => x.onchange = () => { x.checked ? leads.sel.add(x.dataset.pick) : leads.sel.delete(x.dataset.pick); leads.confirmBulk = false; refresh(); });
