@@ -1,5 +1,6 @@
 // Script simulator API (signed-in only). The dashboard drives a run by calling run.step until it's done,
 // so a run pauses when the tab is closed and continues when it's opened again.
+import { waitUntil } from "@vercel/functions";
 import { isAuthed, json, redis, redisConfigured } from "../lib/server.js";
 import { newId } from "../lib/orb-context.js";
 import {
@@ -11,7 +12,26 @@ const ID = /^[a-z0-9-]{1,80}$/;
 const MAX_TOTAL = 300;
 const parse = (raw) => { try { return raw ? JSON.parse(raw) : null; } catch { return null; } };
 
-async function guard(request) {
+/* ---------- runs keep going on the server, tab open or not ----------
+   Each step asks for the next one (a call to this same endpoint, signed with a key only the server knows).
+   The dashboard only watches; if the chain ever stops, it gives it a nudge. */
+const enc = new TextEncoder();
+async function bgKey(id) {
+  const k = await crypto.subtle.importKey("raw", enc.encode(process.env.KB_PASSWORD || "x"), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return [...new Uint8Array(await crypto.subtle.sign("HMAC", k, enc.encode("sim-bg:" + id)))].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function kick(request, id) {
+  const url = new URL("/api/sim", request.url).toString();
+  const key = await bgKey(id);
+  const ctl = new AbortController();
+  // fire the next step and let it run on its own; don't hold this function open waiting for it
+  const p = fetch(url, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/json", "x-sim-bg": key }, body: JSON.stringify({ action: "run.step", id }) }).catch(() => {});
+  setTimeout(() => ctl.abort(), 2500);
+  waitUntil(Promise.race([p, new Promise((r) => setTimeout(r, 3000))]));
+}
+
+async function guard(request, body) {
+  if (body && body.action === "run.step" && request.headers.get("x-sim-bg") && request.headers.get("x-sim-bg") === (await bgKey(String(body.id || "")))) return null;
   if (!(await isAuthed(request))) return json({ error: "Sign in to use the simulator." }, 401);
   if (!redisConfigured()) return json({ error: "Storage isn’t connected yet." }, 503);
   if (!process.env.ANTHROPIC_API_KEY) return json({ error: "Claude isn’t connected. Add ANTHROPIC_API_KEY in Vercel." }, 503);
@@ -48,6 +68,14 @@ export async function GET(request) {
     });
   }
 
+  if (view === "active") {
+    // the running run (or one that finished in the last 30 minutes) for the progress island
+    const ids = (await redis("ZREVRANGE", "sim:runs", 0, 4)) || [];
+    const runs = (ids.length ? await redis("MGET", ...ids.map((id) => "sim:run:" + id)) : []).map(parse).filter(Boolean);
+    const run = runs.find((r) => r.status === "running") || runs.find((r) => r.finishedAt && Date.now() - new Date(r.finishedAt).getTime() < 30 * 60e3);
+    return json({ run: run ? progress(run) : null });
+  }
+
   if (view === "run") {
     const run = await loadRun(u.searchParams.get("id"));
     if (!run) return json({ error: "This run doesn’t exist any more." }, 404);
@@ -80,9 +108,9 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const denied = await guard(request);
-  if (denied) return denied;
   const body = await request.json().catch(() => ({}));
+  const denied = await guard(request, body);
+  if (denied) return denied;
   const a = body.action;
   const usage = {};
   try {
@@ -128,6 +156,7 @@ export async function POST(request) {
       };
       await saveRun(run);
       await redis("ZADD", "sim:runs", Date.now(), run.id);
+      await kick(request, run.id);
       return json({ run: progress(run) });
     }
 
@@ -183,7 +212,10 @@ export async function POST(request) {
           }
         }
         for (const k of Object.keys(usage)) run.usage[k] = (run.usage[k] || 0) + usage[k];
+        run.events = [...events.map((e) => ({ ...e, at: Date.now() })), ...(run.events || [])].slice(0, 40);
+        run.lastStepAt = Date.now();
         await saveRun(run);
+        if (run.status === "running") await kick(request, run.id);
         return json({ run: progress(run), events });
       } finally { await redis("DEL", "sim:lock:" + run.id); }
     }

@@ -2367,28 +2367,56 @@ async function loadSim(){
     Object.assign(sim, {loaded: true, err: "", profiles: j.profiles, scripts: j.scripts, runs: j.runs});
     if (!sim.pick) sim.pick = {scripts: j.scripts.filter(s => s.id !== "live").slice(0, 3).map(s => s.id), profiles: j.profiles.slice(0, 3).map(p => p.id), per: 10};
     if (!sim.pick.scripts.length && j.scripts.length) sim.pick.scripts = ["live"];
-    const running = j.runs.find(r => r.status === "running");
-    if (running) stepRun(running.id);
+    simWatch(true);
   } catch (e){ sim.loaded = true; sim.err = e.message; }
   if (route.view === "simulator") refresh();
 }
 /* Keep stepping a running run while the dashboard is open. */
-async function stepRun(id){
-  if (sim.stepping === id) return;
-  sim.stepping = id;
-  let fails = 0;
-  while (sim.stepping === id){
-    try {
-      const j = await simApi("POST", "", {action: "run.step", id});
-      fails = 0;
-      const r = j.run; sim.runs = [r, ...sim.runs.filter(x => x.id !== id)];
-      if (sim.run && sim.run.run.id === id) sim.run.run = r;
-      if (r.status !== "running"){ sim.stepping = null; if (sim.run && sim.run.run.id === id) await openRun(id, true); toast(r.stopped ? "Run stopped" : "Simulation finished"); break; }
-      labFeed(r, j.events);
+/* Runs go on on the server by themselves. The dashboard just watches the active run: it feeds the island and the
+   lab view, and nudges the run if its server-side chain ever stalls. */
+let watchT = null, lastNudge = 0;
+function stepRun(){ simWatch(true); }
+async function simWatch(now){
+  clearTimeout(watchT);
+  if (!now) { watchT = setTimeout(() => simWatch(true), document.hidden ? 15000 : 3000); return; }
+  let r = null;
+  try { const r0 = await fetch("/api/sim?view=active", {cache: "no-store"}); if (r0.ok) r = (await r0.json()).run; } catch {}
+  const prev = sim.active;
+  sim.active = r;
+  if (r){
+    sim.runs = [r, ...sim.runs.filter(x => x.id !== r.id)];
+    if (r.status === "running"){
+      const stale = Date.now() - (r.lastStepAt || new Date(r.createdAt).getTime()) > 90000;
+      if (stale && Date.now() - lastNudge > 60000){ lastNudge = Date.now(); fetch("/api/sim", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({action: "run.step", id: r.id})}).catch(() => {}); }
+      const fresh = (r.events || []).filter(e => e.at > (lab.lastAt || 0)).reverse();
+      if (fresh.length) lab.lastAt = fresh[fresh.length - 1].at;
+      labFeed(r, fresh);
+      if (sim.run && sim.run.run.id === r.id) sim.run.run = r;
       if (route.view === "simulator" && !dialogOpen()){ paintRunProgress(r); labPaintText(r); }
-      if (j.busy) await new Promise(res => setTimeout(res, 3000));
-    } catch (e){ if (++fails >= 4){ sim.stepping = null; toast(e.message, false); break; } await new Promise(res => setTimeout(res, 3000)); }
+    } else if (prev && prev.id === r.id && prev.status === "running"){
+      toast(r.stopped ? "Run stopped" : "Simulation finished");
+      if (sim.run && sim.run.run.id === r.id) await openRun(r.id, true);
+    }
   }
+  renderIsland();
+  simWatch(false);
+}
+/* The island: a small pill at the top of every screen while a run is going (or just finished). */
+function renderIsland(){
+  const r = sim.active;
+  let el = $("#simIsland");
+  const onIt = r && route.view === "simulator" && route.arg === "r" && route.arg2 === r.id;
+  const dismissed = r && store.get("kb-island-x", "") === r.id;
+  if (!r || onIt || (r.status !== "running" && dismissed)){ if (el) el.classList.remove("on"); return; }
+  if (!el){ document.body.insertAdjacentHTML("beforeend", `<button type="button" id="simIsland" class="island" aria-live="polite"></button>`); el = $("#simIsland"); el.onclick = e => { const x = e.target.closest("[data-ix]"); if (x){ store.set("kb-island-x", sim.active.id); el.classList.remove("on"); e.stopPropagation(); return; } go("simulator/r/" + sim.active.id); }; }
+  const dots = Object.values(r.dots || {}), booked = dots.filter(d => d.h === "booked").length;
+  const pct = r.total ? Math.round(r.done * 100 / r.total) : 0;
+  const ring = `<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-opacity=".2" stroke-width="2.4"/><circle cx="10" cy="10" r="8" fill="none" stroke="var(--pk2)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="${(50.27 * pct / 100).toFixed(1)} 50.27" transform="rotate(-90 10 10)"/></svg>`;
+  el.innerHTML = r.status === "running"
+    ? `${ring}<span class="it"><b>Simulating</b><span>${r.peopleReady ? `${r.done}/${r.total}` : "creating people"}${booked ? ` · ${booked} booked` : ""}</span></span><span class="idot"></span>`
+    : `<span class="ok">${ic("check", 2)}</span><span class="it"><b>Simulation ${r.stopped ? "stopped" : "finished"}</b><span>See results</span></span><span class="ix" data-ix aria-label="Dismiss">${ic("x", 1.6)}</span>`;
+  el.setAttribute("aria-label", r.status === "running" ? `Simulation running, ${r.done} of ${r.total} conversations. Open it.` : "Simulation finished. See results.");
+  el.classList.add("on");
 }
 function paintRunProgress(r){
   const bar = $("#simbar"); if (!bar){ if (route.arg === "r" && route.arg2 === r.id) refresh(); return; }
@@ -2495,7 +2523,7 @@ function simNewRun(top){
     $$("[data-per]", v).forEach(b => b.onclick = () => { k.per = +b.dataset.per; refresh(); });
     $$("[data-start]", v).forEach(b => b.onclick = async () => {
       sim.busy = "start"; refresh();
-      try { const j = await simApi("POST", "", {action: "run.create", scripts: k.scripts, profiles: k.profiles, per: k.per}); sim.runs.unshift(j.run); sim.busy = ""; sim.run = {run: j.run, real: {}, convs: []}; go("simulator/r/" + j.run.id); stepRun(j.run.id); }
+      try { const j = await simApi("POST", "", {action: "run.create", scripts: k.scripts, profiles: k.profiles, per: k.per}); sim.runs.unshift(j.run); sim.busy = ""; sim.run = {run: j.run, real: {}, convs: []}; go("simulator/r/" + j.run.id); simWatch(true); }
       catch (e){ sim.busy = ""; toast(e.message, false); refresh(); }
     });
   }};
@@ -2642,7 +2670,7 @@ function simResult(top){
       <div class="track" id="simbar" style="height:6px"><i style="width:${run.total ? run.done * 100 / run.total : 0}%"></i></div>
       <p class="note">Keep this tab open. If you close it the run pauses, and it carries on the next time you open the simulator.</p>
       <div class="row"><button class="btn vg" type="button" data-stop>Stop and score what’s done</button></div></div></div>`,
-    bind: v => { labFeed(run); labStart(run); if (sim.stepping !== run.id) stepRun(run.id); $("[data-stop]", v).onclick = async () => { sim.stepping = null; try { const j = await simApi("POST", "", {action: "run.stop", id: run.id}); sim.run.run = j.run; await openRun(run.id); } catch (e){ toast(e.message, false); } }; }};
+    bind: v => { labFeed(run, (run.events || []).slice(0, 8).reverse()); lab.lastAt = Math.max(lab.lastAt || 0, ...(run.events || []).map(e => e.at || 0)); labStart(run); $("[data-stop]", v).onclick = async () => { try { const j = await simApi("POST", "", {action: "run.stop", id: run.id}); sim.run.run = j.run; await openRun(run.id); } catch (e){ toast(e.message, false); } }; }};
   const cells = run.cells || [];
   const cell = (s, p) => cells.find(c => c.scriptId === s && c.profileId === p);
   const best = {}; run.profiles.forEach(p => { let b = null; run.scripts.forEach(s => { const c = cell(s.id, p.id); if (c && c.n && (!b || c.bookedPer100 > b.bookedPer100)) b = c; }); if (b && b.bookedPer100 > 0) best[p.id] = b.scriptId; });
@@ -2811,6 +2839,8 @@ render();
   await loadPlaybook();
   if (route.view === "playbook" || !safeToRerender()) { onRoute(); } else refresh();
   if (route.view === "leads" || route.view === "insights") loadLeads();
+  simWatch(true);
+  addEventListener("hashchange", () => setTimeout(renderIsland, 50));
   setInterval(() => { if (!document.hidden){ loadNodes(); loadPlaybook(); if (route.view === "insights" || route.view === "leads" && !route.arg) loadLeads(); } }, 30000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) loadNodes(); });
 })();

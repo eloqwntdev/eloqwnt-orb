@@ -553,3 +553,18 @@ pre.md{margin:0;padding:16px 18px;border-radius:16px;font-family:var(--f-mono);f
   .lablog{height:120px}
 }
 @media (prefers-reduced-motion:reduce){.labdot{animation:none}}
+/* ---------- simulation island (shows on every screen while a run is going) ---------- */
+.island{position:fixed;z-index:35;top:14px;left:50%;transform:translate(-50%,-140%);display:flex;align-items:center;gap:10px;height:44px;padding:0 10px 0 12px;border-radius:999px;background:#0c0c0e;color:#f2f2f3;border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 30px rgba(0,0,0,.28);font-size:13px;transition:transform var(--t-slow) var(--ease-pop),opacity var(--t-base);opacity:0;cursor:pointer}
+.island.on{transform:translate(-50%,0);opacity:1}
+.island:hover{background:#151518}
+.island .it{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
+.island .it b{font-weight:500}
+.island .it span{font-family:var(--f-mono);font-size:11px;letter-spacing:.03em;color:#a9abb0}
+.island .idot{width:7px;height:7px;border-radius:50%;background:var(--pk2);animation:labblink 1.4s ease-in-out infinite;margin-right:4px}
+.island .ok{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--pk2);color:#fff}
+.island .ok svg{width:12px;height:12px}
+.island .ix{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;color:#a9abb0}
+.island .ix:hover{background:rgba(255,255,255,.08);color:#fff}
+.island .ix svg{width:12px;height:12px}
+@media (max-width:760px){.island{top:auto;bottom:calc(env(safe-area-inset-bottom) + 88px);height:40px;font-size:12.5px;transform:translate(-50%,180%)}.island.on{transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.island{transition:opacity var(--t-base)}}
