@@ -2574,13 +2574,16 @@ function labHtml(run){
 function labStart(run){
   cancelAnimationFrame(lab.raf);
   const cv = $("#labcv"); if (!cv) return;
-  // explicit colours per theme, so grid lines and boxes stay visible on the white card too
+  // dark: the theme's own colours (as designed); light: stronger lines so the grid shows on the white card
   const palette = () => {
-    const bg = getComputedStyle(cv.closest(".lab") || document.body).backgroundColor.match(/\d+(\.\d+)?/g) || [255, 255, 255];
-    const dark = (0.299 * bg[0] + 0.587 * bg[1] + 0.114 * bg[2]) < 128;
-    return dark
-      ? {red: "#f0283a", ink: "#e6e7ea", mut: "#8b8f97", hl: "rgba(255,255,255,.16)", box: "rgba(255,255,255,.22)", dim: "rgba(230,231,234,.45)"}
-      : {red: "#d5001c", ink: "#16171a", mut: "#6b7079", hl: "rgba(8,8,10,.16)", box: "rgba(8,8,10,.22)", dim: "rgba(22,23,26,.35)"};
+    const t = document.documentElement.dataset.theme;
+    const dark = t === "dark" || (t !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+    if (dark){
+      const css = getComputedStyle(document.documentElement), v = n => css.getPropertyValue(n).trim() || "#888";
+      const ink = v("--ink");
+      return {red: v("--pk2"), ink, mut: v("--mut"), hl: v("--hl"), box: v("--hl"), dim: ink, dimAlpha: .5};
+    }
+    return {red: "#d5001c", ink: "#16171a", mut: "#6b7079", hl: "rgba(8,8,10,.16)", box: "rgba(8,8,10,.22)", dim: "rgba(22,23,26,.35)", dimAlpha: 1};
   };
   let C = palette(), frames = 0;
   const dpr = Math.min(2, devicePixelRatio || 1);
@@ -2636,7 +2639,7 @@ function labStart(run){
       const base = lab.dots.size <= 80 ? 3.8 : 3;
       const r = talking ? base + .4 + Math.sin(lab.pulse * 4 + hash(k)) * .8 : base;
       g.fillStyle = d.h === "booked" ? C.red : d.h === "email" ? C.ink : d.h ? C.mut : talking ? C.red : !d.s ? C.dim : C.ink;
-      g.globalAlpha = d.h === "left" || d.h === "error" ? .55 : 1;
+      g.globalAlpha = d.h === "left" || d.h === "error" ? (C.dimAlpha < 1 ? .45 : .55) : !d.s && !d.h && !talking ? C.dimAlpha : 1;
       g.beginPath(); g.arc(d.px, d.py, r, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
       if (talking){ g.strokeStyle = C.red; g.globalAlpha = .35; g.beginPath(); g.arc(d.px, d.py, r + 3 + Math.sin(lab.pulse * 4) * 1.5, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1; }
     }
