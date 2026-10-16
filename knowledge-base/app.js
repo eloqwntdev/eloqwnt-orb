@@ -2654,7 +2654,7 @@ async function loadNodes(){
 }
 
 function shell(){
-  document.body.insertAdjacentHTML("afterbegin", `<svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs><linearGradient id="vpk" gradientUnits="userSpaceOnUse" x1="2" y1="8" x2="14" y2="8"><stop offset="0.318" stop-color="#fe7ac6"/><stop offset="0.841" stop-color="#ff4665"/></linearGradient></defs></svg>
+  document.body.insertAdjacentHTML("afterbegin", `<svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs><linearGradient id="vpk" gradientUnits="userSpaceOnUse" x1="2" y1="8" x2="14" y2="8"><stop offset="0" style="stop-color:var(--pk2)"/><stop offset="1" style="stop-color:var(--pk2)"/></linearGradient></defs></svg>
   <div class="app ${store.get("kb-collapsed", false) ? "collapsed" : ""}" id="app">
     <aside class="side vg vgl" id="side" aria-label="Sidebar">
       <div class="brand"><a href="#/map" aria-label="Eloqwnt knowledge base, map"><img src="/kb-assets/orb-logo.png" alt=""><span>eloqwnt</span></a><button class="icon-btn" type="button" id="collapseBtn" aria-label="Collapse sidebar">${ic("side")}</button></div>
